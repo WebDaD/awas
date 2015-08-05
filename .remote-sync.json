@@ -1,0 +1,14 @@
+{
+  "transport": "scp",
+  "hostname": "10.14.210.114",
+  "port": "22",
+  "username": "administrator",
+  "password": "service4$tt",
+  "target": "/opt/awas",
+  "uploadOnSave": true,
+  "ignore": [
+    ".git/**",
+    ".*",
+    "COMMIT*"
+  ]
+}

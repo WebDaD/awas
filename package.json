@@ -1,0 +1,21 @@
+{
+  "name": "awas",
+  "version": "0.0.2",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "*",
+    "nice-console":"*",
+    "exec":"*",
+    "jsonfile":"*",
+    "chokidar":"*",
+    "socket.io": "*",
+		"jade":"*",
+		"body-parser":"*",
+		"stylus":"*",
+		"nib": "*",
+		"MD5": "*"
+  }
+}
