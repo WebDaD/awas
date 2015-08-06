@@ -1,0 +1,12 @@
+extends ./master.jade
+
+block title
+	title AWAS :: Downloads
+
+block content
+	h1 Downloads
+	p.well Hier finden Sie alle Aufnahmen zum Download.
+	ul
+		each file in files.length ? files : ['There are no files']
+			li
+				a(href="/files/"+file target="_blank")= file
