@@ -1,0 +1,47 @@
+extends ./master.jade
+
+block title
+	title AWAS :: Anwender
+
+block content 
+	h1 Anwender
+	table#user.table.table-hover.sortable
+		thead
+			tr
+				th(data-defaultsort="asc") ID
+				th(data-firstsort="asc") Name
+				th Login
+				th E-Mail
+				th Admin
+				if admin
+					th.no-print(data-defaultsort='disabled') *
+		tbody.real
+		each user in users.length ? users : [{id:""}]
+			if user.id
+				tr(id=user.id data-user=user)
+					td= user.id
+					td= user.name
+					td= user.login
+					td= user.email
+					if user.admin
+						td
+							span.glyphicon.glyphicon-ok(aria-hidden="true" style="color:green;")
+					else
+						td
+							span.glyphicon.glyphicon-remove(aria-hidden="true" style="color:red;")
+					if admin
+						td.no-print
+							button.admin.btn.btn-primary.btn-sm(type="button" onclick="user_edit("+user.id+");") 
+								span.glyphicon.glyphicon-pencil(aria-hidden="true")
+								
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="user_delete("+user.id+");") 
+								span.glyphicon.glyphicon-trash(aria-hidden="true")
+								
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_cancel("+user.id+");") 
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
+								
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_ok("+user.id+");") 
+								span.glyphicon.glyphicon-ok(aria-hidden="true")
+			else
+				tr
+					td(colspan="9") Keine User angelegt

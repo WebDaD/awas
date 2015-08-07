@@ -5,8 +5,36 @@ block title
 
 block content
 	h1 Downloads
-	p.well Hier finden Sie alle Aufnahmen zum Download.
-	ul
-		each file in files.length ? files : ['There are no files']
-			li
-				a(href="/files/"+file target="_blank")= file
+	p.well.no-print Hier finden Sie alle Aufnahmen zum Download.
+	table#downloads.table.table-hover.sortable
+		thead
+			tr
+				th.no-print(data-defaultsort='disabled') +
+				th(data-defaultsort="asc") Name
+				th(data-firstsort="asc") Erstellt
+				th Größe
+				if admin
+					th.no-print(data-defaultsort='disabled') *
+		tbody.real
+		each file in files.length ? files : [{name:""}]
+			if file.name
+				tr(id=file.name data-file=file)
+					td.no-print
+						a.btn.btn-primary.btn-sm(type="button" href="/files/"+file.name) 
+							span.glyphicon.glyphicon-download(aria-hidden="true" style="font-size:1.5em;")
+					td= file.name
+					td= file.created
+					td= file.size
+					if admin
+						td.no-print
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete("+file.name+");") 
+								span.glyphicon.glyphicon-trash(aria-hidden="true")
+								
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_cancel("+file.name+");") 
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
+								
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_ok("+file.name+");") 
+								span.glyphicon.glyphicon-ok(aria-hidden="true")
+			else
+				tr
+					td(colspan="4") Keine Dateien vorhanden

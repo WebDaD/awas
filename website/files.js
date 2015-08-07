@@ -3,25 +3,31 @@
  */
 module.exports = function(app, data, functions) {
 
-	app.get('/files.html', function(req, res) {
-		if (functions.isLoggedIn(req, data.loggedIn)) {
+	app.get('/files.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
 			readInFiles(app.downloads, function(err, files) {
 				if (err) {
 					data.files = [err];
 				} else {
-					data.files = files;
+					data.files = [];
+					var fs = require('fs');
+						var filesize = require('filesize');
+					for(var x=0;x < files.length;x++){
+						var f = {};
+						var fst = fs.statSync(app.downloads +'/'+files[x]);
+						f.name = files[x];
+						f.size = filesize(fst.size);
+						f.created = fst.ctime;
+						data.files.push(f);
+					}
 				}
+				data.admin = true;//TODO: remove, debug
 				res.render("files", data);
 			});
-		} else {
-			res.render("login", data);
-		}
 	});
-	app.get('/files/:file', function(req, res) {
+	app.get('/files/:file',functions.isLoggedIn(data.loggedIn), function(req, res) {
 		if (typeof req.params.file === 'undefined') {
 			res.send('Error');
 		} else {
-			if (functions.isLoggedIn(req, data.loggedIn)) {
 				var path = require('path');
 				var mime = require('mime');
 				var fs = require('fs');
@@ -36,10 +42,6 @@ module.exports = function(app, data, functions) {
 
 				var filestream = fs.createReadStream(file);
 				filestream.pipe(res);
-
-			} else {
-				res.render("login", data);
-			}
 		}
 	});
 };

@@ -14,12 +14,19 @@ getUserFromRequest: function (req){
 	//TODO: use token in header, user_agent, ip_adress
 	return "1";
 },
-isLoggedIn: function(req,users){
-	var user = module.exports.getUserFromRequest(req);
-	if(module.exports.containsObject(user,users)){
-		return true;
-	} else {
-		return false;
-	}
+isLoggedIn: function(users, writing){
+	return function(req, res, next) {
+		var user = module.exports.getUserFromRequest(req);
+		if(module.exports.containsObject(user,users)){
+			 next();
+		} else {
+			if(writing){
+				res.sendStatus(401);
+			} else{
+				res.redirect(401,'login.html');
+			}
+
+		}
+  };
 }
 };

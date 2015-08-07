@@ -14,6 +14,9 @@ var express = require('express'),
 	functions = require('./functions.js'),
 	stylus = require('stylus'),
 	nib = require('nib'),
+	records = require('./data/records')(app, data), //TODO CRUD on records, R on archive, chokidar, initial readin
+	users = require('./data/users'), //TODO: CRUD on users, token-mgmt, login
+	bodyParser = require("body-parser"),
 	port = 80;
 
 if (typeof process.argv[2] !== 'undefined') {
@@ -25,13 +28,15 @@ app.author = pack.author;
 app.version = pack.version;
 app.database = conf.database;
 app.downloads = conf.downloads;
+app.ftp_port = conf.ftp_port;
 
 function compile(str, path) {
-	  return stylus(str)
-	    .set('filename', path)
-	    .use(nib())
-	    .import('nib');
-	    }
+	return stylus(str)
+		.set('filename', path)
+		.use(nib())
+		.import('nib');
+}
+
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
@@ -42,27 +47,29 @@ app.use(stylus.middleware({
 	force: true,
 	debug: true
 })); //stylus
+app.use(bodyParser.json());
 app.use(express.static(__dirname + '/public'));
 
 var data = {}; //All Data. Will be updated by data routes
+data.records = [];
+data.archive = [];
+
+data.users = users.load(app.database);
 
 data.loggedIn = []; //TODO:remove, debug
-data.loggedIn.push("1");//TODO:remove, debug
+data.loggedIn.push("1"); //TODO:remove, debug
 
 // Routes
-// Data
-require('./data/records')(app, data); //TODO CRUD on records, R on archive, chokidar, initial readin
-require('./data/users')(app, data); //TODO: CRUD on users, token-mgmt, login
-
 //Contoller
-require('./controls/streamrip')(app, data); //TODO: control the streamrippers
+require('./controls/streamrip')(app, data); //TODO: control the streamrippers via cron
+require('./controls/ftpserver')(app, data);
 
 //Web
 require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions); //TODO All Routes with Records and Archive
-require('./website/login')(app, data, functions); //TODO The One Login route
-require('./website/user')(app, data, functions); //TODO All Routes with User data
-require('./website/files')(app, data, functions); //TODO All Routes to show and download files
+require('./website/login')(app, data, functions); //TODO The One Login route + POST to login
+require('./website/user')(app, data, functions, users);
+require('./website/files')(app, data, functions); //TODO All Routes to show and download files +  Make this a table
 
 server.listen(port);
 console.log(app.title + " " + app.version + " running on Port " + port);

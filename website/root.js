@@ -6,13 +6,7 @@ module.exports = function(app, data, functions) {
 		res.sendFile(__dirname + '/public/img/favicon.ico');
 	});
 
-	app.get('/', function(req, res) {
-		var user = functions.getUserFromRequest(req);
-		if(functions.containsObject(user,data.loggedIn)){
+	app.get('/',functions.isLoggedIn(data.loggedIn), function(req, res) {
 				res.render("records", data);
-		} else {
-				//res.render("login", data);
-				res.render("records", data); //TODO: debug, switch
-		}
 	});
 };

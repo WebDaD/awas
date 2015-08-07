@@ -1,6 +1,6 @@
 {
   "name": "awas",
-  "version": "0.0.2",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "start": "node app.js"
@@ -16,6 +16,10 @@
 		"body-parser":"*",
 		"stylus":"*",
 		"nib": "*",
-		"MD5": "*"
+		"MD5": "*",
+    "ftpd":"*",
+    "ip":"*",
+    "filesize":"*",
+    "shortid":"*"
   }
 }

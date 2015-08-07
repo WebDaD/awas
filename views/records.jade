@@ -1,8 +1,51 @@
 extends ./master.jade
 
 block title
-  title AWAS :: Aufnahmen
+	title AWAS :: Aufnahmen
 
-block content
-  h1 Aufnahmen
-  p Here be a Table
+block content 
+	h1 Aufnahmen
+	table#records.table.table-hover.sortable
+		thead
+			tr
+				th(data-defaultsort="asc") ID
+				th(data-firstsort="asc") URL
+				th Start
+				th Stop
+				th SR-PID
+				th Comment
+				th filename
+				th User
+				if !archive
+					th.no-print(data-defaultsort='disabled') *
+		tbody.real
+		each record in records.length ? records : [{id:""}]
+			if record.id
+				tr(id=record.id data-record=record)
+					td= record.id
+					td= record.url
+					td= record.start
+					td= record.stop
+					td= record.streamripper_pid
+					td= record.comment
+					td= record.filename
+					td= record.user.name
+					if !archive
+						td.no-print				
+							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit("+record.id+");") 
+								span.glyphicon.glyphicon-pencil(aria-hidden="true")
+								
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_delete("+record.id+");") 
+								span.glyphicon.glyphicon-trash(aria-hidden="true")
+								
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_cancel("+record.id+");") 
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
+								
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_ok("+record.id+");") 
+								span.glyphicon.glyphicon-ok(aria-hidden="true")
+			else
+				tr
+					if !archive
+						td(colspan="9") Keine Aufnahmen eingetragen
+					else
+						td(colspan="9") Keine Aufnahmen im Archiv
