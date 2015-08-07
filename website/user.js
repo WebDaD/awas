@@ -9,7 +9,6 @@ module.exports = function(app, data, functions, users) {
 		});
 	});
   app.post('/users', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
-    console.log(req.body);
     if(typeof req.body.user === 'undefined'){
       res.sendStatus(400);
     } else {
@@ -27,7 +26,9 @@ module.exports = function(app, data, functions, users) {
     if(typeof req.body.user === 'undefined' || typeof req.params.id === 'undefined'){
       res.sendStatus(400);
     } else {
-      users.updateUser(app.database,req.body.user, function(err,result){
+      var user = req.body.user;
+      user.id = req.params.id;
+      users.updateUser(app.database,user, function(err,result){
         if(err){
           res.sendStatus(err.status);
         } else {

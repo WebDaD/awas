@@ -10,6 +10,10 @@ module.exports = {
 		for (var x = 0; x < files.length; x++) {
 			var u = jsonfile.readFileSync(database + "/users/" + files[x]);
 			u.id = files[x].replace('.json', '');
+      if(typeof u.admin !== "boolean"){
+        u.admin = (u.admin === 'true');
+      }
+
 			users.push(u);
 		}
 		return users;

@@ -25,7 +25,7 @@ block content
 					td= user.name
 					td= user.login
 					td= user.email
-					if user.admin
+					if user.admin == true
 						td
 							span.glyphicon.glyphicon-ok(aria-hidden="true" style="color:green;")
 					else
@@ -33,17 +33,20 @@ block content
 							span.glyphicon.glyphicon-remove(aria-hidden="true" style="color:red;")
 					if admin
 						td.no-print
-							button.admin.btn.btn-primary.btn-sm(type="button" onclick="user_edit("+user.id+");") 
+							button.admin.btn.btn-primary.btn-sm(type="button" onclick="user_edit('"+user.id+"');") 
 								span.glyphicon.glyphicon-pencil(aria-hidden="true")
 								
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="user_delete("+user.id+");") 
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="user_delete('"+user.id+"');") 
 								span.glyphicon.glyphicon-trash(aria-hidden="true")
 								
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_cancel("+user.id+");") 
-								span.glyphicon.glyphicon-remove(aria-hidden="true")
+							
 								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_ok("+user.id+");") 
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_confirm('"+user.id+"');") 
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_cancel('"+user.id+"');") 
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
 			else
 				tr
 					td(colspan="9") Keine User angelegt
+block dialog
+	include user_dialog.jade

@@ -6,6 +6,7 @@ html
     link(rel="stylesheet" type="text/css" href="/css/bootstrap-sortable.css")
     link(rel="stylesheet" type="text/css" href="/css/main.css")
     script(src="/js/plugins/jquery.min.js" type="text/javascript")
+    script(src="/js/plugins/jquery.md5.js" type="text/javascript")
     script(src="/js/plugins/bootstrap.min.js" type="text/javascript")
     script(src="/js/plugins/bootstrap-sortable.js" type="text/javascript")
     script(src="/js/main.js" type="text/javascript")
@@ -38,6 +39,8 @@ html
               a(href="files.html") Download
           ul.nav.navbar-nav.navbar-right
             li
-              button.btn.btn-default.navbar-btn(type="button" id="btn_logout" onclick="logout();" style="margin-left:10px;") Logout
+              button#btn_logout.btn.btn-default.navbar-btn(type="button" onclick="logout();") Logout
     #content
       block content
+    block dialog
+    div#alerts.no-print

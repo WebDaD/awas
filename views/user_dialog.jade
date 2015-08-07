@@ -1,0 +1,45 @@
+div#dialog-user.modal.fade(role="dialog")
+	div.modal-dialog
+		div.modal-content
+			div.modal-header
+				a.close(data-dismiss="modal") ×
+				h3 Anwender
+			div.modal-body
+				p#dialog-user-error.dialog-error.well
+				
+				div#dialog-user-name-group.form-group
+					label.control-label(for="dialog-user-name-group") Name
+					div.input-group
+						span#dialog-user-name-addon.input-group-addon.glyphicon.glyphicon-user(style="top:0px;")
+						input#dialog-user-name.input-xlarge.form-control(type="text" aria-describedby="dialog-user-name-addon" placeholder="Name")
+						
+				div#dialog-user-login-group.form-group
+					label.control-label(for="dialog-user-login-group") Login
+					div.input-group
+						span#dialog-user-login-addon.input-group-addon.glyphicon.glyphicon-tag(style="top:0px;")
+						input#dialog-user-login.input-xlarge.form-control(type="text" aria-describedby="dialog-user-login-addon" placeholder="Login")
+							
+				div#dialog-user-email-group.form-group
+					label.control-label(for="dialog-user-email-group") E-Mail
+					div.input-group
+						span#dialog-user-email-addon.input-group-addon.glyphicon.glyphicon-envelope(style="top:0px;")
+						input#dialog-user-email.input-xlarge.form-control(type="text" aria-describedby="dialog-user-email-addon" placeholder="E-Mail")
+					
+				div#dialog-user-password-group.form-group
+					label.control-label(for="dialog-user-password-group") Passwort
+					div.input-group
+						span#dialog-user-password-addon.input-group-addon.glyphicon.glyphicon-lock(style="top:0px;")
+						input#dialog-user-password.input-xlarge.form-control(type="password" aria-describedby="dialog-user-password-addon" placeholder="Passwort")
+						
+				div#dialog-user-admin-group.form-group
+					label.control-label(for="dialog-user-admin-group") Admin
+					br
+					div.btn-group.btn-group-xlarge(role="group" aria-label="...")
+						button#dialog-user-admin-yes.btn.btn-default(type="button" onclick="dialog_user_admin(true);") Ja
+						button#dialog-user-admin-no.btn.btn-default(type="button" onclick="dialog_user_admin(false);") Nein
+						input(type="hidden" id="dialog-user-admin")
+				
+				input(type="hidden" id="dialog-user-id")
+			div.modal-footer
+				button.btn.btn-success(onclick="dialog_user_save();") Speichern
+				a.btn(href="#" data-dismiss="modal") Abbrechen
