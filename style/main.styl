@@ -9,7 +9,14 @@
 	margin-bottom 10px
 table > tbody > tr > td > button
 	margin-left 10px
-
+.clearfix:before,
+.clearfix:after
+	content ""
+	display block
+	height 0
+	overflow hidden
+.clearfix:after
+	clear both
 .dialog-error
 	display none
 	color red
