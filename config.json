@@ -1,5 +1,6 @@
 {
 	"database":"/opt/awas/database",
 	"downloads":"/tmp/awas",
-	"ftp_port":21000
+	"ftp_port":21000,
+	"web_port":8888
 }

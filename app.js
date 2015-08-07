@@ -16,11 +16,12 @@ var express = require('express'),
 	nib = require('nib'),
 	records = require('./data/records')(app, data), //TODO CRUD on records, R on archive, chokidar, initial readin
 	users = require('./data/users'), //TODO: CRUD on users, token-mgmt, login
-	bodyParser = require("body-parser"),
-	port = 80;
+	bodyParser = require("body-parser");
 
 if (typeof process.argv[2] !== 'undefined') {
 	port = process.argv[2];
+} else {
+	port = conf.web_port;
 }
 
 app.title = pack.name;
