@@ -3,6 +3,9 @@ extends ./master.jade
 block title
 	title AWAS :: Downloads
 
+block addins
+	script(src="/js/files.js" type="text/javascript")
+
 block content
 	h1 Downloads
 	div.clearfix
@@ -28,13 +31,13 @@ block content
 					td= file.size
 					if admin
 						td.no-print
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete("+file.name+");") 
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete('"+file.name+"');") 
 								span.glyphicon.glyphicon-trash(aria-hidden="true")
 								
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_cancel("+file.name+");") 
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_cancel('"+file.name+"');") 
 								span.glyphicon.glyphicon-remove(aria-hidden="true")
 								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_ok("+file.name+");") 
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_confirm('"+file.name+"');") 
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
 			else
 				tr

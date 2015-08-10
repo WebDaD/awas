@@ -26,7 +26,7 @@ module.exports = function(app, data, functions) {
 	});
 	app.get('/files/:file',functions.isLoggedIn(data.loggedIn), function(req, res) {
 		if (typeof req.params.file === 'undefined') {
-			res.send('Error');
+			res.sendStatus(404);
 		} else {
 				var path = require('path');
 				var mime = require('mime');
@@ -42,6 +42,21 @@ module.exports = function(app, data, functions) {
 
 				var filestream = fs.createReadStream(file);
 				filestream.pipe(res);
+		}
+	});
+	app.delete('/files/:file',functions.isLoggedIn(data.loggedIn), function(req, res) {
+		if (typeof req.params.file === 'undefined') {
+			res.sendStatus(400);
+		} else {
+				var fs = require('fs');
+				var file = app.downloads+"/"+req.params.file;
+				fs.unlink(file, function(err) {
+					if (err) {
+							res.sendStatus(500);
+					} else {
+						res.sendStatus(200);
+					}
+				});
 		}
 	});
 };
