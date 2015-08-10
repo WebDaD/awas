@@ -70,7 +70,7 @@ require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions); //TODO All Routes with Records and Archive
 require('./website/login')(app, data, functions); //TODO The One Login route + POST to login
 require('./website/user')(app, data, functions, users);
-require('./website/files')(app, data, functions); //TODO All Routes to show and download files +  Make this a table
+require('./website/files')(app, data, functions);
 
 server.listen(port);
 console.log(app.title + " " + app.version + " running on Port " + port);

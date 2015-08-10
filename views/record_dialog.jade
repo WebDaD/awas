@@ -1,0 +1,43 @@
+div#dialog-record.modal.fade(role="dialog")
+	div.modal-dialog
+		div.modal-content
+			div.modal-header
+				a.close(data-dismiss="modal") ×
+				h3 Aufnahmen
+			div.modal-body
+				p#dialog-record-error.dialog-error.well
+				
+				div#dialog-record-url-group.form-group
+					label.control-label(for="dialog-record-url-group") URL
+					div.input-group
+						span#dialog-record-url-addon.input-group-addon.glyphicon.glyphicon-record(style="top:0px;")
+						input#dialog-record-url.input-xlarge.form-control(type="text" aria-describedby="dialog-record-url-addon" placeholder="URL")
+						
+				div#dialog-record-start-group.form-group
+					label.control-label(for="dialog-record-start-group") Start
+					div.input-group
+						span#dialog-record-start-addon.input-group-addon.glyphicon.glyphicon-calendar(style="top:0px;")
+						input#dialog-record-start.input-xlarge.form-control(type="text" aria-describedby="dialog-record-start-addon" placeholder="Start")
+							
+				div#dialog-record-stop-group.form-group
+					label.control-label(for="dialog-record-stop-group") Stop
+					div.input-group
+						span#dialog-record-stop-addon.input-group-addon.glyphicon.glyphicon-calendar(style="top:0px;")
+						input#dialog-record-stop.input-xlarge.form-control(type="text" aria-describedby="dialog-record-stop-addon" placeholder="Stop")
+					
+				div#dialog-record-comment-group.form-group
+					label.control-label(for="dialog-record-comment-group") Kommentar
+					div.input-group
+						span#dialog-record-comment-addon.input-group-addon.glyphicon.glyphicon-align-left(style="top:0px;")
+						input#dialog-record-comment.input-xlarge.form-control(type="text" aria-describedby="dialog-record-comment-addon" placeholder="Kommentar")
+						
+				div#dialog-record-filename-group.form-group
+					label.control-label(for="dialog-record-filename-group") Dateiname
+					div.input-group
+						span#dialog-record-filename-addon.input-group-addon.glyphicon.glyphicon-file(style="top:0px;")
+						input#dialog-record-filename.input-xlarge.form-control(type="text" aria-describedby="dialog-record-filename-addon" placeholder="Dateiname")
+				
+				input(type="hidden" id="dialog-record-id")
+			div.modal-footer
+				button.btn.btn-success(onclick="dialog_record_save();") Speichern
+				a.btn(href="#" data-dismiss="modal") Abbrechen

@@ -3,8 +3,13 @@ extends ./master.jade
 block title
 	title AWAS :: Aufnahmen
 
+block addins
+	script(src="/js/records.js" type="text/javascript")
+
 block content 
 	h1 Aufnahmen
+	button.btn.btn-success.no-print(type="button" onclick="record_new();")
+		span.glyphicon.glyphicon-plus(aria-hidden="true")
 	div.clearfix
 	table#records.table.table-hover.sortable
 		thead
@@ -32,7 +37,7 @@ block content
 					td= record.filename
 					td= record.user.name
 					if !archive
-						td.no-print				
+						td.no-print
 							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit("+record.id+");") 
 								span.glyphicon.glyphicon-pencil(aria-hidden="true")
 								
@@ -50,3 +55,5 @@ block content
 						td(colspan="9") Keine Aufnahmen eingetragen
 					else
 						td(colspan="9") Keine Aufnahmen im Archiv
+block dialog
+	include record_dialog.jade
