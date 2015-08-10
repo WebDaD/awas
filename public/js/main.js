@@ -1,6 +1,8 @@
 var token = "";
+var user = "";
 $(document).ready(function() {
-
+	token = "1234"; //TODO: remove, debug
+	user = "Dominik Sigmund"; //TODO: remove, debug
 });
 
 

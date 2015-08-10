@@ -10,13 +10,20 @@ module.exports = {
     }
     return false;
 },
-getUserFromRequest: function (req){
-	//TODO: use token in header, user_agent, ip_adress
-	return "1";
+getUserFromRequest: function (req,writing){
+	var md5 = require('MD5');
+	var user_agent = req.headers['user-agent'];
+	var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+	if(writing){
+		var token = req.headers.token;
+		return md5(user_agent + token + ip);
+	} else{
+		return md5(user_agent + ip);
+	}
 },
 isLoggedIn: function(users, writing){
 	return function(req, res, next) {
-		var user = module.exports.getUserFromRequest(req);
+		var user = module.exports.getUserFromRequest(req,writing);
 		if(module.exports.containsObject(user,users)){
 			 next();
 		} else {

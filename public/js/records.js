@@ -76,7 +76,7 @@ function dialog_record_save() {
 	record.stop = checkVal("record", "stop", "Bitte Endzeit eintragen!");
 	record.filename = checkVal("record", "filename", "Bitte Dateiname eintragen!");
 	record.comment = $("#dialog-record-comment").val();
-
+	record.user_id = user;
 	if ($("#dialog-record-id").val().length !== 0) {
 		verb = "PUT";
 		url += $("#dialog-record-id").val();

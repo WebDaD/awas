@@ -14,8 +14,9 @@ var express = require('express'),
 	functions = require('./functions.js'),
 	stylus = require('stylus'),
 	nib = require('nib'),
-	records = require('./data/records')(app, data), //TODO CRUD on records, R on archive, chokidar, initial readin
+	records = require('./data/records'),
 	users = require('./data/users'), //TODO: CRUD on users, token-mgmt, login
+	archive = require('./data/archive'),
 	bodyParser = require("body-parser");
 
 if (typeof process.argv[2] !== 'undefined') {
@@ -52,13 +53,13 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname + '/public'));
 
 var data = {}; //All Data. Will be updated by data routes
-data.records = [];
-data.archive = [];
-
+data.records = records.load(app.database);
+data.archive = archive.load(app.database);
 data.users = users.load(app.database);
 
-data.loggedIn = []; //TODO:remove, debug
-data.loggedIn.push("1"); //TODO:remove, debug
+data.loggedIn = [];
+data.loggedIn.push('b7663c4b8a9e5d5c020f2c16f9fecc8f'); //TODO:remove, debug
+data.loggedIn.push('27167250f90e35d12ce31331621eeb6c'); //TODO:remove, debug
 
 // Routes
 //Contoller
@@ -67,7 +68,7 @@ require('./controls/ftpserver')(app, data);
 
 //Web
 require('./website/root')(app, data, functions);
-require('./website/records')(app, data, functions); //TODO All Routes with Records and Archive
+require('./website/records')(app, data, functions, records, archive); //TODO All Routes with Records and Archive
 require('./website/login')(app, data, functions); //TODO The One Login route + POST to login
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);
