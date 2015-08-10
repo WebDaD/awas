@@ -64,7 +64,11 @@ data.loggedIn.push('27167250f90e35d12ce31331621eeb6c'); //TODO:remove, debug
 // Routes
 //Contoller
 require('./controls/streamrip')(app, data); //TODO: control the streamrippers via cron
+
+require('./controls/archiver')(app, data, records, archive);
+
 require('./controls/ftpserver')(app, data);
+
 
 //Web
 require('./website/root')(app, data, functions);
