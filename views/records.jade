@@ -6,8 +6,11 @@ block title
 block addins
 	script(src="/js/records.js" type="text/javascript")
 
-block content 
-	h1 Aufnahmen
+block content
+	if !archive
+		h1 Aufnahmen
+	else
+		h1 Archiv
 	button.btn.btn-success.no-print(type="button" onclick="record_new();")
 		span.glyphicon.glyphicon-plus(aria-hidden="true")
 	div.clearfix
@@ -22,8 +25,7 @@ block content
 				th Comment
 				th filename
 				th User
-				if !archive
-					th.no-print(data-defaultsort='disabled') *
+				th.no-print(data-defaultsort='disabled') *
 		tbody.real
 		each record in records.length ? records : [{id:""}]
 			if record.id
@@ -36,8 +38,8 @@ block content
 					td= record.comment
 					td= record.filename
 					td= record.user_id
-					if !archive
-						td.no-print
+					td.no-print
+						if !archive
 							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit('"+record.id+"');") 
 								span.glyphicon.glyphicon-pencil(aria-hidden="true")
 								
@@ -48,6 +50,15 @@ block content
 								span.glyphicon.glyphicon-remove(aria-hidden="true")
 								
 							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');") 
+								span.glyphicon.glyphicon-ok(aria-hidden="true")
+						else
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');") 
+								span.glyphicon.glyphicon-trash(aria-hidden="true")
+								
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');") 
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
+								
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');") 
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
 			else
 				tr

@@ -11,7 +11,7 @@ module.exports = {
 			var r = jsonfile.readFileSync(database + "/archive/" + files[x]);
 			r.id = files[x].replace('.json', '');
 
-			records.push(u);
+			records.push(r);
 		}
 		return records;
 	},

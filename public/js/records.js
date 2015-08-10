@@ -118,3 +118,39 @@ function dialog_record_save() {
 	}
 
 }
+function archive_delete(id) {
+	$("#" + id).find(".btn").addClass("hidden");
+	$("#" + id).find(".delete_decide").removeClass("hidden");
+}
+
+function archive_delete_cancel(id) {
+	$("#" + id).find(".hidden").removeClass("hidden");
+	$("#" + id).find(".delete_decide").addClass("hidden");
+}
+
+function archive_delete_confirm(id) {
+	$.ajax({
+		url: 'archive/' + id,
+		type: "DELETE",
+		headers: {
+			token: token
+		},
+		dataType: 'json',
+		statusCode: {
+			200: function(data) {
+				$('#dialog-record').modal('hide');
+				$("#" + id).remove();
+				toast("Aufnahme gelöscht", "success");
+			},
+			400: function(data) {
+				dialogError("record","Bad Request");
+			},
+			401: function(data) {
+				dialogError("record","Not Logged In?");
+			},
+			500: function(data) {
+				dialogError("record","Internal Server Error");
+			}
+		}
+	});
+}
