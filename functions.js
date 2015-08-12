@@ -43,5 +43,19 @@ module.exports = {
 		loggedIn.push(md5(user_agent + token + ip));
 		loggedIn.push(md5(user_agent + ip));
 		callback();
+	},
+	removeEntry: function(loggedIn, user_agent, ip, token, callback) {
+		var md5 = require('MD5');
+		var t1 = md5(user_agent + token + ip);
+		var t2 = md5(user_agent + ip)
+		var index1 = loggedIn.indexOf(t1);
+		if (index1 > -1) {
+			loggedIn.splice(index1, 1);
+		}
+		var index2 = loggedIn.indexOf(t2);
+		if (index2 > -1) {
+			loggedIn.splice(index2, 1);
+		}
+		callback();
 	}
 };

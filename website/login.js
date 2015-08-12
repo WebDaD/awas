@@ -22,4 +22,12 @@ module.exports = function(app, data, functions, users, loggedIn) {
 			});
 		}
 	});
+	app.post('/logout', function(req, res) {
+		var user_agent = req.headers['user-agent'];
+		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		var token = req.headers.token;
+		functions.removeEntry(loggedIn,user_agent,ip,token, function(){
+			res.status(200);
+		});
+	});
 };

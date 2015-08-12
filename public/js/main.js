@@ -7,7 +7,33 @@ $(document).ready(function() {
 	}
 });
 
-
+//Logout
+function logout(){
+	$.ajax({
+		url: '/logout',
+		type: 'POST',
+		contentType: 'application/json; charset=utf-8',
+		dataType:'json',
+		headers: {
+			token: token
+		},
+		statusCode: {
+			200: function(data) {
+				$.removeCookie('awas_token');
+				$.removeCookie('awas_user');
+				user = "";
+				token = "";
+				window.location.replace("login.html");
+			},
+			400: function(data) {
+				toast("Bad Request","error");
+			},
+			500: function(data) {
+				toast("Internal Server Error","error");
+			}
+		}
+	});
+}
 
 
 //All

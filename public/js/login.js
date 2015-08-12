@@ -1,6 +1,7 @@
 $(document).ready(function() {
 	$("#navigation").hide();
 	$("#btn_logout").hide();
+	$("#dialog-login-login").focus();
 });
 //login
 function login() {

@@ -18,5 +18,5 @@ block content
 			label.control-label(for="dialog-login-password-group") Passwort
 			div.input-group
 				span#dialog-login-password-addon.input-group-addon.glyphicon.glyphicon-lock(style="top:0px;")
-				input#dialog-login-password.input-xlarge.form-control(type="password" aria-describedby="dialog-login-password-addon" placeholder="Passwort")
+				input#dialog-login-password.input-xlarge.form-control(type="password" aria-describedby="dialog-login-password-addon" placeholder="Passwort" onkeydown="if (event.keyCode == 13) { login();}")
 		button.btn.btn-primary.btn-block(onclick="login();") Log Me In
