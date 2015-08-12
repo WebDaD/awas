@@ -10,29 +10,35 @@ module.exports = {
 		for (var x = 0; x < files.length; x++) {
 			var u = jsonfile.readFileSync(database + "/users/" + files[x]);
 			u.id = files[x].replace('.json', '');
-      if(typeof u.admin !== "boolean"){
-        u.admin = (u.admin === 'true');
-      }
+			if (typeof u.admin !== "boolean") {
+				u.admin = (u.admin === 'true');
+			}
 
 			users.push(u);
 		}
 		return users;
 	},
 	updateUser: function(database, user, callback) {
-    if(!goodUser(user)){
-      return callback({status:418});
-    }
-    if(!hasID(user)){
-      return callback({status:400});
-    }
+		if (!goodUser(user)) {
+			return callback({
+				status: 418
+			});
+		}
+		if (!hasID(user)) {
+			return callback({
+				status: 400
+			});
+		}
 		var jsonfile = require('jsonfile');
 		var id = user.id;
 		delete user.id;
 		var file = database + "/users/" + id + ".json";
-    user.token = createToken(user);
+		user.token = createToken(user);
 		jsonfile.writeFile(file, user, function(err) {
 			if (err) {
-				callback({status:500});
+				callback({
+					status: 500
+				});
 			} else {
 				user.id = id;
 
@@ -41,37 +47,70 @@ module.exports = {
 		});
 	},
 	deleteUser: function(database, id, callback) {
-    if(typeof id === 'undefined'){
-      return callback({status:400});
-    }
+		if (typeof id === 'undefined') {
+			return callback({
+				status: 400
+			});
+		}
 		var fs = require('fs');
 		var file = database + "/users/" + id + ".json";
 		fs.unlink(file, function(err) {
 			if (err) {
-				callback({status:500});
+				callback({
+					status: 500
+				});
 			} else {
 				callback(null, id);
 			}
 		});
 	},
 	createUser: function(database, user, callback) {
-    if(!goodUser(user)){
-      return callback({status:418});
-    }
+		if (!goodUser(user)) {
+			return callback({
+				status: 418
+			});
+		}
 		var jsonfile = require('jsonfile');
 		var shortid = require('shortid');
 		var id = shortid.generate();
 		var file = database + "/users/" + id + ".json";
-    user.token = createToken(user);
+		user.token = createToken(user);
 		jsonfile.writeFile(file, user, function(err) {
 			if (err) {
-				callback({status:500});
+				callback({
+					status: 500
+				});
 			} else {
 				user.id = id;
 
 				callback(null, user);
 			}
 		});
+	},
+	checkLogin: function(users, info, callback) { //info={login,pwd}, callback(err,user{token,name})
+		var login = false;
+		if (users.length !== 0) {
+			for (var u = 0; u < users.length; u++) {
+				if (users[u].login == info.login) {
+					if (users[u].password == info.password) {
+						login = true;
+						return callback(null, {
+							token: users[u].token,
+							user: users[u].name
+						});
+					}
+				}
+			}
+			if (!login) {
+				callback({
+					status: 401
+				});
+			}
+		} else {
+			callback({
+				status: 500
+			});
+		}
 	}
 };
 
@@ -88,13 +127,15 @@ function goodUser(user) {
 		return false;
 	}
 }
-function hasID(user){
-  	if (typeof user.id !== 'undefined'){
-      return true;
-    } else {
-      return false;
-    }
+
+function hasID(user) {
+	if (typeof user.id !== 'undefined') {
+		return true;
+	} else {
+		return false;
+	}
 }
+
 function createToken(user) {
 	var md5 = require('MD5');
 	return md5(user.id + user.login + user.password);

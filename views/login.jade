@@ -1,0 +1,22 @@
+extends ./master.jade
+
+block title
+	title AWAS :: Login
+
+block addins
+	script(src="/js/login.js" type="text/javascript")
+
+block content 
+	div#login-box
+		p#dialog-login-error.dialog-error.well
+		div#dialog-login-login-group.form-group
+			label.control-label(for="dialog-login-login-group") Login
+			div.input-group
+				span#dialog-login-login-addon.input-group-addon.glyphicon.glyphicon-tag(style="top:0px;")
+				input#dialog-login-login.input-xlarge.form-control(type="text" aria-describedby="dialog-login-login-addon" placeholder="Login")
+		div#dialog-login-password-group.form-group
+			label.control-label(for="dialog-login-password-group") Passwort
+			div.input-group
+				span#dialog-login-password-addon.input-group-addon.glyphicon.glyphicon-lock(style="top:0px;")
+				input#dialog-login-password.input-xlarge.form-control(type="password" aria-describedby="dialog-login-password-addon" placeholder="Passwort")
+		button.btn.btn-primary.btn-block(onclick="login();") Log Me In

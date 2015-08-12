@@ -1,8 +1,10 @@
 var token = "";
 var user = "";
 $(document).ready(function() {
-	token = "1234"; //TODO: remove, debug
-	user = "Dominik Sigmund"; //TODO: remove, debug
+	if ($.cookie('awas_token') !== undefined) {
+		user = $.cookie('awas_user');
+		token = $.cookie('awas_token');
+	}
 });
 
 
@@ -31,7 +33,7 @@ function checkVal(dialog, field, msg) {
 function dialogError(dialog, msg) {
 	$("#dialog-" + dialog + "-error").text(msg).show();
 	setTimeout(function() {
-	$("#dialog-" + dialog + "-error").fadeOut('fast');
+		$("#dialog-" + dialog + "-error").fadeOut('fast');
 	}, 6000);
 	return null;
 }

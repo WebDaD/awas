@@ -56,24 +56,20 @@ var data = {}; //All Data. Will be updated by data routes
 data.records = records.load(app.database);
 data.archive = archive.load(app.database);
 data.users = users.load(app.database);
-
 data.loggedIn = [];
-data.loggedIn.push('b7663c4b8a9e5d5c020f2c16f9fecc8f'); //TODO:remove, debug
-data.loggedIn.push('27167250f90e35d12ce31331621eeb6c'); //TODO:remove, debug
+
 
 // Routes
 //Contoller
-require('./controls/streamrip')(app, data); //TODO: control the streamrippers via cron
-
+require('./controls/streamrip')(app, data, records);
 require('./controls/archiver')(app, data, records, archive);
-
 require('./controls/ftpserver')(app, data);
 
 
 //Web
 require('./website/root')(app, data, functions);
-require('./website/records')(app, data, functions, records, archive); //TODO All Routes with Records and Archive
-require('./website/login')(app, data, functions); //TODO The One Login route + POST to login
+require('./website/records')(app, data, functions, records, archive);
+require('./website/login')(app, data, functions, users, data.loggedIn);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);
 

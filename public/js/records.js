@@ -5,6 +5,7 @@ $(document).ready(function() {
 	$('#dialog-record-stop').datetimepicker({
 		locale: 'de'
 	});
+	$("[data-toggle=tooltip]").tooltip();
 });
 //records
 function record_new() {

@@ -1,6 +1,6 @@
 {
   "name": "awas",
-  "version": "0.5.0",
+  "version": "0.6.5",
   "private": true,
   "scripts": {
     "start": "node app.js"
@@ -21,6 +21,7 @@
     "ip":"*",
     "filesize":"*",
     "shortid":"*",
-    "cron":"*"
+    "cron":"*",
+    "moment":"*"
   }
 }
