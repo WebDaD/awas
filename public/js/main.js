@@ -23,8 +23,8 @@ function logout() {
 		},
 		statusCode: {
 			200: function(data) {
-				$.removeCookie('awas_token');
-				$.removeCookie('awas_user');
+				$.removeCookie('awas_token', { path: '/' });
+				$.removeCookie('awas_user', { path: '/' });
 				user = "";
 				token = "";
 				window.location.replace("login.html");
