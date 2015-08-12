@@ -5,15 +5,19 @@ $(document).ready(function() {
 		user = $.cookie('awas_user');
 		token = $.cookie('awas_token');
 	}
+	addToHomescreen({
+		skipFirstVisit: true,
+		maxDisplayCount: 1
+	});
 });
 
 //Logout
-function logout(){
+function logout() {
 	$.ajax({
 		url: '/logout',
 		type: 'POST',
 		contentType: 'application/json; charset=utf-8',
-		dataType:'json',
+		dataType: 'json',
 		headers: {
 			token: token
 		},
@@ -26,10 +30,10 @@ function logout(){
 				window.location.replace("login.html");
 			},
 			400: function(data) {
-				toast("Bad Request","error");
+				toast("Bad Request", "error");
 			},
 			500: function(data) {
-				toast("Internal Server Error","error");
+				toast("Internal Server Error", "error");
 			}
 		}
 	});
