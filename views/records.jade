@@ -1,7 +1,10 @@
 extends ./master.jade
 
 block title
-	title AWAS :: Aufnahmen
+	if !archive
+		title AWAS :: Aufnahmen
+	else
+		title AWAS :: Archiv
 
 block addins
 	script(src="/js/records.js" type="text/javascript")
@@ -17,10 +20,14 @@ block content
 	table#records.table.table-hover.sortable
 		thead
 			tr
-				th(data-defaultsort="asc") ID
-				th(data-firstsort="asc") URL
-				th Start
-				th Stop
+				th ID
+				th URL
+				if !archive
+					th(data-defaultsort="desc") Start
+					th Stop
+				else
+					th Start
+					th(data-defaultsort="desc") Stop
 				th SR-PID
 				th Comment
 				th filename

@@ -1,6 +1,6 @@
 {
   "name": "awas",
-  "version": "0.6.5",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "node app.js"
