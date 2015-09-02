@@ -32,7 +32,7 @@ module.exports = {
 				if (writing) {
 					res.sendStatus(401);
 				} else {
-					res.redirect(401, 'login.html');
+					res.redirect(302, 'login.html');
 				}
 
 			}

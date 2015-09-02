@@ -22,6 +22,7 @@
     "filesize":"*",
     "shortid":"*",
     "cron":"*",
-    "moment":"*"
+    "moment":"*",
+    "mime":"*"
   }
 }
