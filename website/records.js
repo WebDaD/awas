@@ -8,6 +8,15 @@ module.exports = function(app, data, functions,records, archive) {
   app.get('/archive.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
 				res.render("records", {records:data.archive, archive:true});
 	});
+  app.get('/active_records', function(req, res) {
+    var count = 0;
+    data.records.forEach(function(element){
+      if(isActive(element)){
+        count++;
+      }
+    });
+    res.send(count.toString());
+	});
   app.post('/records', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
     if(typeof req.body.record === 'undefined'){
       res.sendStatus(400);
@@ -87,3 +96,15 @@ module.exports = function(app, data, functions,records, archive) {
     }
   });
 };
+function isActive(record) {
+	var moment = require('moment');
+	var now = moment();
+  var ra = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
+	var rs = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
+console.log(now.format()+ " "+ra.format()+" "+rs.format()+" "+now.isBetween(ra,rs)+" "+now.isBetween(rs,ra));
+	if (now.isBetween(ra,rs)) {
+		return true;
+	} else {
+		return false;
+	}
+}

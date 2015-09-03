@@ -6,7 +6,32 @@ $(document).ready(function() {
 		locale: 'de'
 	});
 	$("[data-toggle=tooltip]").tooltip();
+	displayActive();
+	setInterval(function() {
+		displayActive();
+	}, 60 * 1000);
 });
+function displayActive(){ //.success
+	$("#active_records").load("/active_records");
+	$('#records > tbody > tr').removeClass("success");
+	$('#records > tbody  > tr').each(function() {
+		var data = $(this).data("record");
+		if(isActive(data)){
+			$(this).addClass("success");
+		}
+	});
+}
+function isActive(record) {
+	var now = moment();
+  var ra = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
+	var rs = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
+
+	if (now.isBetween(ra,rs)) {
+		return true;
+	} else {
+		return false;
+	}
+}
 //records
 function record_new() {
 	$("#dialog-record-error").hide();

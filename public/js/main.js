@@ -9,6 +9,7 @@ $(document).ready(function() {
 		skipFirstVisit: true,
 		maxDisplayCount: 1
 	});
+
 });
 
 //Logout
@@ -23,8 +24,12 @@ function logout() {
 		},
 		statusCode: {
 			200: function(data) {
-				$.removeCookie('awas_token', { path: '/' });
-				$.removeCookie('awas_user', { path: '/' });
+				$.removeCookie('awas_token', {
+					path: '/'
+				});
+				$.removeCookie('awas_user', {
+					path: '/'
+				});
 				user = "";
 				token = "";
 				window.location.replace("login.html");

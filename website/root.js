@@ -10,6 +10,6 @@ module.exports = function(app, data, functions) {
 	});
 
 	app.get('/',functions.isLoggedIn(data.loggedIn), function(req, res) {
-				res.render("records", data);
+				res.render("records", {records:data.records, archive:false});
 	});
 };
