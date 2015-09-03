@@ -124,6 +124,8 @@ function dialog_record_save() {
 	record.start = checkVal("record", "start", "Bitte Startzeit eintragen!");
 	record.stop = checkVal("record", "stop", "Bitte Endzeit eintragen!");
 	record.filename = checkVal("record", "filename", "Bitte Dateiname eintragen!");
+	//remove spaces in filename
+	record.filename = record.filename.split(' ').join('_');
 	record.comment = $("#dialog-record-comment").val();
 	record.user_id = user;
 	if ($("#dialog-record-id").val().length !== 0) {
