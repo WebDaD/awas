@@ -3,7 +3,7 @@
  */
 module.exports = function(app, data, functions) {
 
-	app.get('/files.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
+	app.get('/files.html',functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
 			readInFiles(app.downloads, function(err, files) {
 				if (err) {
 					data.files = [err];
@@ -21,7 +21,7 @@ module.exports = function(app, data, functions) {
 						data.files.push(f);
 					}
 				}
-				data.admin = true;//TODO: remove, debug
+				data.admin = req.admin;
 				res.render("files", data);
 			});
 	});

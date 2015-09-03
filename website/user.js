@@ -2,10 +2,10 @@
  * Web Routes for USers
  */
 module.exports = function(app, data, functions, users) {
-	app.get('/users.html', functions.isLoggedIn(data.loggedIn), function(req, res) {
+	app.get('/users.html', functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
 		res.render("users", {
 			users: data.users,
-			admin: true //TODO:cleanup!
+			admin: req.admin
 		});
 	});
   app.post('/users', functions.isLoggedIn(data.loggedIn,true), function(req, res) {

@@ -96,7 +96,8 @@ module.exports = {
 						login = true;
 						return callback(null, {
 							token: users[u].token,
-							user: users[u].name
+							user: users[u].name,
+							admin: users[u].admin
 						});
 					}
 				}

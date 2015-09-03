@@ -57,7 +57,8 @@ data.records = records.load(app.database);
 data.archive = archive.load(app.database);
 data.users = users.load(app.database);
 data.loggedIn = [];
-
+data.admins = [];
+console.log(data.admins);
 
 // Routes
 //Contoller
@@ -69,7 +70,7 @@ require('./controls/dlcleaner')(app);
 //Web
 require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions, records, archive);
-require('./website/login')(app, data, functions, users, data.loggedIn);
+require('./website/login')(app, data, functions, users);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);
 

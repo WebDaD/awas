@@ -32,7 +32,8 @@ block content
 				th Comment
 				th filename
 				th User
-				th.no-print(data-defaultsort='disabled') *
+				if !archive && admin
+					th.no-print(data-defaultsort='disabled') *
 		tbody.real
 		each record in records.length ? records : [{id:""}]
 			if record.id
@@ -59,14 +60,15 @@ block content
 							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');") 
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
 						else
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');") 
-								span.glyphicon.glyphicon-trash(aria-hidden="true")
-								
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');") 
-								span.glyphicon.glyphicon-remove(aria-hidden="true")
-								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');") 
-								span.glyphicon.glyphicon-ok(aria-hidden="true")
+							if admin
+								button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');") 
+									span.glyphicon.glyphicon-trash(aria-hidden="true")
+									
+								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');") 
+									span.glyphicon.glyphicon-remove(aria-hidden="true")
+									
+								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');") 
+									span.glyphicon.glyphicon-ok(aria-hidden="true")
 			else
 				tr
 					if !archive

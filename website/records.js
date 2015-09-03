@@ -2,11 +2,11 @@
  * Web Routes for Records
  */
 module.exports = function(app, data, functions,records, archive) {
-  app.get('/records.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
-				res.render("records", {records:data.records, archive:false, admin:true});//TODO: clean admin
+  app.get('/records.html',functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
+				res.render("records", {records:data.records, archive:false, admin:req.admin});//TODO: clean admin
 	});
-  app.get('/archive.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
-				res.render("records", {records:data.archive, archive:true, admin:true}); //TODO: clean admin
+  app.get('/archive.html',functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
+				res.render("records", {records:data.archive, archive:true, admin:req.admin}); //TODO: clean admin
 	});
   app.get('/active_records', function(req, res) {
     var count = 0;
