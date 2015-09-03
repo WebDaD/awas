@@ -11,12 +11,13 @@ module.exports = function(app, data, functions) {
 					data.files = [];
 					var fs = require('fs');
 						var filesize = require('filesize');
+						var moment = require('moment');
 					for(var x=0;x < files.length;x++){
 						var f = {};
 						var fst = fs.statSync(app.downloads +'/'+files[x]);
 						f.name = files[x];
 						f.size = filesize(fst.size);
-						f.created = fst.ctime;
+						f.created = moment(fst.ctime).format("DD.MM.YYYY HH:mm:ss");
 						data.files.push(f);
 					}
 				}

@@ -3,10 +3,10 @@
  */
 module.exports = function(app, data, functions,records, archive) {
   app.get('/records.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
-				res.render("records", {records:data.records, archive:false});
+				res.render("records", {records:data.records, archive:false, admin:true});//TODO: clean admin
 	});
   app.get('/archive.html',functions.isLoggedIn(data.loggedIn), function(req, res) {
-				res.render("records", {records:data.archive, archive:true});
+				res.render("records", {records:data.archive, archive:true, admin:true}); //TODO: clean admin
 	});
   app.get('/active_records', function(req, res) {
     var count = 0;

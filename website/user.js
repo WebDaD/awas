@@ -5,7 +5,7 @@ module.exports = function(app, data, functions, users) {
 	app.get('/users.html', functions.isLoggedIn(data.loggedIn), function(req, res) {
 		res.render("users", {
 			users: data.users,
-			admin: true
+			admin: true //TODO:cleanup!
 		});
 	});
   app.post('/users', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
