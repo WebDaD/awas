@@ -23,6 +23,8 @@
     "shortid":"*",
     "cron":"*",
     "moment":"*",
-    "mime":"*"
+    "mime":"*",
+    "diskspace":"*",
+    "get-folder-size":"*"
   }
 }

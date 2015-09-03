@@ -101,7 +101,6 @@ function isActive(record) {
 	var now = moment();
   var ra = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
 	var rs = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
-console.log(now.format()+ " "+ra.format()+" "+rs.format()+" "+now.isBetween(ra,rs)+" "+now.isBetween(rs,ra));
 	if (now.isBetween(ra,rs)) {
 		return true;
 	} else {

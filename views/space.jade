@@ -1,0 +1,34 @@
+extends ./master.jade
+
+block title
+	title AWAS :: Space
+
+block content
+	h1 Space
+	div.clearfix
+	div.progress
+		- var pbc = "progress-bar-info"
+		if percent_used >= 90
+			- pbc = "progress-bar-danger"
+		else if percent_used >= 75
+			- pbc = "progress-bar-warning" 
+		div.progress-bar(role="progressbar" aria-valuenow=percent_used aria-valuemin="0" aria-valuemax="100" style="width: "+percent_used+"%;" class=pbc)
+			span=percent_used+"% belegt"
+		div.progress-bar.progress-bar-success(role="progressbar" aria-valuenow=percent_free aria-valuemin="0" aria-valuemax="100" style="width: "+percent_free+"%;")
+			span=percent_free+"% frei"
+	table.table.table-hover
+		tr
+			th Speicherplatz
+			td=total
+		tr
+			th Freier Speicherplatz
+			td=free
+		tr
+			th Benutzter Speicherplatz
+			td=used
+		tr
+			th Größe Datenbank
+			td=database
+		tr
+			th Größe Download-Ordner
+			td=downloads
