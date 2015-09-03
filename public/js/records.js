@@ -114,7 +114,30 @@ function record_delete_confirm(id) {
 		}
 	});
 }
-
+function record_stop(id) {
+	$.ajax({
+		url: 'records/' + id+"/stop",
+		type: "POST",
+		headers: {
+			token: token
+		},
+		dataType: 'json',
+		statusCode: {
+			200: function(data) {
+				toast("Aufnahme gestoppt", "success");
+			},
+			400: function(data) {
+				dialogError("record","Bad Request");
+			},
+			401: function(data) {
+				dialogError("record","Not Logged In?");
+			},
+			500: function(data) {
+				dialogError("record","Internal Server Error");
+			}
+		}
+	});
+}
 function dialog_record_save() {
 	var record = {};
 	var verb = "POST";

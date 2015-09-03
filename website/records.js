@@ -31,6 +31,24 @@ module.exports = function(app, data, functions,records, archive) {
       });
     }
   });
+  app.post('/records/:id/stop', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
+    if(typeof req.params.id === 'undefined'){
+      res.sendStatus(400);
+    } else {
+      records.stopRecord(app.database,req.params.id, function(err,result){
+        if(err){
+          res.sendStatus(err.status);
+        } else {
+          for(var u=0;u<data.records.length;u++){
+            if(data.records[u].id == result.id){
+              data.records[u] = result;
+            }
+          }
+          res.sendStatus(200);
+        }
+      });
+    }
+  });
   app.put('/records/:id', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
     if(typeof req.body.record === 'undefined' || typeof req.params.id === 'undefined'){
       res.sendStatus(400);

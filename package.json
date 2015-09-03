@@ -25,6 +25,7 @@
     "moment":"*",
     "mime":"*",
     "diskspace":"*",
-    "get-folder-size":"*"
+    "get-folder-size":"*",
+    "ps-node":"*"
   }
 }
