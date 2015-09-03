@@ -64,7 +64,7 @@ data.loggedIn = [];
 require('./controls/streamrip')(app, data, records);
 require('./controls/archiver')(app, data, records, archive);
 require('./controls/ftpserver')(app, data);
-
+require('./controls/dlcleaner')(app);
 
 //Web
 require('./website/root')(app, data, functions);
