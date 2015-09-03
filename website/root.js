@@ -18,7 +18,7 @@ module.exports = function(app, data, functions) {
 
 	app.get('/space.:command(html|free|used|total|downloads|database|pfree)', functions.isLoggedIn(data.loggedIn), function(req, res) {
 		var diskspace = require('diskspace');
-		var getSize = require('get-folder-size');
+		var dir = require('dir-util');
 		var filesize = require('filesize');
 		switch (req.params.command) {
 			case "free":
@@ -44,19 +44,19 @@ module.exports = function(app, data, functions) {
 				});
 				break;
 			case "downloads":
-				getSize(app.downloads, function(err, size) {
+				dir.getSize(app.downloads, function(err, size) {
 					return res.send(filesize(size).toString());
 				});
 				break;
 			case "database":
-				getSize(app.database, function(err, size) {
+				dir.getSize(app.database, function(err, size) {
 					return res.send(filesize(size).toString());
 				});
 				break;
 			case "html":
 				diskspace.check('/', function(err, total, free, status) {
-					getSize(app.downloads, function(err, downloads) {
-						getSize(app.database, function(err, database) {
+					dir.getSize(app.downloads, function(err, downloads) {
+						dir.getSize(app.database, function(err, database) {
 							var percent_used = Math.round((100*(total - free))/total);
 							var percent_free = 100 - percent_used;
 							return res.render("space", {

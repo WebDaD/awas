@@ -14,6 +14,7 @@ $(document).ready(function() {
 		setInterval(function() {
 			displayActive();
 		}, 10 * 1000);
+		$("#space_text").show();
 		displaySpace();
 		setInterval(function() {
 			displaySpace();

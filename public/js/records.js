@@ -6,55 +6,9 @@ $(document).ready(function() {
 		locale: 'de'
 	});
 	$("[data-toggle=tooltip]").tooltip();
-	displayActive();
-	setInterval(function() {
-		displayActive();
-	}, 60 * 1000);
-	displaySpace();
-	setInterval(function() {
-		displaySpace();
-	}, 60 * 1000);
+
 });
-function displayActive(){ //.success
-	$("#active_records").load("/active_records");
-	$('#records > tbody > tr').removeClass("success");
-	$('#records > tbody  > tr').each(function() {
-		var data = $(this).data("record");
-		if(typeof data !== 'undefined' && isActive(data)){
-			$(this).addClass("success");
-		}
-	});
-}
-function displaySpace(){
-		$.get("/space.pfree", function(data){
-			var cclass = "";
-			var p = parseInt(data);
-			$("#space_text").removeClass("label-danger");
-			$("#space_text").removeClass("label-warning");
-			$("#space_text").removeClass("label-success");
-			if(p < 10){
-				cclass = "label-danger";
-			} else if(p < 25){
-				cclass = "label-warning";
-			} else {
-				cclass = "label-success";
-			}
-			$("#space_text").text("Speicherplatz: "+data+" frei");
-			$("#space_text").addClass(cclass);
-		});
 
-}
-function isActive(record) {
-	var now = moment();
-  var ra = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
-	var rs = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
-
-	if (now.isBetween(ra,rs)) {
-		return true;
-	} else {
-		return false;
-	}
-}
 //records
 function record_new() {
 	$("#dialog-record-error").hide();
