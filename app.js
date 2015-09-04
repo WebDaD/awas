@@ -7,7 +7,8 @@ require("nice-console")(console);
 var express = require('express'),
 	app = express(),
 	fs = require('fs'),
-	server = require('http').createServer(app),
+	https = require('https'),
+	http = require('http'),
 	path = require('path'),
 	pack = require('./package.json'),
 	conf = require('./config.json'),
@@ -24,6 +25,8 @@ if (typeof process.argv[2] !== 'undefined') {
 } else {
 	port = conf.web_port;
 }
+var secure_port = conf.secure_port;
+
 
 app.title = pack.name;
 app.author = pack.author;
@@ -31,6 +34,12 @@ app.version = pack.version;
 app.database = conf.database;
 app.downloads = conf.downloads;
 app.ftp_port = conf.ftp_port;
+var hskey = fs.readFileSync(__dirname + '/awas-key.pem');
+var hscert = fs.readFileSync(__dirname + '/awas-cert.pem');
+var https_options = {
+	key: hskey,
+	cert: hscert
+};
 
 function compile(str, path) {
 	return stylus(str)
@@ -74,5 +83,16 @@ require('./website/login')(app, data, functions, users);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);
 
-server.listen(port);
-console.log(app.title + " " + app.version + " running on Port " + port);
+https.createServer(https_options,app).listen(secure_port);
+console.log(app.title + " " + app.version + " running secure on Port " + secure_port);
+
+var insecureServer = http.createServer(app);
+insecureServer.on('request', function(req, res) {
+	res.statusCode = 302;
+	res.setHeader(
+		'Location', 'https://' + req.headers.host.replace(/:\d+/, ':' + secure_port) + req.url
+	);
+	res.end();
+});
+insecureServer.listen(port);
+console.log("Redirecting http on " + port + " to " + secure_port);
