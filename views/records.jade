@@ -41,8 +41,8 @@ block content
 				tr(id=record.id data-record=record)
 					td= record.id
 					td= record.url
-					td= record.start
-					td= record.stop
+					td.rstart= record.start
+					td.rstop= record.stop
 					td= record.streamripper_pid
 					td= record.comment
 					td= record.filename

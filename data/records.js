@@ -71,7 +71,7 @@ module.exports = {
 		var ps = require('ps-node');
 		var file = database + "/records/" + id + ".json";
 		var r = jsonfile.readFileSync(file);
-		r.stop = moment().add(2,'hours').format("DD.MM.YYYY HH:mm");
+		r.stop = moment().tz("Europe/Berlin").format();
 		r.id = id;
 		if (typeof r.streamripper_pid !== 'undefined') {
 			ps.kill(r.streamripper_pid, function(err) {

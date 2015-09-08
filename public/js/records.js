@@ -7,6 +7,14 @@ $(document).ready(function() {
 	});
 	$("[data-toggle=tooltip]").tooltip();
 
+	$("#records .rstart").each(function(){
+		var time = $(this).data("value");
+		$(this).text(moment(time).format("DD.MM.YYYY HH:mm"));
+	});
+	$("#records .rstop").each(function(){
+		var time = $(this).data("value");
+		$(this).text(moment(time).format("DD.MM.YYYY HH:mm"));
+	});
 });
 
 //records
@@ -113,6 +121,8 @@ function dialog_record_save() {
 	if (checkObj(record)) {
 		return;
 	} else {
+		record.start = moment(record.start).format();
+		record.stop = moment(record.stop).format();
 		$.ajax({
 			url: url,
 			type: verb,

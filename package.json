@@ -23,6 +23,7 @@
     "shortid":"*",
     "cron":"*",
     "moment":"*",
+    "moment-timezone":"*",
     "mime":"*",
     "diskspace":"*",
     "dir-util":"*",

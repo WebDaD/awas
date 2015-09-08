@@ -31,9 +31,9 @@ function startArchive(app, data, records, archive) {
 }
 
 function isOld(record) {
-	var moment = require('moment');
-	var now = moment();
-	var rs = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
+	var moment = require('moment-timezone');
+	var now = moment().tz("Europe/Berlin");
+	var rs = moment(record.stop).tz("Europe/Berlin");
 
 	if (rs.isBefore(now, "minute")) {
 		return true;

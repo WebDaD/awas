@@ -30,10 +30,10 @@ function startRip(app, data, records) {
 }
 
 function startRipper(downloads, record, callback) { //callback(record,pid)
-  var moment = require('moment');
+  var moment = require('moment-timezone');
   var child_process = require('child_process');
-  var start = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
-  var stop = moment(record.stop+" +02:00", "DD.MM.YYYY HH:mm Z");
+  var start = moment(record.start).tz("Europe/Berlin");
+  var stop = moment(record.stop).tz("Europe/Berlin");
 
 	var Seconds_Between_Dates = stop.diff(start,"seconds");
 
@@ -45,9 +45,9 @@ function startRipper(downloads, record, callback) { //callback(record,pid)
 }
 
 function isOnTime(record) {
-  var moment = require('moment');
-	var now = moment();
-	var rs = moment(record.start+" +02:00", "DD.MM.YYYY HH:mm Z");
+  var moment = require('moment-timezone');
+	var now = moment().tz("Europe/Berlin");
+	var rs = moment(record.start).tz("Europe/Berlin");
 	if (now.isSame(rs,"minute")) {
 		return true;
 	} else {
