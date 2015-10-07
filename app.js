@@ -16,8 +16,9 @@ var express = require('express'),
 	stylus = require('stylus'),
 	nib = require('nib'),
 	records = require('./data/records'),
-	users = require('./data/users'), //TODO: CRUD on users, token-mgmt, login
+	users = require('./data/users'),
 	archive = require('./data/archive'),
+	crons = require('./data/crons'),
 	bodyParser = require("body-parser");
 
 if (typeof process.argv[2] !== 'undefined') {
@@ -64,6 +65,7 @@ app.use(express.static(__dirname + '/public'));
 var data = {}; //All Data. Will be updated by data routes
 data.records = records.load(app.database);
 data.archive = archive.load(app.database);
+data.crons = crons.load(app.database);
 data.users = users.load(app.database);
 data.loggedIn = [];
 data.admins = [];
@@ -79,6 +81,7 @@ require('./controls/dlcleaner')(app);
 //Web
 require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions, records, archive);
+require('./website/crons')(app, data, functions, crons);
 require('./website/login')(app, data, functions, users);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);

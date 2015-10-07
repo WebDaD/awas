@@ -1,0 +1,36 @@
+div#dialog-cron.modal.fade(role="dialog")
+	div.modal-dialog
+		div.modal-content
+			div.modal-header
+				a.close(data-dismiss="modal") ×
+				h3 Cronjob
+			div.modal-body
+				p#dialog-cron-error.dialog-error.well
+				
+				div#dialog-cron-tab-group.form-group
+					label.control-label(for="dialog-cron-tab-group") CronTab
+					div.input-group(style="width:100%;")
+						div#dialog-cron-tab(style="width:100%;")
+						
+				div#dialog-cron-url-group.form-group
+					label.control-label(for="dialog-cron-url-group") URL
+					div.input-group
+						span#dialog-cron-url-addon.input-group-addon.glyphicon.glyphicon-record(style="top:0px;")
+						input#dialog-cron-url.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-url-addon" placeholder="URL")
+						
+				div#dialog-cron-comment-group.form-group
+					label.control-label(for="dialog-cron-comment-group") Kommentar
+					div.input-group
+						span#dialog-cron-comment-addon.input-group-addon.glyphicon.glyphicon-align-left(style="top:0px;")
+						input#dialog-cron-comment.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-comment-addon" placeholder="Kommentar")
+						
+				div#dialog-cron-filename-group.form-group(data-toggle="tooltip" data-placement="right" data-html="true"  title="<p style=\"width:200px;\"><b>Leerzeichen sind nicht erlaubt!</b><br/>%S Stream <br/>%A Artist<br/>%T Title<br/>%a Album<br/>%D Date and time<br/>%% Percent sign</p>")
+					label.control-label(for="dialog-cron-filename-group") Dateiname
+					div.input-group
+						span#dialog-cron-filename-addon.input-group-addon.glyphicon.glyphicon-file(style="top:0px;")
+						input#dialog-cron-filename.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-filename-addon" placeholder="Dateiname")
+				
+				input(type="hidden" id="dialog-cron-id")
+			div.modal-footer
+				button.btn.btn-success(onclick="dialog_cron_save();") Speichern
+				a.btn(href="#" data-dismiss="modal") Abbrechen
