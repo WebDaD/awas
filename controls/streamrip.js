@@ -37,7 +37,7 @@ function startRipper(downloads, record, callback) { //callback(record,pid)
 
 	var Seconds_Between_Dates = stop.diff(start,"seconds");
 
-	var commando = "streamripper " + record.url + " -a " + downloads + "/" + record.filename + " -A --quiet -l " + Seconds_Between_Dates;
+	var commando = "streamripper " + record.url + " -a " + downloads + "/" + record.filename+"_id-"+record.id + " -A --quiet -l " + Seconds_Between_Dates;
 	console.log("Executing: '" + commando + "'");
 	var child = child_process.exec(commando, function() {
 		callback(record,child.pid);

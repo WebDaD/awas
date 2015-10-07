@@ -17,6 +17,7 @@ block content
 				th(data-defaultsort="asc") Name
 				th(data-firstsort="asc") Erstellt
 				th Größe
+				th User
 				if admin
 					th.no-print(data-defaultsort='disabled') *
 		tbody.real
@@ -26,9 +27,10 @@ block content
 					td.no-print
 						a.btn.btn-primary.btn-sm(type="button" href="/files/"+file.name) 
 							span.glyphicon.glyphicon-download(aria-hidden="true" style="font-size:1.5em;")
-					td= file.name
+					td= file.name_nice
 					td= file.created
 					td= file.size
+					td= file.user
 					if admin
 						td.no-print
 							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete('"+file.name+"');") 
