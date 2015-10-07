@@ -18,6 +18,12 @@ div#dialog-cron.modal.fade(role="dialog")
 						span#dialog-cron-url-addon.input-group-addon.glyphicon.glyphicon-record(style="top:0px;")
 						input#dialog-cron-url.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-url-addon" placeholder="URL")
 						
+				div#dialog-cron-length-group.form-group
+					label.control-label(for="dialog-cron-length-group") Länge in Sekunden
+					div.input-group
+						span#dialog-cron-length-addon.input-group-addon.glyphicon.glyphicon-align-left(style="top:0px;")
+						input#dialog-cron-length.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-length-addon" placeholder="Länge (in s)")
+						
 				div#dialog-cron-comment-group.form-group
 					label.control-label(for="dialog-cron-comment-group") Kommentar
 					div.input-group
@@ -31,6 +37,7 @@ div#dialog-cron.modal.fade(role="dialog")
 						input#dialog-cron-filename.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-filename-addon" placeholder="Dateiname")
 				
 				input(type="hidden" id="dialog-cron-id")
+				input(type="hidden" id="dialog-cron-times_run")
 			div.modal-footer
 				button.btn.btn-success(onclick="dialog_cron_save();") Speichern
 				a.btn(href="#" data-dismiss="modal") Abbrechen

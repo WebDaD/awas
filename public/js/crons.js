@@ -11,7 +11,9 @@ function cron_new() {
   });
 	$("#dialog-cron-url").val("");
 	$("#dialog-cron-comment").val("");
+	$("#dialog-cron-length").val("");
 	$("#dialog-cron-filename").val("");
+	$("#dialog-cron-times_run").val("0");
 	$('#dialog-cron').modal('show');
 }
 
@@ -23,8 +25,10 @@ function cron_edit(id) {
   });
 	$("#dialog-cron-url").val(cron.url);
 	$("#dialog-cron-comment").val(cron.comment);
+	$("#dialog-cron-length").val(cron.length);
 	$("#dialog-cron-filename").val(cron.filename);
 	$("#dialog-cron-id").val(id);
+	$("#dialog-cron-times_run").val(cron.times_run);
 	$('#dialog-cron').modal('show');
 }
 
@@ -75,7 +79,9 @@ function dialog_cron_save() {
 	//remove spaces in filename
 	cron.filename = cron.filename.split(' ').join('_');
 	cron.comment = $("#dialog-cron-comment").val();
+	cron.length = checkVal("cron", "length", "Bitte Länge eintragen!");
 	cron.user_id = user;
+	cron.times_run = $("#dialog-cron-times_run").val();
 	if ($("#dialog-cron-id").val().length !== 0) {
 		verb = "PUT";
 		url += $("#dialog-cron-id").val();

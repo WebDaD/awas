@@ -1,7 +1,7 @@
 /**
  * Web Routes for Records
  */
-module.exports = function(app, data, functions,crons) {
+module.exports = function(app, data, functions,crons, cronripper) {
   app.get('/crons.html',functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
 				res.render("crons", {crons:data.crons, admin:req.admin});
 	});
@@ -14,6 +14,7 @@ module.exports = function(app, data, functions,crons) {
           res.sendStatus(err.status);
         } else {
           data.crons.push(result);
+          cronripper.load(app, data, crons);
           res.sendStatus(201);
         }
       });
@@ -34,6 +35,7 @@ module.exports = function(app, data, functions,crons) {
               data.crons[u] = result;
             }
           }
+          cronripper.load(app, data, crons);
           res.sendStatus(200);
         }
       });
@@ -56,6 +58,7 @@ module.exports = function(app, data, functions,crons) {
           if (index > -1) {
               data.crons.splice(index, 1);
           }
+          cronripper.load(app, data, crons);
           res.sendStatus(200);
         }
       });

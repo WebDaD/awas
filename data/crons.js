@@ -89,6 +89,8 @@ function goodCron(cron) {
 		typeof cron.url !== 'undefined' &&
 		typeof cron.comment !== 'undefined' &&
 		typeof cron.filename !== 'undefined' &&
+		typeof cron.length !== 'undefined' &&
+		typeof cron.times_run !== 'undefined' &&
 		typeof cron.user_id !== 'undefined'
 	) {
 		return true;

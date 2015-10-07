@@ -25,7 +25,12 @@ module.exports = function(app, data, functions) {
 						if (rname === "") {
 							var aname = data.archive.findObject(id, "id");
 							if (aname === "") {
-									f.user  = "NUF";
+								var cname = data.crons.findObject(id, "id");
+								if (cname === "") {
+										f.user  = "NUF";
+								} else {
+										f.user  = cname.user_id;
+								}
 							} else {
 									f.user  = aname.user_id;
 							}

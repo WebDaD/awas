@@ -19,6 +19,7 @@ var express = require('express'),
 	users = require('./data/users'),
 	archive = require('./data/archive'),
 	crons = require('./data/crons'),
+	cronripper = require('./controls/cron_streamrip'),
 	bodyParser = require("body-parser");
 
 if (typeof process.argv[2] !== 'undefined') {
@@ -77,11 +78,12 @@ require('./controls/streamrip')(app, data, records);
 require('./controls/archiver')(app, data, records, archive);
 require('./controls/ftpserver')(app, data);
 require('./controls/dlcleaner')(app);
+cronripper.load(app, data, crons);
 
 //Web
 require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions, records, archive);
-require('./website/crons')(app, data, functions, crons);
+require('./website/crons')(app, data, functions, crons, cronripper);
 require('./website/login')(app, data, functions, users);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);

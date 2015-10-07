@@ -1,7 +1,9 @@
 {
-	"tab":"* * * * * *",
+	"tab":"* 1 * * * *",
 	"url":"http://test.url",
 	"comment":"Versuch 1",
 	"user_id":"Test User",
-	"filename":"test_cron"
+	"filename":"test_cron",
+	"length":3600,
+	"times_run":0
 }
