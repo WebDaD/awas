@@ -14,7 +14,8 @@ function user_edit(id) {
 	$("#dialog-user-name").val(user.name);
 	$("#dialog-user-login").val(user.login);
 	$("#dialog-user-email").val(user.email);
-	$("#dialog-user-password").val(user.password);
+	$("#dialog-user-password").val("");
+	$("#dialog-user-password").data("password", user.password);
 	$("#dialog-user-id").val(id);
 	dialog_user_admin(user.admin);
 	$('#dialog-user').modal('show');
@@ -76,18 +77,20 @@ function dialog_user_save() {
 	user.name = checkVal("user", "name", "Bitte Name eintragen!");
 	user.login = checkVal("user", "login", "Bitte Login eintragen!");
 	user.email = checkVal("user", "email", "Bitte E-Mail eintragen!");
-	user.password = checkVal("user", "password", "Bitte Passwort eintragen!");
 	user.admin = checkVal("user", "admin", "Bitte Admin auswählen!");
 
 	if ($("#dialog-user-id").val().length !== 0) {
 		verb = "PUT";
 		url += $("#dialog-user-id").val();
+		user.password = checkVal("user", "password", "Bitte Passwort eintragen!");
+		user.password = $.md5(user.password);
+	} else {
+		user.password = 	$("#dialog-user-password").data("password");
 	}
 
 	if (checkObj(user)) {
 		return;
 	} else {
-		user.password = $.md5(user.password);
 		$.ajax({
 			url: url,
 			type: verb,

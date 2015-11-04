@@ -34,7 +34,7 @@ function displayActive(){ //.success
 function displaySpace(){
 		$.get("/space.pfree", function(data){
 			var cclass = "";
-			var p = parseInt(data);
+			var p = parseInt(data.split("/")[1]);
 			$("#space_text").removeClass("label-danger");
 			$("#space_text").removeClass("label-warning");
 			$("#space_text").removeClass("label-success");
