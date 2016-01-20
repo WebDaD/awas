@@ -43,35 +43,35 @@ block content
 					td= record.url
 					td.rstart(data-dateformat="DD.MM.YYYY HH:mm")= record.start
 					td.rstop(data-dateformat="DD.MM.YYYY HH:mm")= record.stop
-					td= record.streamripper_pid
+					td.rspid= record.streamripper_pid
 					td= record.comment
 					td= record.filename
 					td= record.user_id
 					td.no-print
 						if !archive
-							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit('"+record.id+"');") 
+							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit('"+record.id+"');")
 								span.glyphicon.glyphicon-pencil(aria-hidden="true")
-								
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_stop('"+record.id+"');") 
+
+							button.admin.btn.btn-danger.btn-sm.rstopbutton(type="button" onclick="record_stop('"+record.id+"');")
 									span.glyphicon.glyphicon-stop(aria-hidden="true")
-								
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_delete('"+record.id+"');") 
+
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_delete('"+record.id+"');")
 								span.glyphicon.glyphicon-trash(aria-hidden="true")
-								
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_cancel('"+record.id+"');") 
+
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_cancel('"+record.id+"');")
 								span.glyphicon.glyphicon-remove(aria-hidden="true")
-								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');") 
+
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');")
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
 						else
 							if admin
-								button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');") 
+								button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');")
 									span.glyphicon.glyphicon-trash(aria-hidden="true")
-									
-								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');") 
+
+								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');")
 									span.glyphicon.glyphicon-remove(aria-hidden="true")
-									
-								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');") 
+
+								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');")
 									span.glyphicon.glyphicon-ok(aria-hidden="true")
 			else
 				tr

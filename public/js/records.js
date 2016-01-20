@@ -15,6 +15,13 @@ $(document).ready(function() {
 		var time = $(this).text();
 		$(this).text(moment(time).format("DD.MM.YYYY HH:mm"));
 	});
+	$("#records .rspid").each(function(){
+		if($(this).text().length == 0){
+			$(this).parent().find(".rstopbutton").hide();
+		} else {
+				$(this).parent().find(".rstopbutton").show();
+		}
+	});
 });
 
 //records

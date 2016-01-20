@@ -16,7 +16,7 @@ console.log("Adding Cron " + cronid + " with tab " + cron.tab);
 
 new tcj('00 ' + cron.tab, function() {
 
-	var commando = "streamripper " + cron.url + " -a " + downloads + "/" + cron.times_run + "-" + cron.filename + "_id-" + cronid + " -A --quiet -l " + cron.length;
+	var commando = "streamripper " + cron.url + " -a " + downloads + "/" + cron.times_run + "-" + cron.filename + "_id-" + cronid + " -A --quiet -l " + cron.length+ " -u winamp";
 	console.log("Executing: '" + commando + "'");
 
 	var child = child_process.exec(commando, function() {
