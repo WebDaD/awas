@@ -1,0 +1,73 @@
+#content {
+  padding-left: 20px;
+}
+#content h1 {
+  float: left;
+  margin-top: 0px;
+}
+#content button {
+  float: left;
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+table > tbody > tr > td > button {
+  margin-left: 10px;
+}
+.clearfix:before,
+.clearfix:after {
+  content: "";
+  display: block;
+  height: 0;
+  overflow: hidden;
+}
+.clearfix:after {
+  clear: both;
+}
+.dialog-error {
+  display: none;
+  color: #f00;
+  border-color: #f00;
+}
+#alerts {
+  width: calc(100% - 180px);
+  padding-left: 180px;
+  padding-top: 20px;
+  position: fixed;
+  bottom: 10px;
+  z-index: 99;
+}
+#logo {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  width: 25%;
+  height: auto;
+  opacity: 0.2;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=20)";
+  filter: alpha(opacity=20);
+  z-index: -1;
+}
+#login-box {
+  width: 50%;
+  min-width: 300px;
+  margin: 0 auto;
+  border: 1px solid #000;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  padding: 10px;
+}
+#login-box button {
+  margin: 0;
+  float: none;
+}
+@media print {
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+}
+@media (min-width: 768px) {
+  .modal-dialog {
+    width: 800px;
+  }
+}

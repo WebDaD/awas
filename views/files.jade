@@ -9,7 +9,7 @@ block addins
 block content
 	h1 Downloads
 	div.clearfix
-	p.well.no-print Hier finden Sie alle Aufnahmen zum Download.
+	p.well.no-print Hier finden Sie alle Aufnahmen zum Download. Nutzen Sie Alternativ FTP mit dem Port #{ftp_port}
 	table#downloads.table.table-hover.sortable
 		thead
 			tr
@@ -23,23 +23,23 @@ block content
 		tbody.real
 		each file in files.length ? files : [{name:""}]
 			if file.name
-				tr(id=file.name data-file=file)
+				tr(id=file.id data-file=file)
 					td.no-print
 						a.btn.btn-primary.btn-sm(type="button" href="/files/"+file.name) 
 							span.glyphicon.glyphicon-download(aria-hidden="true" style="font-size:1.5em;")
 					td= file.name_nice
-					td= file.created
+					td(data-dateformat="DD.MM.YYYY HH:mm:ss")= file.created
 					td= file.size
 					td= file.user
 					if admin
 						td.no-print
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete('"+file.name+"');") 
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="file_delete('"+file.id+"');") 
 								span.glyphicon.glyphicon-trash(aria-hidden="true")
 								
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_cancel('"+file.name+"');") 
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_cancel('"+file.id+"');") 
 								span.glyphicon.glyphicon-remove(aria-hidden="true")
 								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_confirm('"+file.name+"');") 
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="file_delete_confirm('"+file.id+"');") 
 								span.glyphicon.glyphicon-ok(aria-hidden="true")
 			else
 				tr

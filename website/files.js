@@ -11,12 +11,15 @@ module.exports = function(app, data, functions) {
 				data.files = [];
 				var fs = require('fs');
 				var filesize = require('filesize');
+				var shortid = require('shortid');
+
 				var moment = require('moment');
 				for (var x = 0; x < files.length; x++) {
 					var f = {};
 					var fst = fs.statSync(app.downloads + '/' + files[x]);
 					f.name = files[x];
 					f.size = filesize(fst.size);
+					f.id = shortid.generate();
 					f.created = moment(fst.ctime).format("DD.MM.YYYY HH:mm:ss");
 					if (f.name.indexOf("_id-") > -1) {
 						var id = f.name.split("_id-")[1].split(".")[0];
@@ -45,6 +48,7 @@ module.exports = function(app, data, functions) {
 				}
 			}
 			data.admin = req.admin;
+			data.ftp_port = app.ftp_port;
 			res.render("files", data);
 		});
 	});

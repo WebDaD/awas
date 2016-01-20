@@ -1,5 +1,5 @@
 /**
- * DATA Routes for Records
+ * DATA Routes for Archived Records
  */
 module.exports = {
 	load: function(database) {
@@ -8,10 +8,13 @@ module.exports = {
 		var jsonfile = require('jsonfile');
 		var files = fs.readdirSync(database + "/archive");
 		for (var x = 0; x < files.length; x++) {
-			var r = jsonfile.readFileSync(database + "/archive/" + files[x]);
-			r.id = files[x].replace('.json', '');
-
-			records.push(r);
+			var f = database + "/archive/" + files[x];
+			var stats = fs.statSync(f);
+			if (stats.size > 0) {
+				var r = jsonfile.readFileSync(f);
+				r.id = files[x].replace('.json', '');
+				records.push(r);
+			}
 		}
 		return records;
 	},

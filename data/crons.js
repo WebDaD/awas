@@ -8,10 +8,13 @@ module.exports = {
 		var jsonfile = require('jsonfile');
 		var files = fs.readdirSync(database + "/crons");
 		for (var x = 0; x < files.length; x++) {
-			var c = jsonfile.readFileSync(database + "/crons/" + files[x]);
-			c.id = files[x].replace('.json', '');
-
-			crons.push(c);
+			var f = database + "/crons/" + files[x];
+			var stats = fs.statSync(f);
+			if (stats.size > 0) {
+				var c = jsonfile.readFileSync(f);
+				c.id = files[x].replace('.json', '');
+				crons.push(c);
+			}
 		}
 		return crons;
 	},

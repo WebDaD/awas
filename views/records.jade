@@ -24,7 +24,7 @@ block content
 				th ID
 				th URL
 				if !archive
-					th(data-defaultsort="desc") Start
+					th(data-defaultsort="asc") Start
 					th Stop
 				else
 					th Start
@@ -41,8 +41,8 @@ block content
 				tr(id=record.id data-record=record)
 					td= record.id
 					td= record.url
-					td.rstart= record.start
-					td.rstop= record.stop
+					td.rstart(data-dateformat="DD.MM.YYYY HH:mm")= record.start
+					td.rstop(data-dateformat="DD.MM.YYYY HH:mm")= record.stop
 					td= record.streamripper_pid
 					td= record.comment
 					td= record.filename

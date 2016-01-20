@@ -46,13 +46,13 @@ function user_delete_confirm(id) {
 				toast("Anwender gelöscht", "success");
 			},
 			400: function(data) {
-				dialogError("user","Bad Request");
+				dialogError("user", "Bad Request");
 			},
 			401: function(data) {
-				dialogError("user","Not Logged In?");
+				dialogError("user", "Not Logged In?");
 			},
 			500: function(data) {
-				dialogError("user","Internal Server Error");
+				dialogError("user", "Internal Server Error");
 			}
 		}
 	});
@@ -82,10 +82,15 @@ function dialog_user_save() {
 	if ($("#dialog-user-id").val().length !== 0) {
 		verb = "PUT";
 		url += $("#dialog-user-id").val();
+		if ($("#dialog-user-password").val().length === 0) {
+			user.password = $("#dialog-user-password").data("password");
+		} else {
+			user.password = $("#dialog-user-password").val();
+			user.password = $.md5(user.password);
+		}
+	} else {
 		user.password = checkVal("user", "password", "Bitte Passwort eintragen!");
 		user.password = $.md5(user.password);
-	} else {
-		user.password = 	$("#dialog-user-password").data("password");
 	}
 
 	if (checkObj(user)) {
@@ -94,12 +99,14 @@ function dialog_user_save() {
 		$.ajax({
 			url: url,
 			type: verb,
-			data: JSON.stringify({user:user}),
+			data: JSON.stringify({
+				user: user
+			}),
 			headers: {
 				token: token
 			},
 			contentType: 'application/json; charset=utf-8',
-			dataType:'json',
+			dataType: 'json',
 			statusCode: {
 				200: function(data) {
 					location.reload(true);
@@ -108,16 +115,16 @@ function dialog_user_save() {
 					location.reload(true);
 				},
 				400: function(data) {
-					dialogError("user","Bad Request");
+					dialogError("user", "Bad Request");
 				},
 				401: function(data) {
-					dialogError("user","Not Logged In?");
+					dialogError("user", "Not Logged In?");
 				},
 				418: function(data) {
-					dialogError("user","Not a valid object sent");
+					dialogError("user", "Not a valid object sent");
 				},
 				500: function(data) {
-					dialogError("user","Internal Server Error");
+					dialogError("user", "Internal Server Error");
 				}
 			}
 		});

@@ -11,6 +11,7 @@ var express = require('express'),
 	http = require('http'),
 	path = require('path'),
 	pack = require('./package.json'),
+	cluster = require("cluster"),
 	conf = require('./config.json'),
 	functions = require('./functions.js'),
 	stylus = require('stylus'),
@@ -19,9 +20,8 @@ var express = require('express'),
 	users = require('./data/users'),
 	archive = require('./data/archive'),
 	crons = require('./data/crons'),
-	cronripper = require('./controls/cron_streamrip'),
 	bodyParser = require("body-parser");
-
+if (cluster.isMaster) {
 if (typeof process.argv[2] !== 'undefined') {
 	port = process.argv[2];
 } else {
@@ -43,12 +43,7 @@ var https_options = {
 	cert: hscert
 };
 
-function compile(str, path) {
-	return stylus(str)
-		.set('filename', path)
-		.use(nib())
-		.import('nib');
-}
+function compile(str, path) {return stylus(str).set('filename', path).use(nib()).import('nib');}
 
 
 app.set('views', __dirname + '/views');
@@ -78,12 +73,10 @@ require('./controls/streamrip')(app, data, records);
 require('./controls/archiver')(app, data, records, archive);
 require('./controls/ftpserver')(app, data);
 require('./controls/dlcleaner')(app);
-cronripper.load(app, data, crons);
-
 //Web
 require('./website/root')(app, data, functions);
 require('./website/records')(app, data, functions, records, archive);
-require('./website/crons')(app, data, functions, crons, cronripper);
+
 require('./website/login')(app, data, functions, users);
 require('./website/user')(app, data, functions, users);
 require('./website/files')(app, data, functions);
@@ -101,3 +94,44 @@ insecureServer.on('request', function(req, res) {
 });
 insecureServer.listen(port);
 console.log("Redirecting http on " + port + " to " + secure_port);
+
+Object.keys(cluster.workers).forEach(function(id) {
+	cluster.workers[id].on('message', function(msg) {
+		if (!msg.type.startsWith("axm")) {
+			data.crons = [];
+			data.crons = crons.load(app.database);
+		}
+	});
+});
+
+var croncontrol = {
+workers: [],
+load: function(app, data, crons) {
+	Object.keys(cluster.workers).forEach(function(id) {
+		console.log("Killing "+id);
+		cluster.workers[id].send('STOP');
+	});
+
+	for (var x = 0; x < data.crons.length; x++) {
+		var cron = data.crons[x];
+		try {
+				console.log("Starting Worker " + cron.id);
+				var new_worker_env = {};
+				new_worker_env.WORKER_ID = cron.id;
+				new_worker_env.WORKER_DOWNLOADS = app.downloads;
+				new_worker_env.WORKER_DATABASE = app.database;
+				var new_worker = cluster.fork(new_worker_env);
+				this.workers.push(new_worker);
+			} catch (e) {
+				console.error(e.toString());
+			}
+	}
+}
+};
+
+
+croncontrol.load(app,data,crons);
+require('./website/crons')(app, data, functions, crons, croncontrol);
+} else {
+	require("./customcrons.js");
+}

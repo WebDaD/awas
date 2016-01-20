@@ -1,0 +1,116 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/node', '/usr/bin/npm', 'install' ]
+2 info using npm@1.4.28
+3 info using node@v0.10.39
+4 verbose readDependencies using package.json deps
+5 verbose install where, deps [ '/var/mmc/awas/www',
+5 verbose install   [ 'express',
+5 verbose install     'nice-console',
+5 verbose install     'exec',
+5 verbose install     'jsonfile',
+5 verbose install     'chokidar',
+5 verbose install     'socket.io',
+5 verbose install     'jade',
+5 verbose install     'body-parser',
+5 verbose install     'stylus',
+5 verbose install     'nib',
+5 verbose install     'MD5',
+5 verbose install     'ftpd',
+5 verbose install     'ip',
+5 verbose install     'filesize',
+5 verbose install     'shortid',
+5 verbose install     'cron',
+5 verbose install     'moment',
+5 verbose install     'moment-timezone',
+5 verbose install     'mime',
+5 verbose install     'diskspace',
+5 verbose install     'dir-util',
+5 verbose install     'ps-node',
+5 verbose install     'cron-job-manager' ] ]
+6 info preinstall awas@1.4.0
+7 verbose readDependencies using package.json deps
+8 verbose already installed skipping socket.io@* /var/mmc/awas/www
+9 verbose already installed skipping jade@* /var/mmc/awas/www
+10 verbose already installed skipping body-parser@* /var/mmc/awas/www
+11 verbose already installed skipping stylus@* /var/mmc/awas/www
+12 verbose already installed skipping nib@* /var/mmc/awas/www
+13 verbose already installed skipping MD5@* /var/mmc/awas/www
+14 verbose already installed skipping ftpd@* /var/mmc/awas/www
+15 verbose already installed skipping ip@* /var/mmc/awas/www
+16 verbose already installed skipping filesize@* /var/mmc/awas/www
+17 verbose already installed skipping shortid@* /var/mmc/awas/www
+18 verbose already installed skipping cron@* /var/mmc/awas/www
+19 verbose already installed skipping moment@* /var/mmc/awas/www
+20 verbose already installed skipping moment-timezone@* /var/mmc/awas/www
+21 verbose already installed skipping mime@* /var/mmc/awas/www
+22 verbose already installed skipping diskspace@* /var/mmc/awas/www
+23 verbose already installed skipping dir-util@* /var/mmc/awas/www
+24 verbose already installed skipping ps-node@* /var/mmc/awas/www
+25 verbose cache add [ 'cron-job-manager@*', null ]
+26 verbose cache add name=undefined spec="cron-job-manager@*" args=["cron-job-manager@*",null]
+27 verbose parsed url { protocol: null,
+27 verbose parsed url   slashes: null,
+27 verbose parsed url   auth: null,
+27 verbose parsed url   host: null,
+27 verbose parsed url   port: null,
+27 verbose parsed url   hostname: null,
+27 verbose parsed url   hash: null,
+27 verbose parsed url   search: null,
+27 verbose parsed url   query: null,
+27 verbose parsed url   pathname: 'cron-job-manager@*',
+27 verbose parsed url   path: 'cron-job-manager@*',
+27 verbose parsed url   href: 'cron-job-manager@*' }
+28 verbose already installed skipping express@* /var/mmc/awas/www
+29 verbose already installed skipping nice-console@* /var/mmc/awas/www
+30 verbose already installed skipping exec@* /var/mmc/awas/www
+31 verbose already installed skipping jsonfile@* /var/mmc/awas/www
+32 verbose already installed skipping chokidar@* /var/mmc/awas/www
+33 verbose cache add name="cron-job-manager" spec="*" args=["cron-job-manager","*"]
+34 verbose parsed url { protocol: null,
+34 verbose parsed url   slashes: null,
+34 verbose parsed url   auth: null,
+34 verbose parsed url   host: null,
+34 verbose parsed url   port: null,
+34 verbose parsed url   hostname: null,
+34 verbose parsed url   hash: null,
+34 verbose parsed url   search: null,
+34 verbose parsed url   query: null,
+34 verbose parsed url   pathname: '*',
+34 verbose parsed url   path: '*',
+34 verbose parsed url   href: '*' }
+35 verbose addNamed [ 'cron-job-manager', '*' ]
+36 verbose addNamed [ null, '*' ]
+37 silly lockFile 694edc62-cron-job-manager cron-job-manager@*
+38 verbose lock cron-job-manager@* /root/.npm/694edc62-cron-job-manager.lock
+39 silly addNameRange { name: 'cron-job-manager', range: '*', hasData: false }
+40 verbose request where is /cron-job-manager
+41 verbose request registry https://registry.npmjs.org/
+42 verbose request id e75537ac1c705c55
+43 verbose url raw /cron-job-manager
+44 verbose url resolving [ 'https://registry.npmjs.org/', './cron-job-manager' ]
+45 verbose url resolved https://registry.npmjs.org/cron-job-manager
+46 verbose request where is https://registry.npmjs.org/cron-job-manager
+47 info trying registry request attempt 1 at 08:41:05
+48 http GET https://registry.npmjs.org/cron-job-manager
+49 info retry will retry, error on last attempt: Error: tunneling socket could not be established, cause=getaddrinfo ENOTFOUND
+50 info trying registry request attempt 2 at 08:41:16
+51 http GET https://registry.npmjs.org/cron-job-manager
+52 info retry will retry, error on last attempt: Error: tunneling socket could not be established, cause=getaddrinfo ENOTFOUND
+53 info trying registry request attempt 3 at 08:42:16
+54 http GET https://registry.npmjs.org/cron-job-manager
+55 silly lockFile 694edc62-cron-job-manager cron-job-manager@*
+56 silly lockFile 694edc62-cron-job-manager cron-job-manager@*
+57 error network tunneling socket could not be established, cause=getaddrinfo ENOTFOUND
+57 error network This is most likely not a problem with npm itself
+57 error network and is related to network connectivity.
+57 error network In most cases you are behind a proxy or have bad network settings.
+57 error network
+57 error network If you are behind a proxy, please make sure that the
+57 error network 'proxy' config is set properly.  See: 'npm help config'
+58 error System Linux 4.0.6-v7
+59 error command "/usr/bin/node" "/usr/bin/npm" "install"
+60 error cwd /var/mmc/awas/www
+61 error node -v v0.10.39
+62 error npm -v 1.4.28
+63 error code ECONNRESET
+64 verbose exit [ 1, true ]

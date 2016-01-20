@@ -8,10 +8,13 @@ module.exports = {
 		var jsonfile = require('jsonfile');
 		var files = fs.readdirSync(database + "/records");
 		for (var x = 0; x < files.length; x++) {
-			var r = jsonfile.readFileSync(database + "/records/" + files[x]);
-			r.id = files[x].replace('.json', '');
-
-			records.push(r);
+			var f = database + "/records/" + files[x];
+			var stats = fs.statSync(f);
+			if (stats.size > 0) {
+				var r = jsonfile.readFileSync(f);
+				r.id = files[x].replace('.json', '');
+				records.push(r);
+			}
 		}
 		return records;
 	},

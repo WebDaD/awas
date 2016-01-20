@@ -10,8 +10,9 @@ function file_delete_cancel(id) {
 }
 
 function file_delete_confirm(id) {
+	var name = $("#" + id).data("file").name;
 	$.ajax({
-		url: 'files/' + id,
+		url: 'files/' + name,
 		type: "DELETE",
 		headers: {
 			token: token
