@@ -37,9 +37,10 @@ function startRipper(downloads, record, callback) { //callback(record,pid)
 
 	var Seconds_Between_Dates = stop.diff(start,"seconds");
 
-	var commando = "streamripper " + record.url + " -a " + downloads + "/" + record.filename+"_id-"+record.id + " -A --quiet -l " + Seconds_Between_Dates;
+	var commando = "streamripper " + record.url + " -a " + downloads + "/" + record.filename+"_id-"+record.id + " -A --quiet -l " + Seconds_Between_Dates+ " -u winamp";
 	console.log("Executing: '" + commando + "'");
 	var child = child_process.exec(commando, function() {
+		console.log("Rip "+record.id+" started with child id "+child.pid);
 		callback(record,child.pid);
 	});
 }

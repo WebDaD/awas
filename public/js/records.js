@@ -8,11 +8,11 @@ $(document).ready(function() {
 	$("[data-toggle=tooltip]").tooltip();
 
 	$("#records .rstart").each(function(){
-		var time = $(this).data("value");
+		var time = $(this).text();
 		$(this).text(moment(time).format("DD.MM.YYYY HH:mm"));
 	});
 	$("#records .rstop").each(function(){
-		var time = $(this).data("value");
+		var time = $(this).text();
 		$(this).text(moment(time).format("DD.MM.YYYY HH:mm"));
 	});
 });
@@ -32,8 +32,8 @@ function record_edit(id) {
 	var record = $("#" + id).data("record");
 	$("#dialog-record-error").hide();
 	$("#dialog-record-url").val(record.url);
-	$("#dialog-record-start").val(record.start);
-	$("#dialog-record-stop").val(record.stop);
+	$("#dialog-record-start").val(moment(record.start).format("DD.MM.YYYY HH:mm"));
+	$("#dialog-record-stop").val(moment(record.stop).format("DD.MM.YYYY HH:mm"));
 	$("#dialog-record-comment").val(record.comment);
 	$("#dialog-record-filename").val(record.filename);
 	$("#dialog-record-id").val(id);
@@ -121,8 +121,8 @@ function dialog_record_save() {
 	if (checkObj(record)) {
 		return;
 	} else {
-		record.start = moment(record.start).format();
-		record.stop = moment(record.stop).format();
+		record.start = moment(record.start, "DD.MM.YYYY HH:mm").format();
+		record.stop = moment(record.stop, "DD.MM.YYYY HH:mm").format();
 		$.ajax({
 			url: url,
 			type: verb,

@@ -18,7 +18,7 @@ function startRip(app, cron, crons, data) {
 	var fs = require('fs');
 	var child_process = require('child_process');
 
-	var commando = "streamripper " + cron.url + " -a " + app.downloads + "/" + cron.times_run + "-" + cron.filename + "_id-" + cron.id + " -A --quiet -l " + cron.length;
+	var commando = "streamripper " + cron.url + " -a " + app.downloads + "/" + cron.times_run + "-" + cron.filename + "_id-" + cron.id + " -A --quiet -l " + cron.length+ " -u winamp";
 	console.log("Executing: '" + commando + "'");
 
 	var child = child_process.exec(commando, function() {
