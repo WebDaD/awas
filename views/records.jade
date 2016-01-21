@@ -18,66 +18,67 @@ block content
 		button.btn.btn-success.no-print(type="button" onclick="record_new();")
 			span.glyphicon.glyphicon-plus(aria-hidden="true")
 	div.clearfix
-	table#records.table.table-hover.sortable
-		thead
-			tr
-				th ID
-				th URL
-				if !archive
-					th(data-defaultsort="asc") Start
-					th Stop
-				else
-					th Start
-					th(data-defaultsort="desc") Stop
-				th SR-PID
-				th Comment
-				th filename
-				th User
-				if !archive && admin
-					th.no-print(data-defaultsort='disabled') *
-		tbody.real
-		each record in records.length ? records : [{id:""}]
-			if record.id
-				tr(id=record.id data-record=record)
-					td= record.id
-					td= record.url
-					td.rstart(data-value=record.start)= record.start
-					td.rstop(data-value=record.stop)= record.stop
-					td.rspid= record.streamripper_pid
-					td= record.comment
-					td= record.filename
-					td= record.user_id
-					td.no-print
-						if !archive
-							button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit('"+record.id+"');")
-								span.glyphicon.glyphicon-pencil(aria-hidden="true")
+	.table-responsive
+		table#records.table.table-hover.sortable
+			thead
+				tr
+					th ID
+					th URL
+					if !archive
+						th(data-defaultsort="asc") Start
+						th Stop
+					else
+						th Start
+						th(data-defaultsort="desc") Stop
+					th SR-PID
+					th Comment
+					th filename
+					th User
+					if !archive && admin
+						th.no-print(data-defaultsort='disabled') *
+			tbody.real
+			each record in records.length ? records : [{id:""}]
+				if record.id
+					tr(id=record.id data-record=record)
+						td= record.id
+						td= record.url
+						td.rstart(data-value=record.start)= record.start
+						td.rstop(data-value=record.stop)= record.stop
+						td.rspid= record.streamripper_pid
+						td= record.comment
+						td= record.filename
+						td= record.user_id
+						td.no-print
+							if !archive
+								button.admin.btn.btn-primary.btn-sm(type="button" onclick="record_edit('"+record.id+"');")
+									span.glyphicon.glyphicon-pencil(aria-hidden="true")
 
-							button.admin.btn.btn-danger.btn-sm.rstopbutton(type="button" onclick="record_stop('"+record.id+"');")
-									span.glyphicon.glyphicon-stop(aria-hidden="true")
+								button.admin.btn.btn-danger.btn-sm.rstopbutton(type="button" onclick="record_stop('"+record.id+"');")
+										span.glyphicon.glyphicon-stop(aria-hidden="true")
 
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_delete('"+record.id+"');")
-								span.glyphicon.glyphicon-trash(aria-hidden="true")
-
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_cancel('"+record.id+"');")
-								span.glyphicon.glyphicon-remove(aria-hidden="true")
-
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');")
-								span.glyphicon.glyphicon-ok(aria-hidden="true")
-						else
-							if admin
-								button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');")
+								button.admin.btn.btn-danger.btn-sm(type="button" onclick="record_delete('"+record.id+"');")
 									span.glyphicon.glyphicon-trash(aria-hidden="true")
 
-								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');")
+								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_cancel('"+record.id+"');")
 									span.glyphicon.glyphicon-remove(aria-hidden="true")
 
-								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');")
+								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="record_delete_confirm('"+record.id+"');")
 									span.glyphicon.glyphicon-ok(aria-hidden="true")
-			else
-				tr
-					if !archive
-						td(colspan="9") Keine Aufnahmen eingetragen
-					else
-						td(colspan="9") Keine Aufnahmen im Archiv
+							else
+								if admin
+									button.admin.btn.btn-danger.btn-sm(type="button" onclick="archive_delete('"+record.id+"');")
+										span.glyphicon.glyphicon-trash(aria-hidden="true")
+
+									button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_cancel('"+record.id+"');")
+										span.glyphicon.glyphicon-remove(aria-hidden="true")
+
+									button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="archive_delete_confirm('"+record.id+"');")
+										span.glyphicon.glyphicon-ok(aria-hidden="true")
+				else
+					tr
+						if !archive
+							td(colspan="9") Keine Aufnahmen eingetragen
+						else
+							td(colspan="9") Keine Aufnahmen im Archiv
 block dialog
 	include record_dialog.jade

@@ -6,51 +6,52 @@ block title
 block addins
 	script(src="/js/users.js" type="text/javascript")
 
-block content 
+block content
 	h1 Anwender
 	button.btn.btn-success.no-print(type="button" onclick="user_new();")
 		span.glyphicon.glyphicon-plus(aria-hidden="true")
 	div.clearfix
-	table#user.table.table-hover.sortable
-		thead
-			tr
-				th(data-defaultsort="asc") ID
-				th(data-firstsort="asc") Name
-				th Login
-				th E-Mail
-				th Admin
-				if admin
-					th.no-print(data-defaultsort='disabled') *
-		tbody.real
-		each user in users.length ? users : [{id:""}]
-			if user.id
-				tr(id=user.id data-user=user)
-					td= user.id
-					td= user.name
-					td= user.login
-					td= user.email
-					if user.admin == true
-						td
-							span.glyphicon.glyphicon-ok(aria-hidden="true" style="color:green;")
-					else
-						td
-							span.glyphicon.glyphicon-remove(aria-hidden="true" style="color:red;")
-					if admin
-						td.no-print
-							button.admin.btn.btn-primary.btn-sm(type="button" onclick="user_edit('"+user.id+"');") 
-								span.glyphicon.glyphicon-pencil(aria-hidden="true")
-								
-							button.admin.btn.btn-danger.btn-sm(type="button" onclick="user_delete('"+user.id+"');") 
-								span.glyphicon.glyphicon-trash(aria-hidden="true")
-								
-							
-								
-							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_confirm('"+user.id+"');") 
-								span.glyphicon.glyphicon-ok(aria-hidden="true")
-							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_cancel('"+user.id+"');") 
-								span.glyphicon.glyphicon-remove(aria-hidden="true")
-			else
+	.table-responsive
+		table#user.table.table-hover.sortable
+			thead
 				tr
-					td(colspan="9") Keine User angelegt
+					th(data-defaultsort="asc") ID
+					th(data-firstsort="asc") Name
+					th Login
+					th E-Mail
+					th Admin
+					if admin
+						th.no-print(data-defaultsort='disabled') *
+			tbody.real
+			each user in users.length ? users : [{id:""}]
+				if user.id
+					tr(id=user.id data-user=user)
+						td= user.id
+						td= user.name
+						td= user.login
+						td= user.email
+						if user.admin == true
+							td
+								span.glyphicon.glyphicon-ok(aria-hidden="true" style="color:green;")
+						else
+							td
+								span.glyphicon.glyphicon-remove(aria-hidden="true" style="color:red;")
+						if admin
+							td.no-print
+								button.admin.btn.btn-primary.btn-sm(type="button" onclick="user_edit('"+user.id+"');")
+									span.glyphicon.glyphicon-pencil(aria-hidden="true")
+
+								button.admin.btn.btn-danger.btn-sm(type="button" onclick="user_delete('"+user.id+"');")
+									span.glyphicon.glyphicon-trash(aria-hidden="true")
+
+
+
+								button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_confirm('"+user.id+"');")
+									span.glyphicon.glyphicon-ok(aria-hidden="true")
+								button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="user_delete_cancel('"+user.id+"');")
+									span.glyphicon.glyphicon-remove(aria-hidden="true")
+				else
+					tr
+						td(colspan="9") Keine User angelegt
 block dialog
 	include user_dialog.jade

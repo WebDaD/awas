@@ -11,45 +11,46 @@ block content
 	button.btn.btn-success.no-print(type="button" onclick="cron_new();")
 		span.glyphicon.glyphicon-plus(aria-hidden="true")
 	div.clearfix
-	table#crons.table.table-hover.sortable
-		thead
-			tr
-				th ID
-				th Tab
-				th Länge
-				th Run
-				th URL
-				th comment
-				th filename
-				th User
-				if admin
-					th.no-print(data-defaultsort='disabled') *
-		tbody.real
-		each cron in crons.length ? crons : [{id:""}]
-			if cron.id
-				tr(id=cron.id data-cron=cron)
-					td= cron.id
-					td= cron.tab
-					td= cron.length
-					td= cron.times_run
-					td= cron.url
-					td= cron.comment
-					td= cron.filename
-					td= cron.user_id
-					td.no-print
-						button.admin.btn.btn-primary.btn-sm(type="button" onclick="cron_edit('"+cron.id+"');") 
-							span.glyphicon.glyphicon-pencil(aria-hidden="true")
-							
-						button.admin.btn.btn-danger.btn-sm(type="button" onclick="cron_delete('"+cron.id+"');") 
-							span.glyphicon.glyphicon-trash(aria-hidden="true")
-							
-						button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="cron_delete_cancel('"+cron.id+"');") 
-							span.glyphicon.glyphicon-remove(aria-hidden="true")
-							
-						button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="cron_delete_confirm('"+cron.id+"');") 
-							span.glyphicon.glyphicon-ok(aria-hidden="true")
-			else
+	.table-responsive
+		table#crons.table.table-hover.sortable
+			thead
 				tr
-					td(colspan="9") Keine Conjobs erstellt.
+					th ID
+					th Tab
+					th Länge
+					th Run
+					th URL
+					th comment
+					th filename
+					th User
+					if admin
+						th.no-print(data-defaultsort='disabled') *
+			tbody.real
+			each cron in crons.length ? crons : [{id:""}]
+				if cron.id
+					tr(id=cron.id data-cron=cron)
+						td= cron.id
+						td= cron.tab
+						td= cron.length
+						td= cron.times_run
+						td= cron.url
+						td= cron.comment
+						td= cron.filename
+						td= cron.user_id
+						td.no-print
+							button.admin.btn.btn-primary.btn-sm(type="button" onclick="cron_edit('"+cron.id+"');")
+								span.glyphicon.glyphicon-pencil(aria-hidden="true")
+
+							button.admin.btn.btn-danger.btn-sm(type="button" onclick="cron_delete('"+cron.id+"');")
+								span.glyphicon.glyphicon-trash(aria-hidden="true")
+
+							button.btn.btn-danger.btn-sm.hidden.delete_decide(type="button" onclick="cron_delete_cancel('"+cron.id+"');")
+								span.glyphicon.glyphicon-remove(aria-hidden="true")
+
+							button.btn.btn-success.btn-sm.hidden.delete_decide(type="button" onclick="cron_delete_confirm('"+cron.id+"');")
+								span.glyphicon.glyphicon-ok(aria-hidden="true")
+				else
+					tr
+						td(colspan="9") Keine Conjobs erstellt.
 block dialog
 	include cron_dialog.jade

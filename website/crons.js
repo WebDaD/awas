@@ -6,13 +6,7 @@ module.exports = function(app, data, functions,crons, cronripper) {
 				res.render("crons", {crons:data.crons, admin:req.admin});
 	});
   app.get('/active_crons', function(req, res) {
-    var count = 0;
-    data.crons.forEach(function(element){
-      if(isActive(element)){
-        count++;
-      }
-    });
-    res.send(count.toString());
+    res.send(data.crons.length.toString());
 	});
   app.post('/crons', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
     if(typeof req.body.cron === 'undefined'){
