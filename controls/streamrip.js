@@ -40,9 +40,10 @@ function startRipper(downloads, record, callback) { //callback(record,pid)
 	var commando = "streamripper " + record.url + " -a " + downloads + "/" + record.filename+"_id-"+record.id + " -A --quiet -l " + Seconds_Between_Dates+ " -u winamp";
 	console.log("Executing: '" + commando + "'");
 	var child = child_process.exec(commando, function() {
-		console.log("Started Rip "+record.id+ " with PID "+child.pid);
-		callback(record,child.pid);
+		console.log("Rip "+record.id+ " with PID "+child.pid+" ended.");
 	});
+	console.log("Started Rip "+record.id+ " with PID "+child.pid);
+	callback(record,child.pid);
 }
 
 function isOnTime(record) {

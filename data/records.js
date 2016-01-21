@@ -77,12 +77,13 @@ module.exports = {
 		r.stop = moment().tz("Europe/Berlin").format();
 		r.id = id;
 		if (typeof r.streamripper_pid !== 'undefined') {
-			ps.kill(r.streamripper_pid, function(err) {
+			ps.kill(r.streamripper_pid, function(err, stdout) {
 				if (err) {
 					callback({
 						status: 500
 					});
 				} else {
+					console.log(stdout);
 					module.exports.updateRecord(database, r, callback);
 				}
 			});

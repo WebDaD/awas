@@ -41,8 +41,8 @@ block content
 				tr(id=record.id data-record=record)
 					td= record.id
 					td= record.url
-					td.rstart(data-dateformat="DD.MM.YYYY HH:mm")= record.start
-					td.rstop(data-dateformat="DD.MM.YYYY HH:mm")= record.stop
+					td.rstart(data-value=record.start)= record.start
+					td.rstop(data-value=record.stop)= record.stop
 					td.rspid= record.streamripper_pid
 					td= record.comment
 					td= record.filename
