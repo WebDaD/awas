@@ -94,6 +94,7 @@ function record_stop(id) {
 		statusCode: {
 			200: function(data) {
 				toast("Aufnahme gestoppt", "success");
+				location.reload(true);
 			},
 			400: function(data) {
 				dialogError("record","Bad Request");
