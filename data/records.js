@@ -83,8 +83,19 @@ module.exports = {
 						status: 500
 					});
 				} else {
-					console.log(stdout);
-					module.exports.updateRecord(database, r, callback);
+
+					ps.kill(r.streamripper_pid+1, function(err, stdout) {
+						if (err) {
+							callback({
+								status: 500
+							});
+						} else {
+
+								module.exports.updateRecord(database, r, callback);
+
+						}
+					});
+
 				}
 			});
 		} else {

@@ -23,6 +23,7 @@ $(document).ready(function() {
 });
 function displayActive(){ //.success
 	$("#active_records").load("/active_records");
+	$("#active_crons").load("/active_crons");
 	$('#records > tbody > tr').removeClass("success");
 	$('#records > tbody  > tr').each(function() {
 		var data = $(this).data("record");

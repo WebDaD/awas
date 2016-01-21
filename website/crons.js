@@ -5,6 +5,15 @@ module.exports = function(app, data, functions,crons, cronripper) {
   app.get('/crons.html',functions.isLoggedIn(data.loggedIn),functions.isAdmin(data.admins), function(req, res) {
 				res.render("crons", {crons:data.crons, admin:req.admin});
 	});
+  app.get('/active_crons', function(req, res) {
+    var count = 0;
+    data.crons.forEach(function(element){
+      if(isActive(element)){
+        count++;
+      }
+    });
+    res.send(count.toString());
+	});
   app.post('/crons', functions.isLoggedIn(data.loggedIn,true), function(req, res) {
     if(typeof req.body.cron === 'undefined'){
       res.sendStatus(400);
