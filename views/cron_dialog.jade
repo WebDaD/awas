@@ -36,6 +36,25 @@ div#dialog-cron.modal.fade(role="dialog")
 						span#dialog-cron-filename-addon.input-group-addon.glyphicon.glyphicon-file(style="top:0px;")
 						input#dialog-cron-filename.input-xlarge.form-control(type="text" aria-describedby="dialog-cron-filename-addon" placeholder="Dateiname")
 				
+				div#dialog-cron-type-group.form-group
+					label.control-label(for="dialog-cron-type-group") Dateityp
+					div.input-group(style="width:100%;")
+						select#dialog-cron-type(style="width:100%;")
+							option(selected="selected") mp3
+							option mp4
+							option ogg
+							option wma
+							option ts
+							option wmv
+							option mpg
+
+				div#dialog-cron-command-group.form-group
+					label.control-label(for="dialog-cron-command-group") Dateityp
+					div.input-group(style="width:100%;")
+						select#dialog-cron-command(style="width:100%;")
+							option(selected="selected") streamripper
+							option mplayer
+							option vlc			
 				input(type="hidden" id="dialog-cron-id")
 				input(type="hidden" id="dialog-cron-times_run")
 			div.modal-footer

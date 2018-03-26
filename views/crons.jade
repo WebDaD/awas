@@ -22,6 +22,8 @@ block content
 					th URL
 					th comment
 					th filename
+					th FileType
+					th Ripper
 					th User
 					if admin
 						th.no-print(data-defaultsort='disabled') *
@@ -36,6 +38,8 @@ block content
 						td= cron.url
 						td= cron.comment
 						td= cron.filename
+						td= cron.type
+						td= cron.command
 						td= cron.user_id
 						td.no-print
 							button.admin.btn.btn-primary.btn-sm(type="button" onclick="cron_edit('"+cron.id+"');")
