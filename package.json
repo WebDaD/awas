@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "express": "*",
-    "nice-console":"*",
     "exec":"*",
     "jsonfile":"*",
     "chokidar":"*",
