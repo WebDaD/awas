@@ -33,6 +33,8 @@ block content
 					th SR-PID
 					th Comment
 					th filename
+					th FileType
+					th Ripper
 					th User
 					if !archive && admin
 						th.no-print(data-defaultsort='disabled') *
@@ -47,6 +49,8 @@ block content
 						td.rspid= record.streamripper_pid
 						td= record.comment
 						td= record.filename
+						td= record.type
+						td= record.command
 						td= record.user_id
 						td.no-print
 							if !archive

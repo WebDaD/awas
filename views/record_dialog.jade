@@ -37,6 +37,27 @@ div#dialog-record.modal.fade(role="dialog")
 						span#dialog-record-filename-addon.input-group-addon.glyphicon.glyphicon-file(style="top:0px;")
 						input#dialog-record-filename.input-xlarge.form-control(type="text" aria-describedby="dialog-record-filename-addon" placeholder="Dateiname")
 				
+				div#dialog-record-type-group.form-group
+					label.control-label(for="dialog-record-type-group") Dateityp
+					div.input-group(style="width:100%;")
+						select#dialog-record-type(style="width:100%;")
+							option(selected="selected") mp3
+							option mp4
+							option ogg
+							option wma
+							option ts
+							option wmv
+							option mpg
+
+				div#dialog-record-command-group.form-group
+					label.control-label(for="dialog-record-command-group") Dateityp
+					div.input-group(style="width:100%;")
+						select#dialog-record-command(style="width:100%;")
+							option(selected="selected") streamripper
+							option mplayer
+							option vlc		
+
+
 				input(type="hidden" id="dialog-record-id")
 			div.modal-footer
 				button.btn.btn-success(onclick="dialog_record_save();") Speichern
