@@ -1,33 +1,31 @@
 /**
  * Module dependencies.
  */
+var express = require('express')
+var app = express()
+var http = require('http')
+var path = require('path')
+var pack = require('./package.json')
+var cluster = require('cluster')
+var conf = require('./config.json')
+var functions = require('./functions.js')
+var stylus = require('stylus')
+var nib = require('nib')
+var records = require('./data/records')
+var users = require('./data/users')
+var archive = require('./data/archive')
+var crons = require('./data/crons')
+var bodyParser = require('body-parser')
+var port
 
-require('nice-console')(console)
+function compile (str, path) { return stylus(str).set('filename', path).use(nib()).import('nib') }
 
-var express = require('express'),
-  app = express(),
-  fs = require('fs'),
-  https = require('https'),
-  http = require('http'),
-  path = require('path'),
-  pack = require('./package.json'),
-  cluster = require('cluster'),
-  conf = require('./config.json'),
-  functions = require('./functions.js'),
-  stylus = require('stylus'),
-  nib = require('nib'),
-  records = require('./data/records'),
-  users = require('./data/users'),
-  archive = require('./data/archive'),
-  crons = require('./data/crons'),
-  bodyParser = require('body-parser')
 if (cluster.isMaster) {
   if (typeof process.argv[2] !== 'undefined') {
     port = process.argv[2]
   } else {
     port = conf.web_port
   }
-  var secure_port = conf.secure_port
 
   app.title = pack.name
   app.author = pack.author
@@ -35,26 +33,18 @@ if (cluster.isMaster) {
   app.database = conf.database
   app.downloads = conf.downloads
   app.ftp_port = conf.ftp_port
-  var hskey = fs.readFileSync(__dirname + '/awas-key.pem')
-  var hscert = fs.readFileSync(__dirname + '/awas-cert.pem')
-  var https_options = {
-    key: hskey,
-    cert: hscert
-  }
 
-  function compile (str, path) { return stylus(str).set('filename', path).use(nib()).import('nib') }
-
-  app.set('views', __dirname + '/views')
+  app.set('views', path.join(__dirname, 'views'))
   app.set('view engine', 'jade')
   app.use(stylus.middleware({
-    src: __dirname + '/style',
-    dest: __dirname + '/public/css',
+    src: path.join(__dirname, 'style'),
+    dest: path.join(__dirname, 'public/css'),
     compile: compile,
     force: true,
     debug: true
   })) // stylus
   app.use(bodyParser.json())
-  app.use(express.static(__dirname + '/public'))
+  app.use(express.static(path.join(__dirname, 'public')))
 
   var data = {} // All Data. Will be updated by data routes
   data.records = records.load(app.database)
@@ -79,26 +69,15 @@ if (cluster.isMaster) {
   require('./website/user')(app, data, functions, users)
   require('./website/files')(app, data, functions)
 
-  https.createServer(https_options, app).listen(secure_port)
-  console.log(app.title + ' ' + app.version + ' running secure on Port ' + secure_port)
-
-  var insecureServer = http.createServer(app)
-  insecureServer.on('request', function (req, res) {
-    res.statusCode = 302
-    res.setHeader(
-		'Location', 'https://' + req.headers.host.replace(/:\d+/, ':' + secure_port) + req.url
-	)
-    res.end()
-  })
-  insecureServer.listen(port)
-  console.log('Redirecting http on ' + port + ' to ' + secure_port)
+  http.createServer(app).listen(port)
+  console.log(app.title + ' ' + app.version + ' running on Port ' + port)
 
   Object.keys(cluster.workers).forEach(function (id) {
     cluster.workers[id].on('message', function (msg) {
       if (!msg.type.startsWith('axm')) {
-      data.crons = []
-      data.crons = crons.load(app.database)
-    }
+        data.crons = []
+        data.crons = crons.load(app.database)
+      }
     })
   })
 
@@ -106,24 +85,24 @@ if (cluster.isMaster) {
     workers: [],
     load: function (app, data, crons) {
       Object.keys(cluster.workers).forEach(function (id) {
-      console.log('Killing ' + id)
-      cluster.workers[id].send('STOP')
-    })
+        console.log('Killing ' + id)
+        cluster.workers[id].send('STOP')
+      })
 
       for (var x = 0; x < data.crons.length; x++) {
-      var cron = data.crons[x]
-      try {
-        console.log('Starting Worker ' + cron.id)
-        var new_worker_env = {}
-        new_worker_env.WORKER_ID = cron.id
-        new_worker_env.WORKER_DOWNLOADS = app.downloads
-        new_worker_env.WORKER_DATABASE = app.database
-        var new_worker = cluster.fork(new_worker_env)
-        this.workers.push(new_worker)
-      } catch (e) {
-        console.error(e.toString())
+        var cron = data.crons[x]
+        try {
+          console.log('Starting Worker ' + cron.id)
+          var newWorkerEnv = {}
+          newWorkerEnv.WORKER_ID = cron.id
+          newWorkerEnv.WORKER_DOWNLOADS = app.downloads
+          newWorkerEnv.WORKER_DATABASE = app.database
+          var newWorker = cluster.fork(newWorkerEnv)
+          this.workers.push(newWorker)
+        } catch (e) {
+          console.error(e.toString())
+        }
       }
-    }
     }
   }
 
