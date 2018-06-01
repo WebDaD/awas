@@ -5,6 +5,7 @@ module.exports = function (app, data, records) {
   var CronJob2 = require('cron').CronJob
 
   CronJob2('00 * * * * *', function () {
+    console.log('Recorder TICK')
     startRip(app, data, records)
   }, null, true, 'Europe/Berlin')
 
