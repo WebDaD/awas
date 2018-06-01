@@ -1,6 +1,6 @@
 {
-	"database":"/var/mmc/awas/www/database",
-	"downloads":"/var/mmc/awas/downloads",
+	"database":"/var/awas/database",
+	"downloads":"/var/awas/downloads",
 	"ftp_port":21000,
 	"web_port":8080
 }
