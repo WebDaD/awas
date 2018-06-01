@@ -74,6 +74,7 @@ if (cluster.isMaster) {
 
   Object.keys(cluster.workers).forEach(function (id) {
     cluster.workers[id].on('message', function (msg) {
+      // TODO: here may also be an error
       if (!msg.type.startsWith('axm')) {
         data.crons = []
         data.crons = crons.load(app.database)
@@ -100,7 +101,7 @@ if (cluster.isMaster) {
           var newWorker = cluster.fork(newWorkerEnv)
           this.workers.push(newWorker)
         } catch (e) {
-          console.error(e.toString())
+          console.error('[ERR]: ' + e.toString())
         }
       }
     }
@@ -108,6 +109,14 @@ if (cluster.isMaster) {
 
   croncontrol.load(app, data, crons)
   require('./website/crons')(app, data, functions, crons, croncontrol)
+  process.on('disconnect', function () {
+    console.log('app.js-master exited')
+    process.exit()
+  })
 } else {
   require('./customcrons.js')
+  process.on('disconnect', function () {
+    console.log('app.js-fork exited')
+    process.exit()
+  })
 }
