@@ -27,6 +27,7 @@
     "mime":"*",
     "diskspace":"*",
     "dir-util":"*",
-    "ps-node":"*"
+    "ps-node":"*",
+    "node-ipc":"*"
   }
 }

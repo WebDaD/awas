@@ -1,7 +1,7 @@
 /**
  * Web Routes for Records
  */
-module.exports = function (app, data, functions, crons, cronripper) {
+module.exports = function (app, data, functions, crons, ipc) {
   app.get('/crons.html', functions.isLoggedIn(data.loggedIn), functions.isAdmin(data.admins), function (req, res) {
     res.render('crons', {crons: data.crons, admin: req.admin})
   })
@@ -17,7 +17,7 @@ module.exports = function (app, data, functions, crons, cronripper) {
           res.sendStatus(err.status)
         } else {
           data.crons.push(result)
-          cronripper.load(app, data, crons)
+          ipc.server.emit('cronstart', result.id)
           res.sendStatus(201)
         }
       })
@@ -34,11 +34,11 @@ module.exports = function (app, data, functions, crons, cronripper) {
           res.sendStatus(err.status)
         } else {
           for (var u = 0; u < data.crons.length; u++) {
-            if (data.crons[u].id == result.id) {
+            if (data.crons[u].id === result.id) {
               data.crons[u] = result
             }
           }
-          cronripper.load(app, data, crons)
+          ipc.server.emit('cronrefresh', cron.id)
           res.sendStatus(200)
         }
       })
@@ -54,14 +54,14 @@ module.exports = function (app, data, functions, crons, cronripper) {
         } else {
           var index = -1
           for (var u = 0; u < data.crons.length; u++) {
-            if (data.crons[u].id == result) {
+            if (data.crons[u].id === result) {
               index = u
             }
           }
           if (index > -1) {
             data.crons.splice(index, 1)
           }
-          cronripper.load(app, data, crons)
+          ipc.server.emit('cronremove', req.params.id)
           res.sendStatus(200)
         }
       })

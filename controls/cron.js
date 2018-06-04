@@ -1,13 +1,14 @@
-var TCJ = require('cron').CronJob
-var childProcess = require('child_process')
+var conf = require('../config.json')
 var jsonfile = require('jsonfile')
+var CronJob = require('cron').CronJob
+const childProcess = require('child_process')
 
-var cronid = process.env.WORKER_ID
-var cron = jsonfile.readFileSync(process.env.WORKER_DATABASE + '/crons/' + cronid + '.json')
-var downloads = process.env.WORKER_DOWNLOADS
+var cronid = process.argv[2]
+var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
+var downloads = conf.downloads
 console.log('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
-TCJ('00 ' + cron.tab, function () {
+var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-unused-vars
   var commando = ''
   var timeout = cron.length
   if (cron.command === 'mplayer') {
@@ -32,14 +33,7 @@ TCJ('00 ' + cron.tab, function () {
   })
 }, null, true, 'Europe/Berlin')
 
-process.on('message', function (msg) {
-  console.log(msg)
-  if (msg.trim() === 'STOP') {
-    console.log('Asked to quit: ' + cronid)
-    process.exit()
-  }
-})
-process.on('disconnect', function() {
-  console.log('parent exited')
+process.on('stop', function (msg) {
+  console.log('Asked to quit: ' + cronid)
   process.exit()
 })
