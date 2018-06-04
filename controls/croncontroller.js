@@ -1,6 +1,6 @@
 var path = require('path')
 var conf = require('../config.json')
-var CRONS = require('./data/crons')
+var CRONS = require('../data/crons')
 const ipc = require('node-ipc')
 const fork = require('child_process').fork
 const childprogram = path.resolve('cron.js')
