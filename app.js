@@ -17,6 +17,25 @@ var crons = require('./data/crons')
 var bodyParser = require('body-parser')
 var port
 
+
+app.title = pack.name
+app.author = pack.author
+app.version = pack.version
+app.database = conf.database
+app.downloads = conf.downloads
+
+app.set('views', path.join(__dirname, 'views'))
+app.set('view engine', 'jade')
+app.use(stylus.middleware({
+  src: path.join(__dirname, 'style'),
+  dest: path.join(__dirname, 'public/css'),
+  compile: compile,
+  force: true,
+  debug: true
+})) // stylus
+app.use(bodyParser.json())
+app.use(express.static(path.join(__dirname, 'public')))
+
 var data = {} // All Data. Will be updated by data routes
 data.records = records.load(app.database)
 data.archive = archive.load(app.database)
@@ -52,24 +71,7 @@ if (typeof process.argv[2] !== 'undefined') {
   port = conf.web_port
 }
 
-app.title = pack.name
-app.author = pack.author
-app.version = pack.version
-app.database = conf.database
-app.downloads = conf.downloads
-app.ftp_port = conf.ftp_port
 
-app.set('views', path.join(__dirname, 'views'))
-app.set('view engine', 'jade')
-app.use(stylus.middleware({
-  src: path.join(__dirname, 'style'),
-  dest: path.join(__dirname, 'public/css'),
-  compile: compile,
-  force: true,
-  debug: true
-})) // stylus
-app.use(bodyParser.json())
-app.use(express.static(path.join(__dirname, 'public')))
 
 // Routes
 require('./website/root')(app, data, functions)
