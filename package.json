@@ -28,6 +28,7 @@
     "diskspace":"*",
     "dir-util":"*",
     "ps-node":"*",
-    "node-ipc":"*"
+    "node-ipc":"*",
+    "readline-sync":"*"
   }
 }
