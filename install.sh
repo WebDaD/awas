@@ -21,3 +21,6 @@ mkdir -p ${DATABASE}records
 mkdir -p ${DATABASE}crons
 mkdir -p ${DATABASE}archive
 echo 'OK'
+
+echo "Installing Ripper Software"
+apt-get install streamripper vlc mplayer

@@ -34,7 +34,7 @@ jsonfile.writeFile(config.database + '/users/' + user.id + '.json', user, functi
     console.error(err)
     process.exit(1)
   } else {
-    console.log('User has been created, Restart Awas-Main to see effect!')
+    console.log('User has been created, Restart Awas-Main to see effect.')
     process.exit(0)
   }
 })
