@@ -28,5 +28,11 @@
     "script": "./controls/croncontroller.js",
     "cwd": "/opt/awas",
     "exec_mode": "fork_mode"
+  },
+  {
+    "name": "awas-recordcontroller",
+    "script": "./controls/recordcontroller.js",
+    "cwd": "/opt/awas",
+    "exec_mode": "fork_mode"
   }]
 }

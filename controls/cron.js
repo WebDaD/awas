@@ -20,7 +20,7 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
     timeout = -1
   }
 
-  console.log("Executing: '" + commando + "'")
+  console.log("CRON: Executing: '" + commando + "'")
 
   childProcess.exec(commando, {timeout: timeout}, function () {
     cron.times_run++
@@ -28,8 +28,6 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
     m.type = 'custom'
     m.text = 'reload'
     m.sender = cronid
-    console.log(m)
-    process.send(m)
   })
 }, null, true, 'Europe/Berlin')
 

@@ -1,7 +1,7 @@
 /**
  * Web Routes for Records
  */
-module.exports = function (app, data, functions, records, archive) {
+module.exports = function (app, data, functions, records, archive, ipc) {
   app.get('/records.html', functions.isLoggedIn(data.loggedIn), functions.isAdmin(data.admins), function (req, res) {
     res.render('records', {records: data.records, archive: false, admin: req.admin})// TODO: clean admin
   })
@@ -26,6 +26,7 @@ module.exports = function (app, data, functions, records, archive) {
           res.sendStatus(err.status)
         } else {
           data.records.push(result)
+          ipc.server.broadcast('recordadd', result.id)
           res.sendStatus(201)
         }
       })
@@ -40,10 +41,11 @@ module.exports = function (app, data, functions, records, archive) {
           res.sendStatus(err.status)
         } else {
           for (var u = 0; u < data.records.length; u++) {
-            if (data.records[u].id == result.id) {
+            if (data.records[u].id === result.id) {
               data.records[u] = result
             }
           }
+          ipc.server.broadcast('recordstop', result.id)
           res.sendStatus(200)
         }
       })
@@ -60,10 +62,11 @@ module.exports = function (app, data, functions, records, archive) {
           res.sendStatus(err.status)
         } else {
           for (var u = 0; u < data.records.length; u++) {
-            if (data.records[u].id == result.id) {
+            if (data.records[u].id === result.id) {
               data.records[u] = result
             }
           }
+          ipc.server.broadcast('recordrefresh', result.id)
           res.sendStatus(200)
         }
       })
@@ -79,13 +82,14 @@ module.exports = function (app, data, functions, records, archive) {
         } else {
           var index = -1
           for (var u = 0; u < data.records.length; u++) {
-            if (data.records[u].id == result) {
+            if (data.records[u].id === result) {
               index = u
             }
           }
           if (index > -1) {
             data.records.splice(index, 1)
           }
+          ipc.server.broadcast('recordremove', req.params.id)
           res.sendStatus(200)
         }
       })

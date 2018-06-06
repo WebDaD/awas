@@ -17,7 +17,7 @@ module.exports = function (app, data, functions, crons, ipc) {
           res.sendStatus(err.status)
         } else {
           data.crons.push(result)
-          ipc.server.emit('cronstart', result.id)
+          ipc.server.broadcast('cronstart', result.id)
           res.sendStatus(201)
         }
       })
@@ -38,7 +38,7 @@ module.exports = function (app, data, functions, crons, ipc) {
               data.crons[u] = result
             }
           }
-          ipc.server.emit('cronrefresh', cron.id)
+          ipc.server.broadcast('cronrefresh', cron.id)
           res.sendStatus(200)
         }
       })
@@ -61,7 +61,7 @@ module.exports = function (app, data, functions, crons, ipc) {
           if (index > -1) {
             data.crons.splice(index, 1)
           }
-          ipc.server.emit('cronremove', req.params.id)
+          ipc.server.broadcast('cronremove', req.params.id)
           res.sendStatus(200)
         }
       })

@@ -17,7 +17,6 @@ var crons = require('./data/crons')
 var bodyParser = require('body-parser')
 var port
 
-
 app.title = pack.name
 app.author = pack.author
 app.version = pack.version
@@ -70,8 +69,6 @@ if (typeof process.argv[2] !== 'undefined') {
 } else {
   port = conf.web_port
 }
-
-
 
 // Routes
 require('./website/root')(app, data, functions)
