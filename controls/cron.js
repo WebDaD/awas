@@ -39,7 +39,11 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
 
   console.log("CRON: Executing: '" + commando + "'")
 
-  childProcess.exec(commando, {timeout: timeout}, function () {
+  var options = {}
+  if (timeout > 0) {
+    options.timout = timeout
+  }
+  childProcess.exec(commando,options, function () {
     cron.times_run++
     jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
     httpReq.write()

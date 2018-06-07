@@ -28,8 +28,11 @@ var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-un
         }
 
         console.log("CRON: Executing: '" + commando + "'")
-
-        childProcess.exec(commando, {timeout: timeout}, function () {
+        var options = {}
+        if (timeout > 0) {
+          options.timout = timeout
+        }
+        childProcess.exec(commando, options, function () {
           var m = {}
           m.type = 'custom'
           m.text = 'reload'
