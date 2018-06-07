@@ -2,7 +2,24 @@ var conf = require('../config.json')
 var jsonfile = require('jsonfile')
 var CronJob = require('cron').CronJob
 const childProcess = require('child_process')
+var http = require('http')
+var httpOptions = {
+  host: 'loxalhost',
+  path: '/crons/reload',
+  method: 'PUT'
+}
+var httpReq = http.request(httpOptions, function (res) {
+  var responseString = ''
 
+  res.on('data', function (data) {
+    responseString += data
+      // save all the data from response
+  })
+  res.on('end', function () {
+    console.log(responseString)
+      // print to console when response ends
+  })
+})
 var cronid = process.argv[2]
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
@@ -25,7 +42,8 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
   childProcess.exec(commando, {timeout: timeout}, function () {
     cron.times_run++
     jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
-    // TODO: message server, so it can reload the crons
+    httpReq.write()
+    httpReq.end()
   })
 }, null, true, 'Europe/Berlin')
 

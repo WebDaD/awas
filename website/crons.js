@@ -1,7 +1,7 @@
 /**
  * Web Routes for Records
  */
-module.exports = function (app, data, functions, crons, ipc) {
+module.exports = function (app, data, functions, crons) {
   app.get('/crons.html', functions.isLoggedIn(data.loggedIn), functions.isAdmin(data.admins), function (req, res) {
     res.render('crons', {crons: data.crons, admin: req.admin})
   })
@@ -21,6 +21,10 @@ module.exports = function (app, data, functions, crons, ipc) {
         }
       })
     }
+  })
+  app.put('/crons/reload', function (req, res) {
+    data.crons = crons.load(app.database)
+    return res.sendStatus(400).send('RELOADING CRONS').end()
   })
   app.put('/crons/:id', functions.isLoggedIn(data.loggedIn, true), function (req, res) {
     if (typeof req.body.cron === 'undefined' || typeof req.params.id === 'undefined') {

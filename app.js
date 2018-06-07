@@ -43,25 +43,6 @@ data.users = users.load(app.database)
 data.loggedIn = []
 data.admins = []
 
-const ipc = require('node-ipc')
-ipc.config.id = 'awasmain'
-ipc.config.retry = 1500
-ipc.config.silent = true
-ipc.serve(function () {
-  ipc.server.on('reload', function (message) {
-    data.records = records.load(app.database)
-    data.archive = archive.load(app.database)
-    console.log(message)
-  })
-  ipc.server.on(
-    'socket.disconnected',
-    function (socket, destroyedSocketID) {
-      ipc.log('client ' + destroyedSocketID + ' has disconnected!')
-    }
-)
-})
-ipc.server.start()
-
 function compile (str, path) { return stylus(str).set('filename', path).use(nib()).import('nib') }
 
 if (typeof process.argv[2] !== 'undefined') {
@@ -73,7 +54,7 @@ if (typeof process.argv[2] !== 'undefined') {
 // Routes
 require('./website/root')(app, data, functions)
 require('./website/records')(app, data, functions, records, archive)
-require('./website/crons')(app, data, functions, crons, ipc)
+require('./website/crons')(app, data, functions, crons)
 require('./website/login')(app, data, functions, users)
 require('./website/user')(app, data, functions, users)
 require('./website/files')(app, data, functions)
