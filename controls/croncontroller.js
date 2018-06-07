@@ -2,7 +2,7 @@ var conf = require('../config.json')
 var CRONS = require('../data/crons')
 var CronJob = require('cron').CronJob
 const fork = require('child_process').fork
-const childprogram = 'cron.js'
+const childprogram = '/opt/awas/cron.js'
 const options = {
   stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
 }
