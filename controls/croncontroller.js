@@ -15,6 +15,7 @@ for (var x = 0; x < crons.length; x++) {
   try {
     console.log('Starting Worker ' + cron.id)
     childs[cron.id] = fork(childprogram, [cron.id], options)
+    childs[cron.id].on('message', function (m) { console.log(m) })
   } catch (e) {
     console.error('[ERR]: ' + e.toString())
   }
@@ -31,11 +32,13 @@ var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-un
         console.log('Re-Starting Worker ' + cron.id)
         childs[cron.id].send('stop')
         childs[cron.id] = fork(childprogram, [cron.id], options)
+        childs[cron.id].on('message', function (m) { console.log(m) })
       }
     }
     if (typeof childs[cron.id] === 'undefined') {
       console.log('Starting Worker ' + cron.id)
       childs[cron.id] = fork(childprogram, [cron.id], options)
+      childs[cron.id].on('message', function (m) { console.log(m) })
     }
   }
   for (var childID in childs) {

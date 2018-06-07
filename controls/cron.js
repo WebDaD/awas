@@ -16,15 +16,15 @@ var httpReq = http.request(httpOptions, function (res) {
       // save all the data from response
   })
   res.on('end', function () {
-    console.log(responseString)
+    process.send(responseString)
       // print to console when response ends
   })
 })
-console.log('Worker Starting...')
+process.send('Worker Starting...')
 var cronid = process.argv[2]
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
-console.log('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
+process.send('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
 var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-unused-vars
   var commando = ''
@@ -38,7 +38,7 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
     timeout = -1
   }
 
-  console.log("CRON: Executing: '" + commando + "'")
+  process.send("CRON: Executing: '" + commando + "'")
 
   var options = {}
   if (timeout > 0) {
@@ -53,6 +53,6 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
 }, null, true, 'Europe/Berlin')
 
 process.on('stop', function (msg) {
-  console.log('Asked to quit: ' + cronid)
+  process.send('Asked to quit: ' + cronid)
   process.exit()
 })
