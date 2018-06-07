@@ -22,12 +22,12 @@ module.exports = function (app, data, functions) {
     var filesize = require('filesize')
     switch (req.params.command) {
       case 'free':
-        diskspace.check('/', function (err, total2, free2, status2) {
+        diskspace.check('/', function (err, total) {
           if (err) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(free2).toString())
+              return res.send(filesize(total.free).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -35,13 +35,13 @@ module.exports = function (app, data, functions) {
         })
         break
       case 'pfree':
-        diskspace.check('/', function (err, total2, free2, status2) {
+        diskspace.check('/', function (err, total) {
           if (err) {
             return res.send('ERR')
           } else {
             try {
-              var percentFree = Math.round((100 * (free2)) / (total2))
-              return res.send(filesize(free2).toString() + ' / ' + percentFree.toString() + '%')
+              var percentFree = Math.round((100 * (total.free)) / (total.total))
+              return res.send(filesize(total.free).toString() + ' / ' + percentFree.toString() + '%')
             } catch (err) {
               return res.send('ERR')
             }
@@ -49,12 +49,12 @@ module.exports = function (app, data, functions) {
         })
         break
       case 'used':
-        diskspace.check('/', function (err, total2, free2, status2) {
+        diskspace.check('/', function (err, total) {
           if (err) {
             return res.send('ERR')
           } else {
             try {
-              var used = (total2) - (free2)
+              var used = (total.total) - (total.free)
               return res.send(filesize(used).toString())
             } catch (err) {
               return res.send('ERR')
@@ -63,12 +63,12 @@ module.exports = function (app, data, functions) {
         })
         break
       case 'total':
-        diskspace.check('/', function (err, total2, free2, status2) {
+        diskspace.check('/', function (err, total) {
           if (err) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(total2).toString())
+              return res.send(filesize(total.total).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -102,15 +102,15 @@ module.exports = function (app, data, functions) {
         })
         break
       case 'html':
-        diskspace.check('/', function (err, total2, free2, status2) {
+        diskspace.check('/', function (err, total) {
           dir.getSize(app.downloads, function (err, downloads) {
             dir.getSize(app.database, function (err, database) {
-              var percentUsed = Math.round((100 * ((total2) - (free2))) / (total2))
+              var percentUsed = Math.round((100 * ((total.total) - (total.free))) / (total.total))
               var percentFree = 100 - percentUsed
               return res.render('space', {
-                free: filesize(free2),
-                total: filesize(total2),
-                used: filesize(((total2) - (free2))),
+                free: filesize(total.free),
+                total: filesize(total.total),
+                used: filesize(((total.total) - (total.free))),
                 downloads: filesize(downloads),
                 database: filesize(database),
                 percentUsed: percentUsed,
