@@ -26,7 +26,6 @@ module.exports = function (app, data, functions, records, archive, ipc) {
           res.sendStatus(err.status)
         } else {
           data.records.push(result)
-          ipc.server.broadcast('recordadd', result.id)
           res.sendStatus(201)
         }
       })
@@ -45,7 +44,6 @@ module.exports = function (app, data, functions, records, archive, ipc) {
               data.records[u] = result
             }
           }
-          ipc.server.broadcast('recordstop', result.id)
           res.sendStatus(200)
         }
       })
@@ -66,7 +64,6 @@ module.exports = function (app, data, functions, records, archive, ipc) {
               data.records[u] = result
             }
           }
-          ipc.server.broadcast('recordrefresh', result.id)
           res.sendStatus(200)
         }
       })
@@ -89,7 +86,6 @@ module.exports = function (app, data, functions, records, archive, ipc) {
           if (index > -1) {
             data.records.splice(index, 1)
           }
-          ipc.server.broadcast('recordremove', req.params.id)
           res.sendStatus(200)
         }
       })

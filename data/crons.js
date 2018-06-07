@@ -18,6 +18,30 @@ module.exports = {
     }
     return crons
   },
+  exists: function (crons, cronID) {
+    for (var c = 0; c < crons.length; c++) {
+      if (crons[c].id === cronID) {
+        return true
+      }
+    }
+    return false
+  },
+  equalCrons: function (cronA, cronB) {
+    if (
+      cronA.tab === cronB.tab &&
+      cronA.url === cronB.url &&
+      cronA.command === cronB.command &&
+      cronA.type === cronB.type &&
+      cronA.comment === cronB.comment &&
+      cronA.filename === cronB.filename &&
+      cronA.length === cronB.length &&
+      cronA.user_id === cronB.user_id
+      ) {
+      return true
+    } else {
+      return false
+    }
+  },
   updateCron: function (database, cron, callback) {
     if (!goodCron(cron)) {
       return callback({
