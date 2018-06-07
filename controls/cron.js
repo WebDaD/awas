@@ -25,7 +25,7 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
   childProcess.exec(commando, {timeout: timeout}, function () {
     cron.times_run++
     jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
-    // TODO: message server
+    // TODO: message server, so it can reload the crons
   })
 }, null, true, 'Europe/Berlin')
 
