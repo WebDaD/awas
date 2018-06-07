@@ -4,7 +4,7 @@ var CronJob = require('cron').CronJob
 const childProcess = require('child_process')
 var http = require('http')
 var httpOptions = {
-  host: 'loxalhost',
+  host: 'localhost',
   path: '/crons/reload',
   method: 'PUT'
 }
@@ -20,6 +20,7 @@ var httpReq = http.request(httpOptions, function (res) {
       // print to console when response ends
   })
 })
+console.log('Worker Starting...')
 var cronid = process.argv[2]
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
@@ -43,7 +44,7 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
   if (timeout > 0) {
     options.timout = timeout
   }
-  childProcess.exec(commando,options, function () {
+  childProcess.exec(commando, options, function () {
     cron.times_run++
     jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
     httpReq.write()
