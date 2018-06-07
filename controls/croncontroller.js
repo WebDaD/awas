@@ -1,9 +1,8 @@
-var path = require('path')
 var conf = require('../config.json')
 var CRONS = require('../data/crons')
 var CronJob = require('cron').CronJob
 const fork = require('child_process').fork
-const childprogram = path.resolve('cron.js')
+const childprogram = 'cron.js'
 const options = {
   stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
 }
