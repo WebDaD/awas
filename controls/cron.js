@@ -26,38 +26,41 @@ var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
 process.send('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
-var job = new cron.CronJob({
-  cronTime: cron.tab,
-  onTick: function () {
-    process.send('CRON[' + cronid + ' TICK')
-    var commando = ''
-    var timeout = cron.length
-    if (cron.command === 'mplayer') {
-      commando = 'mplayer -dumpstream -dumpfile ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url
-    } else if (cron.command === 'vlc') {
-      commando = 'vlc ' + cron.url + ' --sout file/' + cron.type + ':' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + '.' + cron.type
-    } else { // streamripper
-      commando = 'streamripper ' + cron.url + ' -a ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + ' -A --quiet -l ' + cron.length + ' -u winamp'
-      timeout = -1
-    }
+try {
+  var job = new cron.CronJob({
+    cronTime: cron.tab,
+    onTick: function () {
+      process.send('CRON[' + cronid + ' TICK')
+      var commando = ''
+      var timeout = cron.length
+      if (cron.command === 'mplayer') {
+        commando = 'mplayer -dumpstream -dumpfile ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url
+      } else if (cron.command === 'vlc') {
+        commando = 'vlc ' + cron.url + ' --sout file/' + cron.type + ':' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + '.' + cron.type
+      } else { // streamripper
+        commando = 'streamripper ' + cron.url + ' -a ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + ' -A --quiet -l ' + cron.length + ' -u winamp'
+        timeout = -1
+      }
 
-    process.send('CRON[' + cronid + "]: Executing: '" + commando + "'")
+      process.send('CRON[' + cronid + "]: Executing: '" + commando + "'")
 
-    var options = {}
-    if (timeout > 0) {
-      options.timout = timeout
-    }
-    childProcess.exec(commando, options, function () {
-      cron.times_run++
-      jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
-      httpReq.write()
-      httpReq.end()
-    })
-  },
-  start: true,
-  timeZone: 'Europe/Berlin'
-})
-
+      var options = {}
+      if (timeout > 0) {
+        options.timout = timeout
+      }
+      childProcess.exec(commando, options, function () {
+        cron.times_run++
+        jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
+        httpReq.write()
+        httpReq.end()
+      })
+    },
+    start: true,
+    timeZone: 'Europe/Berlin'
+  })
+} catch (ex) {
+  process.send('Worker ' + cronid + ' running: Cron Pattern ' + cron.tab + ' not valid!')
+}
 process.send('Worker ' + cronid + ' running: ' + job.running + '. Next Start: ' + job.nextDates[0])
 
 process.on('stop', function (msg) {
