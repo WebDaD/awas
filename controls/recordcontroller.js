@@ -43,4 +43,4 @@ var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-un
   }
 }, null, true, 'Europe/Berlin')
 
-console.log("'RecordControl' running")
+console.log("'RecordControl' running: " + job.running)

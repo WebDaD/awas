@@ -53,6 +53,8 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
   })
 }, null, true, 'Europe/Berlin')
 
+process.send('Worker ' + cronid + ' running: ' + job.running)
+
 process.on('stop', function (msg) {
   process.send('Asked to quit: ' + cronid)
   process.exit()

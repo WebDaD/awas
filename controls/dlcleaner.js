@@ -3,7 +3,7 @@ var path = require('path')
 var CronJob3 = require('cron').CronJob
 var conf = require('../config.json')
 
-var job = new CronJob3('00 * * * * *', function () { // eslint-disable-line no-unused-vars
+var job = new CronJob3('00 * * * * *', function () {
   console.log('DLC TICK')
   fs.readdir(conf.downloads, function (err, files) {
     if (err) throw err
@@ -17,4 +17,4 @@ var job = new CronJob3('00 * * * * *', function () { // eslint-disable-line no-u
   })
 }, null, true, 'Europe/Berlin')
 
-console.log("Cronjob 'DL-Cleaner' running")
+console.log("Cronjob 'DL-Cleaner' running: " + job.running)

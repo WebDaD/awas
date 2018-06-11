@@ -21,7 +21,7 @@ for (var x = 0; x < crons.length; x++) {
   }
 }
 
-var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-unused-vars
+var job = new CronJob('00 * * * * *', function () {
   var oldCrons = crons
   crons = CRONS.load(conf.database)
   console.log('CC TICK (' + crons.length + ' Crons)')
@@ -52,4 +52,4 @@ var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-un
   }
 }, null, true, 'Europe/Berlin')
 
-console.log("'CronControl' running")
+console.log("'CronControl' running: " + job.running)
