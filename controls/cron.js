@@ -51,6 +51,7 @@ try {
       childProcess.exec(commando, options, function () {
         cron.times_run++
         jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
+        process.send('CRON[' + cronid + ']: Done. Next Start: ' + job.nextDate)
         httpReq.write()
         httpReq.end()
       })
@@ -61,7 +62,7 @@ try {
 } catch (ex) {
   process.send('Worker ' + cronid + ' running: Cron Pattern ' + cron.tab + ' not valid!')
 }
-process.send('Worker ' + cronid + ' running: ' + job.running + '. Next Start: ' + job.nextDates[0])
+process.send('Worker ' + cronid + ' running: ' + job.running + '. Next Start: ' + job.nextDate)
 
 process.on('stop', function (msg) {
   process.send('Asked to quit: ' + cronid)
