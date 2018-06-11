@@ -14,7 +14,7 @@ for (var x = 0; x < crons.length; x++) {
   try {
     console.log('Starting Worker ' + cron.id)
     childs[cron.id] = fork(childprogram, [cron.id], options)
-    console.log('Worker living: ' + childs[cron.id].connected)
+    console.log('Worker' + cron.id + ' living: ' + childs[cron.id].connected)
     childs[cron.id].on('message', function (m) { console.log(m) })
   } catch (e) {
     console.error('[ERR]: ' + e.toString())

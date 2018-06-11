@@ -20,13 +20,14 @@ var httpReq = http.request(httpOptions, function (res) {
       // print to console when response ends
   })
 })
-process.send('Worker Starting...')
 var cronid = process.argv[2]
+process.send('Worker ' + cronid + ' Starting...')
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
 process.send('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
 var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-unused-vars
+  process.send('CRON[' + cronid + ' TICK')
   var commando = ''
   var timeout = cron.length
   if (cron.command === 'mplayer') {
@@ -38,7 +39,7 @@ var job = new CronJob('00 ' + cron.tab, function () { // eslint-disable-line no-
     timeout = -1
   }
 
-  process.send("CRON: Executing: '" + commando + "'")
+  process.send('CRON[' + cronid + "]: Executing: '" + commando + "'")
 
   var options = {}
   if (timeout > 0) {
