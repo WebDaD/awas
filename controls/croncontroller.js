@@ -2,7 +2,7 @@ var conf = require('../config.json')
 var CRONS = require('../data/crons')
 var CronJob = require('cron').CronJob
 const fork = require('child_process').fork
-const childprogram = '/opt/awas/cron.js'
+const childprogram = '/opt/awas/controls/cron.js'
 const options = {
   stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
 }
@@ -14,6 +14,7 @@ for (var x = 0; x < crons.length; x++) {
   try {
     console.log('Starting Worker ' + cron.id)
     childs[cron.id] = fork(childprogram, [cron.id], options)
+    console.log('Worker living: ' + childs[cron.id].connected)
     childs[cron.id].on('message', function (m) { console.log(m) })
   } catch (e) {
     console.error('[ERR]: ' + e.toString())
@@ -21,9 +22,9 @@ for (var x = 0; x < crons.length; x++) {
 }
 
 var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-unused-vars
-  console.log('CC TICK')
   var oldCrons = crons
   crons = CRONS.load(conf.database)
+  console.log('CC TICK (' + crons.length + ' Crons)')
   for (var c = 0; c < crons.length; c++) {
     var cron = crons[c]
     for (var oc = 0; oc < oldCrons.length; oc++) {
