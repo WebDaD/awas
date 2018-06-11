@@ -1,6 +1,6 @@
 var conf = require('../config.json')
 var jsonfile = require('jsonfile')
-var CronJob = require('cron')
+var CRON = require('cron')
 const childProcess = require('child_process')
 var http = require('http')
 var httpOptions = {
@@ -27,7 +27,7 @@ var downloads = conf.downloads
 process.send('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
 try {
-  var job = new cron.CronJob({
+  var job = new CRON.CronJob({
     cronTime: cron.tab,
     onTick: function () {
       process.send('CRON[' + cronid + ' TICK')
