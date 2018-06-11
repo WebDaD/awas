@@ -21,7 +21,7 @@ for (var x = 0; x < crons.length; x++) {
   }
 }
 
-var job = new CronJob('00 * * * * *', function () {
+var job = new CronJob('* * * * *', function () {
   var oldCrons = crons
   crons = CRONS.load(conf.database)
   console.log('CC TICK (' + crons.length + ' Crons)')

@@ -3,7 +3,7 @@ var path = require('path')
 var CronJob3 = require('cron').CronJob
 var conf = require('../config.json')
 
-var job = new CronJob3('00 * * * * *', function () {
+var job = new CronJob3('* * * * *', function () {
   console.log('DLC TICK')
   fs.readdir(conf.downloads, function (err, files) {
     if (err) throw err

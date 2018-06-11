@@ -5,7 +5,7 @@ var CronJob = require('cron').CronJob
 const childProcess = require('child_process')
 var records = RECORDS.load(conf.database)
 
-var job = new CronJob('00 * * * * *', function () { // eslint-disable-line no-unused-vars
+var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unused-vars
   console.log('RC TICK')
   records = RECORDS.load(conf.database)
   if (records.length !== 0) {
