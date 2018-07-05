@@ -41,7 +41,7 @@ try {
         cron.times_run++
         jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
         console.log('CRON[' + cronid + ']: Done.')
-        writeHTTP();
+        writeHTTP()
       })
     },
     start: true,
@@ -52,10 +52,10 @@ try {
 }
 console.log('Worker ' + cronid + ' running: ' + job.running)
 
-function writeHTTP(){
+function writeHTTP () {
   var httpReq = http.request(httpOptions, function (res) {
     var responseString = ''
-  
+
     res.on('data', function (data) {
       responseString += data
         // save all the data from response
@@ -65,6 +65,6 @@ function writeHTTP(){
         // print to console when response ends
     })
   })
-  httpReq.write()
+  httpReq.write('')
   httpReq.end()
 }
