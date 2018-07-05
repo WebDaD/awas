@@ -8,18 +8,7 @@ var httpOptions = {
   path: '/crons/reload',
   method: 'PUT'
 }
-var httpReq = http.request(httpOptions, function (res) {
-  var responseString = ''
 
-  res.on('data', function (data) {
-    responseString += data
-      // save all the data from response
-  })
-  res.on('end', function () {
-    console.log(responseString)
-      // print to console when response ends
-  })
-})
 var cronid = process.argv[2]
 console.log('Worker ' + cronid + ' Starting...')
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
@@ -52,8 +41,7 @@ try {
         cron.times_run++
         jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
         console.log('CRON[' + cronid + ']: Done.')
-        httpReq.write()
-        httpReq.end()
+        writeHTTP();
       })
     },
     start: true,
@@ -64,7 +52,19 @@ try {
 }
 console.log('Worker ' + cronid + ' running: ' + job.running)
 
-process.on('stop', function (msg) {
-  console.log('Asked to quit: ' + cronid)
-  process.exit()
-})
+function writeHTTP(){
+  var httpReq = http.request(httpOptions, function (res) {
+    var responseString = ''
+  
+    res.on('data', function (data) {
+      responseString += data
+        // save all the data from response
+    })
+    res.on('end', function () {
+      console.log(responseString)
+        // print to console when response ends
+    })
+  })
+  httpReq.write()
+  httpReq.end()
+}
