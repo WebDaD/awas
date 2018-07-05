@@ -16,21 +16,21 @@ var httpReq = http.request(httpOptions, function (res) {
       // save all the data from response
   })
   res.on('end', function () {
-    process.send(responseString)
+    console.log(responseString)
       // print to console when response ends
   })
 })
 var cronid = process.argv[2]
-process.send('Worker ' + cronid + ' Starting...')
+console.log('Worker ' + cronid + ' Starting...')
 var cron = jsonfile.readFileSync(conf.database + '/crons/' + cronid + '.json')
 var downloads = conf.downloads
-process.send('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
+console.log('Adding Cron ' + cronid + ' with tab ' + cron.tab + ' and length ' + cron.length + ' and commando ' + cron.command)
 
 try {
   var job = new CRON.CronJob({
     cronTime: cron.tab,
     onTick: function () {
-      process.send('CRON[' + cronid + ' TICK')
+      console.log('CRON[' + cronid + ' TICK')
       var commando = ''
       var timeout = cron.length
       if (cron.command === 'mplayer') {
@@ -42,7 +42,7 @@ try {
         timeout = -1
       }
 
-      process.send('CRON[' + cronid + "]: Executing: '" + commando + "'")
+      console.log('CRON[' + cronid + "]: Executing: '" + commando + "'")
 
       var options = {}
       if (timeout > 0) {
@@ -51,7 +51,7 @@ try {
       childProcess.exec(commando, options, function () {
         cron.times_run++
         jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron)
-        process.send('CRON[' + cronid + ']: Done. Next Start: ' + job.nextDate)
+        console.log('CRON[' + cronid + ']: Done.')
         httpReq.write()
         httpReq.end()
       })
@@ -60,11 +60,11 @@ try {
     timeZone: 'Europe/Berlin'
   })
 } catch (ex) {
-  process.send('Worker ' + cronid + ' running: Cron Pattern ' + cron.tab + ' not valid!')
+  console.log('Worker ' + cronid + ' NOT running: Cron Pattern ' + cron.tab + ' not valid!')
 }
-process.send('Worker ' + cronid + ' running: ' + job.running + '. Next Start: ' + job.nextDate)
+console.log('Worker ' + cronid + ' running: ' + job.running)
 
 process.on('stop', function (msg) {
-  process.send('Asked to quit: ' + cronid)
+  console.log('Asked to quit: ' + cronid)
   process.exit()
 })

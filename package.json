@@ -29,6 +29,7 @@
     "dir-util":"*",
     "ps-node":"*",
     "node-ipc":"*",
-    "readline-sync":"*"
+    "readline-sync":"*",
+    "pm2":"*"
   }
 }
