@@ -1,5 +1,5 @@
 var diskspace = require('diskspace')
-import {filesize} from "filesize";
+var filesize = require('filesize')
 var disk = process.argv[2]
 console.log('Checking ' + disk)
 
