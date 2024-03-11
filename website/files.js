@@ -18,7 +18,7 @@ module.exports = function(app, data, functions) {
 					var f = {};
 					var fst = fs.statSync(app.downloads + '/' + files[x]);
 					f.name = files[x];
-					f.size = filesize(fst.size);
+					f.size = filesize.filesize(fst.size);
 					f.id = shortid.generate();
 					f.created = moment(fst.ctime).format("DD.MM.YYYY HH:mm:ss");
 					if (f.name.indexOf("_id-") > -1) {

@@ -27,7 +27,7 @@ module.exports = function (app, data, functions) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(total.free).toString())
+              return res.send(filesize.filesize(total.free).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -41,7 +41,7 @@ module.exports = function (app, data, functions) {
           } else {
             try {
               var percentFree = Math.round((100 * (total.free)) / (total.total))
-              return res.send(filesize(total.free).toString() + ' / ' + percentFree.toString() + '%')
+              return res.send(filesize.filesize(total.free).toString() + ' / ' + percentFree.toString() + '%')
             } catch (err) {
               return res.send('ERR')
             }
@@ -55,7 +55,7 @@ module.exports = function (app, data, functions) {
           } else {
             try {
               var used = (total.total) - (total.free)
-              return res.send(filesize(used).toString())
+              return res.send(filesize.filesize(used).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -68,7 +68,7 @@ module.exports = function (app, data, functions) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(total.total).toString())
+              return res.send(filesize.filesize(total.total).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -81,7 +81,7 @@ module.exports = function (app, data, functions) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(size).toString())
+              return res.send(filesize.filesize(size).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -94,7 +94,7 @@ module.exports = function (app, data, functions) {
             return res.send('ERR')
           } else {
             try {
-              return res.send(filesize(size).toString())
+              return res.send(filesize.filesize(size).toString())
             } catch (err) {
               return res.send('ERR')
             }
@@ -108,11 +108,11 @@ module.exports = function (app, data, functions) {
               var percentUsed = Math.round((100 * ((total.total) - (total.free))) / (total.total))
               var percentFree = 100 - percentUsed
               return res.render('space', {
-                free: filesize(total.free),
-                total: filesize(total.total),
-                used: filesize(((total.total) - (total.free))),
-                downloads: filesize(downloads),
-                database: filesize(database),
+                free: filesize.filesize(total.free),
+                total: filesize.filesize(total.total),
+                used: filesize.filesize(((total.total) - (total.free))),
+                downloads: filesize.filesize(downloads),
+                database: filesize.filesize(database),
                 percentUsed: percentUsed,
                 percentFree: percentFree
               })
