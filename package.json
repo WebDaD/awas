@@ -17,7 +17,7 @@
 		"stylus":"*",
 		"nib": "*",
 		"MD5": "*",
-    "ftpd":"git+https://github.com/sstur/nodeftpd.git",
+    "ftpd":"*",
     "ip":"*",
     "filesize":"*",
     "shortid":"*",
