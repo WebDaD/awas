@@ -24,3 +24,6 @@ echo 'OK'
 
 echo "Installing Ripper Software"
 apt-get install streamripper vlc mplayer
+
+echo "Installing pm2"
+npm install -g pm2
