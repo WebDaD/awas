@@ -10,8 +10,8 @@ Save and manage Audio-Streams on the web
 
 ## Start
 
-`pm2 start app.js --name awas-demo -- 80800 `
+`pm2 start app.js --name awas-demo -- 8080 `
 
 ## Dev-Start:
 
-`pm2 start app.js --watch --ignore-watch="database public/css" --name awas-demo -- 80800 `
+`pm2 start app.js --watch --ignore-watch="database public/css" --name awas-demo -- 8080 `
