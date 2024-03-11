@@ -11,7 +11,7 @@ diskspace.check(disk, function (err, total) {
       console.log(total)
       var percentFree = Math.round((100 * (total.free)) / (total.total))
       console.log(percentFree)
-      console.log(filesize(total.free).toString() + ' / ' + percentFree.toString() + '%')
+      console.log(filesize.filesize(total.free).toString() + ' / ' + percentFree.toString() + '%')
     } catch (err) {
       console.error(err)
     }
