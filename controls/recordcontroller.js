@@ -19,11 +19,11 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
         var commando = ''
         var timeout = length
         if (rec.command === 'mplayer') {
-          commando = 'mplayer -dumpstream -dumpfile ' + conf.downloads + '/' + rec.filename + '_id-' + rec.id + '.' + rec.type + ' ' + rec.url
+          commando = 'mplayer -dumpstream -dumpfile ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type + ' ' + rec.url.trim()
         } else if (rec.command === 'vlc') {
-          commando = 'vlc ' + rec.url + ' --sout file/' + rec.type + ':' + conf.downloads + '/' + rec.filename + '_id-' + rec.id + '.' + rec.type
+          commando = 'vlc ' + rec.url.trim() + ' --sout file/' + rec.type + ':' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type
         } else { // streamripper
-          commando = 'streamripper ' + rec.url + ' -a ' + conf.downloads + '/' + rec.filename + '_id-' + rec.id + ' -A --quiet -l ' + length + ' -u winamp'
+          commando = 'streamripper ' + rec.url.trim() + ' -a ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + ' -A --quiet -l ' + length + ' -u winamp'
           timeout = -1
         }
 
