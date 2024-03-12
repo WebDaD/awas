@@ -53,8 +53,8 @@ var job = new CronJob('30 * * * * *', function () { // eslint-disable-line no-un
 console.log("Cronjob 'Archiving' running")
 
 function isOld (record) {
-  var now = moment().tz('Europe/Berlin')
-  var rs = moment(record.stop).tz('Europe/Berlin')
+  var now = moment()
+  var rs = moment(record.stop)
 
   if (rs.isBefore(now, 'minute')) {
     return true
