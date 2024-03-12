@@ -11,9 +11,9 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
   if (records.length !== 0) {
     for (var r = 0; r < records.length; r++) {
       var rec = records[r]
-      var now = moment().tz('Europe/Berlin')
-      var ra = moment(rec.start).tz('Europe/Berlin')
-      var rs = moment(rec.stop).tz('Europe/Berlin')
+      var now = moment()
+      var ra = moment(rec.start)
+      var rs = moment(rec.stop)
       var length = moment.duration(rs.diff(ra)).asSeconds()
       if (now.isBetween(ra, rs)) {
         var commando = ''
