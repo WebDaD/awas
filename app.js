@@ -71,3 +71,12 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
   data.crons = crons.load(app.database)
   data.users = users.load(app.database)
 }, null, true, 'Europe/Berlin')
+setTimeout(function(){ //30 seocnds to alternate
+  var job2 = new CronJob('* * * * *', function () { // eslint-disable-line no-unused-vars
+    console.log('Main Database Reload')
+    data.records = records.load(app.database)
+    data.archive = archive.load(app.database)
+    data.crons = crons.load(app.database)
+    data.users = users.load(app.database)
+  }, null, true, 'Europe/Berlin')
+}, 30000)

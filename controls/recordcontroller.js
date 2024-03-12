@@ -38,16 +38,18 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
           m.text = 'reload'
           m.sender = rec.id
         })
-        childProcess.exec("pgrep -f \"" + commando + "\"", options, function (error, stdout) {
-          rec.streamripper_pid = stdout
-          RECORDS.updateRecord(conf.database, rec, function(error, record) {
-            if (error) {
-              console.error(error)
-            } else {
-              console.log("RC: Record " + record.id + " updated with pid " + record.streamripper_pid)
-            }
+        setTimeout(function() {
+          childProcess.exec("pgrep -f \"" + commando + "\"", options, function (error, stdout) {
+            rec.streamripper_pid = stdout
+            RECORDS.updateRecord(conf.database, rec, function(error, record) {
+              if (error) {
+                console.error(error)
+              } else {
+                console.log("RC: Record " + record.id + " updated with pid " + record.streamripper_pid)
+              }
+            })
           })
-        })
+        }, 2000);
       }
     }
   }
