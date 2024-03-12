@@ -2,37 +2,37 @@
   "apps": [{
     "name": "awas-main",
     "script": "./app.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   },
   {
     "name": "awas-archiver",
     "script": "./controls/archiver.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   },
   {
     "name": "awas-dlcleaner",
     "script": "./controls/dlcleaner.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   },
   {
     "name": "awas-ftpserver",
     "script": "./controls/ftpserver.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   },
   {
     "name": "awas-croncontroller",
     "script": "./controls/croncontroller.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   },
   {
     "name": "awas-recordcontroller",
     "script": "./controls/recordcontroller.js",
-    "cwd": "/opt/awas",
+    "cwd": "/root/awas",
     "exec_mode": "fork_mode"
   }]
 }
