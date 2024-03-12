@@ -116,9 +116,9 @@ module.exports = function (app, data, functions, records, archive, ipc) {
 }
 function isActive (record) {
   var moment = require('moment-timezone')
-  var now = moment().tz('Europe/Berlin')
-  var ra = moment(record.start).tz('Europe/Berlin')
-  var rs = moment(record.stop).tz('Europe/Berlin')
+  var now = moment()
+  var ra = moment(record.start)
+  var rs = moment(record.stop)
   if (now.isBetween(ra, rs)) {
     return true
   } else {
