@@ -11,11 +11,16 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
   if (records.length !== 0) {
     for (var r = 0; r < records.length; r++) {
       var rec = records[r]
+      if (rec.recording) {
+        recording = true
+      } else {
+        recording = false
+      }
       var now = moment()
       var ra = moment(rec.start)
       var rs = moment(rec.stop)
       var length = moment.duration(rs.diff(ra)).asSeconds()
-      if (now.isBetween(ra, rs)) {
+      if (!recording && now.isBetween(ra, rs)) {
         var commando = ''
         var timeout = length
         if (rec.command === 'mplayer') {
@@ -41,6 +46,7 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
         setTimeout(function() {
           childProcess.exec("pgrep -f \"" + commando + "\"", options, function (error, stdout) {
             rec.streamripper_pid = stdout
+            rec.recording = true
             RECORDS.updateRecord(conf.database, rec, function(error, record) {
               if (error) {
                 console.error(error)
@@ -50,6 +56,8 @@ var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unuse
             })
           })
         }, 2000);
+      } else {
+        console.log("RC Record " + rec.id + " is already recording")
       }
     }
   }
