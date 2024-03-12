@@ -1,6 +1,6 @@
 var CronJob = require('cron').CronJob
 var conf = require('../config.json')
-const ipc = require('node-ipc')
+const ipc = require('node-ipc').default
 var fs = require('fs')
 var moment = require('moment-timezone')
 var RECORD = require('../data/records')
