@@ -15,6 +15,8 @@ var users = require('./data/users')
 var archive = require('./data/archive')
 var crons = require('./data/crons')
 var bodyParser = require('body-parser')
+var CronJob = require('cron').CronJob
+
 var port
 
 app.title = pack.name
@@ -61,3 +63,11 @@ require('./website/files')(app, data, functions)
 
 http.createServer(app).listen(port)
 console.log(app.title + ' ' + app.version + ' running on Port ' + port)
+
+var job = new CronJob('* * * * *', function () { // eslint-disable-line no-unused-vars
+  console.log('Main Database Reload')
+  data.records = records.load(app.database)
+  data.archive = archive.load(app.database)
+  data.crons = crons.load(app.database)
+  data.users = users.load(app.database)
+}, null, true, 'Europe/Berlin')
