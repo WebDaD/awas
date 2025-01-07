@@ -1,11 +1,1 @@
-{
-	"tab":"* 1 * * * *",
-	"url":"http://test.url",
-	"command":"streamripper",
-	"type":"mp3",
-	"comment":"Versuch 1",
-	"user_id":"Test User",
-	"filename":"test_cron",
-	"length":3600,
-	"times_run":0
-}
+{"tab":"* * * * *","url":"https://streams.br.de/bayern1obb_1.m3u","filename":"test_cron","type":"mp3","command":"streamripper","comment":"Versuch 1","length":"10","user_id":"Test User","times_run":"0"}
