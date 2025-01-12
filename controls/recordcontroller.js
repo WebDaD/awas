@@ -25,7 +25,7 @@ var job = new CronJob('* * * * *', function() { // eslint-disable-line no-unused
                 if (rec.command === 'mplayer') {
                     commando = 'timeout ' + length + ' mplayer -dumpstream -dumpfile ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type + ' ' + rec.url.trim()
                 } else if (rec.command === 'vlc') {
-                    commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + rec.url.trim() + ' --sout file:' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type + ' --sout-keep';
+                    commando = 'sudo -u vlc timeout ' + length + ' vlc ' + rec.url.trim() + ' --sout file:' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type + ' --sout-keep';
                 } else { // streamripper
                     commando = 'streamripper ' + rec.url.trim() + ' -a ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + ' -A --quiet -l ' + length + ' -u winamp'
                 }
