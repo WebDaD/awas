@@ -1,35 +1,35 @@
 {
-  "name": "awas",
-  "version": "2.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node app.js",
-    "postinstall":"sh install.sh"
-  },
-  "dependencies": {
-    "express": "*",
-    "exec":"*",
-    "jsonfile":"*",
-    "chokidar":"*",
-    "socket.io": "*",
-		"jade":"*",
-		"body-parser":"*",
-		"stylus":"*",
-		"nib": "*",
-		"MD5": "*",
-    "ftpd":"*",
-    "ip":"*",
-    "filesize":"*",
-    "shortid":"*",
-    "cron":"*",
-    "moment":"*",
-    "moment-timezone":"*",
-    "mime":"*",
-    "diskspace":"*",
-    "dir-util":"*",
-    "ps-node":"*",
-    "node-ipc":"*",
-    "readline-sync":"*",
-    "pm2":"*"
-  }
+    "name": "awas",
+    "version": "2.0.0",
+    "private": true,
+    "scripts": {
+        "start": "node app.js",
+        "postinstall": "sh install.sh"
+    },
+    "dependencies": {
+        "body-parser": "*",
+        "chokidar": "*",
+        "cron": "*",
+        "dir-util": "*",
+        "diskspace": "*",
+        "exec": "*",
+        "express": "*",
+        "filesize": "*",
+        "ftpd": "*",
+        "ip": "*",
+        "jade": "*",
+        "jsonfile": "*",
+        "MD5": "*",
+        "mime-types": "^2.1.35",
+        "moment": "*",
+        "moment-timezone": "*",
+        "nib": "*",
+        "node-ipc": "*",
+        "pm2": "*",
+        "ps-node": "*",
+        "readline-sync": "*",
+        "shortid": "*",
+        "socket.io": "*",
+        "stylus": "*"
+    }
 }
