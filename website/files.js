@@ -52,6 +52,16 @@ module.exports = function(app, data, functions) {
             res.render("files", data);
         });
     });
+    app.use((req, res, next) => {
+        try {
+            // Encode it again to ensure proper encoding
+            req.url = encodeURI(req.url);
+            next();
+        } catch (err) {
+            console.error('Invalid URL:', req.url, err);
+            res.status(400).send('Bad Request: Invalid URL encoding');
+        }
+    });
     app.get('/files/:file', functions.isLoggedIn(data.loggedIn), function(req, res) {
         if (typeof req.params.file === 'undefined') {
             res.sendStatus(404);

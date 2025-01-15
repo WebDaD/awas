@@ -27,7 +27,7 @@ var job = new CronJob('* * * * *', function() { // eslint-disable-line no-unused
                 } else if (rec.command === 'vlc') {
                     commando = 'sudo -u vlc timeout ' + length + ' vlc ' + rec.url.trim() + ' --sout file:' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + '.' + rec.type + ' --sout-keep';
                 } else { // streamripper
-                    commando = 'streamripper ' + rec.url.trim() + ' -a ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + ' -A --quiet -l ' + length + ' -u winamp'
+                    commando = 'timeout ' + length + ' streamripper ' + rec.url.trim() + ' -a ' + conf.downloads + '/' + rec.filename.trim() + '_id-' + rec.id + ' -A --quiet -u winamp'
                 }
 
                 console.log("RC: Executing: '" + commando)

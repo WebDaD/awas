@@ -31,7 +31,7 @@ try {
                 // Run VLC as the 'vlc' user
                 commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
             } else { // streamripper
-                commando = 'streamripper ' + cron.url + ' -a ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + ' -A --quiet -l ' + cron.length + ' -u winamp';
+                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + cron.times_run + '-' + cron.filename + '_id-' + cronid + ' -A --quiet -u winamp';
             }
 
             console.log('CRON[' + cronid + "]: Executing: '" + commando);
