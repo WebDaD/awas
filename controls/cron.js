@@ -25,12 +25,10 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
+            // Generate current date and time string in Germany timezone
             const now = new Date();
-            const formattedDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
-                .toISOString()
-                .replace(/T/, '_')
-                .replace(/:/g, '-')
-                .split('.')[0];
+            const germanyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+            const formattedDateTime = germanyTime.toISOString().replace(/T/, '_').replace(/:/g, '-').split('.')[0];
 
             // Replace `%D` in filename with the current date and time
             let filename = cron.filename.replace('%D', formattedDateTime);
