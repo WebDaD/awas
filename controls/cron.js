@@ -25,9 +25,12 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
-            // Generate current date and time string
             const now = new Date();
-            const formattedDateTime = now.toISOString().replace(/T/, '_').replace(/:/g, '-').split('.')[0];
+            const formattedDateTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
+                .toISOString()
+                .replace(/T/, '_')
+                .replace(/:/g, '-')
+                .split('.')[0];
 
             // Replace `%D` in filename with the current date and time
             let filename = cron.filename.replace('%D', formattedDateTime);
