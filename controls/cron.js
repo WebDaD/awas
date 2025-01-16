@@ -25,9 +25,10 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
-            // Generate current date and time string
-            const now = new Date();
-            const formattedDateTime = now.toISOString().replace(/T/, '_').replace(/:/g, '-').split('.')[0];
+            const moment = require('moment-timezone');
+
+            // Generate current date and time string in Germany timezone
+            const formattedDateTime = moment().tz('Europe/Berlin').format('YYYY-MM-DD_HH-mm-ss');
 
             // Replace `%D` in filename with the current date and time
             let filename = cron.filename.replace('%D', formattedDateTime);
