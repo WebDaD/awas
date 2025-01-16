@@ -1,80 +1,96 @@
-var conf = require('../config.json')
-var CRONS = require('../data/crons')
-var CronJob = require('cron').CronJob
-var pm2 = require('pm2')
-const childprogram = '../awas/controls/cron.js'
+const conf = require('../config.json');
+const CRONS = require('../data/crons');
+const CronJob = require('cron').CronJob;
+const pm2 = require('pm2');
+const childprogram = '../awas/controls/cron.js';
 
-var crons = CRONS.load(conf.database)
-var childs = {}
+let activeCrons = new Set(); // Track active crons
+let crons = CRONS.load(conf.database) || []; // Ensure array
 
+// Connect to PM2
 pm2.connect(function(err) {
     if (err) {
-        console.error(err)
-        process.exit(2)
+        console.error("Failed to connect to PM2:", err);
+        process.exit(2);
     } else {
-        for (var x = 0; x < crons.length; x++) {
-            var cron = crons[x]
-            console.log('Starting Worker ' + cron.id)
-            pm2.start({
-                script: childprogram,
-                name: 'CRON_' + cron.id,
-                args: cron.id
-            }, function(err, apps) {
-                if (err) {
-                    console.error(err)
-                } else {
-                    childs[cron.id] = cron
-                }
-            })
-        }
+        startAllCrons(crons);
     }
-})
+});
 
-var job = new CronJob('* * * * *', function() {
-    var oldCrons = crons
-    crons = CRONS.load(conf.database)
-    console.log('CC TICK (' + crons.length + ' Crons)')
-    for (var c = 0; c < crons.length; c++) {
-        var cron = crons[c]
-        for (var oc = 0; oc < oldCrons.length; oc++) {
-            if (oldCrons[oc].id === cron.id && !CRONS.equalCrons(cron, oldCrons[oc])) {
-                console.log('Re-Starting Worker ' + cron.id)
-                pm2.restart('CRON_' + cron.id, function(err) {
-                    if (err) {
-                        console.error(err)
-                    }
-                })
+// Function to start all initial crons
+function startAllCrons(crons) {
+    for (const cron of crons) {
+        startCron(cron.id);
+    }
+}
+
+// Function to start a specific cron by ID
+function startCron(cronId) {
+    if (activeCrons.has(cronId)) {
+        console.log(`Worker CRON_${cronId} is already running.`);
+        return;
+    }
+    console.log('Starting Worker ' + cronId);
+    pm2.start({
+            script: childprogram,
+            name: 'CRON_' + cronId,
+            args: cronId,
+        },
+        function(err, apps) {
+            if (err) {
+                console.error(`Failed to start CRON_${cronId}:`, err);
+            } else {
+                activeCrons.add(cronId);
+                console.log(`Successfully started CRON_${cronId}.`);
             }
         }
-        if (typeof childs[cron.id] === 'undefined') {
-            console.log('Starting Worker ' + cron.id)
-            pm2.start({
-                script: childprogram,
-                name: 'CRON_' + cron.id,
-                args: cron.id
-            }, function(err, apps) {
-                if (err) {
-                    console.error(err)
-                } else {
-                    childs[cron.id] = cron
-                }
-            })
-        }
-    }
-    for (var childID in childs) {
-        if (childs.hasOwnProperty(childID)) {
-            if (!CRONS.exists(crons, childID)) {
-                console.log('Stopping Worker ' + childID)
-                pm2.delete('CRON_' + childID, function(err) {
-                    if (err) {
-                        console.error(err)
-                    } else {
-                        delete childs[childID]
-                    }
-                })
-            }
-        }
-    }
-}, null, true, 'Europe/Berlin')
+    );
+}
 
-console.log("'CronControl' running: " + job.running)
+// Function to stop a specific cron by ID
+function stopCron(cronId) {
+    if (!activeCrons.has(cronId)) {
+        console.log(`Worker CRON_${cronId} is not running.`);
+        return;
+    }
+    console.log('Stopping Worker ' + cronId);
+    pm2.delete('CRON_' + cronId, function(err) {
+        if (err) {
+            console.error(`Failed to stop CRON_${cronId}:`, err);
+        } else {
+            activeCrons.delete(cronId);
+            console.log(`Successfully stopped CRON_${cronId}.`);
+        }
+    });
+}
+
+// Check for updates every minute
+var job = new CronJob(
+    '* * * * *',
+    function() {
+        setTimeout(() => {
+            const oldCrons = crons || []; // Fallback to empty array
+            crons = CRONS.load(conf.database) || []; // Reload crons
+            console.log(`CC TICK (${crons.length} Crons), old length: ${oldCrons.length}`);
+
+            // Stop old crons no longer active
+            for (const oldCron of oldCrons) {
+                if (!crons.some((cron) => cron.id === oldCron.id)) {
+                    stopCron(oldCron.id);
+                }
+            }
+
+            // Start new crons not currently running
+            for (const cron of crons) {
+                if (!activeCrons.has(cron.id)) {
+                    startCron(cron.id);
+                }
+            }
+        }, 15000); // Delay 15 seconds
+    },
+    null,
+    true,
+    'Europe/Berlin'
+);
+
+console.log("'CronControl' running: " + job.running);
