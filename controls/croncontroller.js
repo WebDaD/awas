@@ -6,7 +6,8 @@ const childprogram = '../awas/controls/cron.js';
 
 // Function to calculate a simple hash of a cron job configuration
 function hashCronConfig(cron) {
-    return JSON.stringify(cron); // Simple hash based on JSON string
+    const { times_run, ...filteredCron } = cron; // Remove times_run
+    return JSON.stringify(filteredCron); // Simple hash based on JSON string
 }
 
 // Track active crons and their configurations
