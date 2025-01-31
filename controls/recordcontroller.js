@@ -3,67 +3,95 @@ var RECORDS = require('../data/records');
 var moment = require('moment');
 var CronJob = require('cron').CronJob;
 const childProcess = require('child_process');
+
 var records = RECORDS.load(conf.database);
 
-var job = new CronJob('* * * * *', function() { // eslint-disable-line no-unused-vars
-    console.log('RC TICK');
+var job = new CronJob('* * * * *', function() { // Runs every minute
+    console.log('🔄 RC TICK - Checking for recordings');
+
     records = RECORDS.load(conf.database);
-    if (records.length !== 0) {
-        for (var r = 0; r < records.length; r++) {
-            var rec = records[r];
-            if (rec.recording) {
-                recording = true;
-            } else {
-                recording = false;
-            }
-            var now = moment();
-            var ra = moment(rec.start);
-            var rs = moment(rec.stop);
-            var length = moment.duration(rs.diff(ra)).asSeconds();
-            if (!recording && now.isBetween(ra, rs)) {
-                // Generate current date and time string
-                const formattedDateTime = now.format('YYYY-MM-DD_HH-mm-ss');
+    console.log(`📋 Loaded ${records.length} records`);
 
-                // Replace `%D` in filename with the current date and time
-                let filename = rec.filename.replace('%D', formattedDateTime);
+    if (records.length === 0) {
+        console.log("❌ No records found");
+        return;
+    }
 
-                let commando = '';
-                if (rec.command === 'mplayer') {
-                    commando = 'timeout ' + length + ' mplayer -dumpstream -dumpfile ' + conf.downloads + '/' + filename.trim() + '_id-' + rec.id + '.' + rec.type + ' ' + rec.url.trim();
-                } else if (rec.command === 'vlc') {
-                    commando = 'sudo -u vlc timeout ' + length + ' vlc ' + rec.url.trim() + ' --sout file:' + conf.downloads + '/' + filename.trim() + '_id-' + rec.id + '.' + rec.type + ' --sout-keep';
-                } else { // streamripper
-                    commando = 'timeout ' + length + ' streamripper ' + rec.url.trim() + ' -a ' + conf.downloads + '/' + filename.trim() + '_id-' + rec.id + ' -A --quiet -u winamp';
+    for (let r = 0; r < records.length; r++) {
+        let rec = records[r];
+
+        if (typeof rec.recording === 'undefined') {
+            rec.recording = false;
+            console.log(`🛠 Fixed missing 'recording' status for record ${rec.id}, setting to false.`);
+        }
+
+        let now = moment();
+        let startTime = moment(rec.start);
+        let stopTime = moment(rec.stop);
+        let length = moment.duration(stopTime.diff(startTime)).asSeconds();
+
+        console.log(`🔍 Checking record ${rec.id}: recording=${rec.recording}, pid=${rec.pid || "none"}, now=${now.format()}, start=${startTime.format()}, stop=${stopTime.format()}`);
+
+        // Check if the recording is already running by verifying the PID
+        if (rec.recording && rec.pid) {
+            let checkProcessCmd = `ps -p ${rec.pid} -o comm=`;
+
+            childProcess.exec(checkProcessCmd, function(error, stdout) {
+                if (!error && stdout.trim().includes("streamripper")) {
+                    console.log(`⚠️ Record ${rec.id} is already running with PID ${rec.pid}. Skipping.`);
+                    return;
                 }
 
-                console.log("RC: Executing: '" + commando + "'");
+                console.log(`🛠 Process ${rec.pid} not found. Marking record as stopped.`);
+                rec.recording = false;
+                rec.pid = null;
+                RECORDS.updateRecord(conf.database, rec);
+            });
+        }
 
-                let options = {};
-                childProcess.exec(commando, options, function() {
-                    var m = {};
-                    m.type = 'custom';
-                    m.text = 'reload';
-                    m.sender = rec.id;
-                });
-
-                setTimeout(function() {
-                    childProcess.exec("pgrep -f \"" + commando + "\"", options, function(error, stdout) {
-                        rec.streamripper_pid = stdout;
-                        rec.recording = true;
-                        RECORDS.updateRecord(conf.database, rec, function(error, record) {
-                            if (error) {
-                                console.error(error);
-                            } else {
-                                console.log("RC: Record " + record.id + " updated with pid " + record.streamripper_pid);
-                            }
-                        });
-                    });
-                }, 2000);
-            } else {
-                console.log("RC Record " + rec.id + " is already recording");
-            }
+        // Start new recording only if it's not already running
+        if (!rec.recording && now.isBetween(startTime, stopTime)) {
+            console.log(`✅ Record ${rec.id} is scheduled to start recording.`);
+            startRecording(rec, length, now);
+        } else {
+            console.log(`⏭️ Record ${rec.id} is already recording or outside schedule.`);
         }
     }
 }, null, true, 'Europe/Berlin');
 
-console.log("'RecordControl' running: " + job.running);
+console.log("🚀 'RecordControl' running: " + job.running);
+
+/**
+ * Starts a recording session.
+ */
+function startRecording(rec, length, now) {
+    const formattedDateTime = now.format('YYYY-MM-DD_HH-mm-ss');
+    let filename = rec.filename.replace('%D', formattedDateTime);
+    let filePath = `${conf.downloads}/${filename.trim()}_id-${rec.id}.${rec.type}`;
+
+    let commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
+
+    console.log("🚀 Starting recording: '" + commando + "'");
+
+    let options = {};
+    let process = childProcess.exec(commando, options, function(error, stdout, stderr) {
+        if (error) {
+            console.error(`❌ Error executing command for record ${rec.id}: ${error.message}`);
+            console.error(`📛 Stderr: ${stderr}`);
+            return;
+        }
+        console.log(`🎙️ Recording started for record ${rec.id}: ${stdout}`);
+    });
+
+    // Save the process ID (PID) to avoid duplicate recordings
+    rec.recording = true;
+    rec.pid = process.pid;
+
+    RECORDS.updateRecord(conf.database, rec, function(error) {
+        if (error) {
+            console.error("❌ Failed to update record:", error);
+        } else {
+            console.log(`✅ Record ${rec.id} marked as recording with PID ${rec.pid}.`);
+        }
+    });
+}
