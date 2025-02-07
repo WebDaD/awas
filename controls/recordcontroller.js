@@ -6,7 +6,7 @@ const childProcess = require('child_process');
 
 var records = RECORDS.load(conf.database);
 
-var job = new CronJob('* * * * *', function() { // Runs every minute
+var job = new CronJob('* * * * *', function() {
     console.log('🔄 RC TICK - Checking for recordings');
 
     records = RECORDS.load(conf.database);
@@ -32,7 +32,6 @@ var job = new CronJob('* * * * *', function() { // Runs every minute
 
         console.log(`🔍 Checking record ${rec.id}: recording=${rec.recording}, pid=${rec.pid || "none"}, now=${now.format()}, start=${startTime.format()}, stop=${stopTime.format()}`);
 
-        // Check if the recording is already running by verifying the PID
         if (rec.recording && rec.pid) {
             let checkProcessCmd = `ps -p ${rec.pid} -o comm=`;
 
@@ -49,7 +48,6 @@ var job = new CronJob('* * * * *', function() { // Runs every minute
             });
         }
 
-        // Start new recording only if it's not already running
         if (!rec.recording && now.isBetween(startTime, stopTime)) {
             console.log(`✅ Record ${rec.id} is scheduled to start recording.`);
             startRecording(rec, length, now);
@@ -61,20 +59,27 @@ var job = new CronJob('* * * * *', function() { // Runs every minute
 
 console.log("🚀 'RecordControl' running: " + job.running);
 
-/**
- * Starts a recording session.
- */
 function startRecording(rec, length, now) {
     const formattedDateTime = now.format('YYYY-MM-DD_HH-mm-ss');
     let filename = rec.filename.replace('%D', formattedDateTime);
     let filePath = `${conf.downloads}/${filename.trim()}_id-${rec.id}.${rec.type}`;
 
-    let commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
+    let commando = '';
+    if (rec.command === 'mplayer') {
+        commando = `timeout ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()}`;
+    } else if (rec.command === 'vlc') {
+        commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep`;
+    } else {
+        commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
+    }
 
-    console.log("🚀 Starting recording: '" + commando + "'");
+    console.log(`🚀 Starting recording: '${commando}'`);
 
-    let options = {};
-    let process = childProcess.exec(commando, options, function(error, stdout, stderr) {
+    // Mark as recording before starting the process
+    rec.recording = true;
+    RECORDS.updateRecord(conf.database, rec);
+
+    let process = childProcess.exec(commando, {}, function(error, stdout, stderr) {
         if (error) {
             console.error(`❌ Error executing command for record ${rec.id}: ${error.message}`);
             console.error(`📛 Stderr: ${stderr}`);
@@ -83,15 +88,16 @@ function startRecording(rec, length, now) {
         console.log(`🎙️ Recording started for record ${rec.id}: ${stdout}`);
     });
 
-    // Save the process ID (PID) to avoid duplicate recordings
-    rec.recording = true;
-    rec.pid = process.pid;
+    // Assign PID only when the process has started
+    process.on('spawn', () => {
+        rec.pid = process.pid;
 
-    RECORDS.updateRecord(conf.database, rec, function(error) {
-        if (error) {
-            console.error("❌ Failed to update record:", error);
-        } else {
-            console.log(`✅ Record ${rec.id} marked as recording with PID ${rec.pid}.`);
-        }
+        RECORDS.updateRecord(conf.database, rec, function(error) {
+            if (error) {
+                console.error("❌ Failed to update record:", error);
+            } else {
+                console.log(`✅ Record ${rec.id} marked as recording with PID ${rec.pid}.`);
+            }
+        });
     });
 }
