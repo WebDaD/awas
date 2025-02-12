@@ -36,12 +36,12 @@ try {
             let commando = '';
             let options = {};
             if (cron.command === 'mplayer') {
-                commando = 'timeout ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + cron.times_run + '-' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url;
+                commando = 'timeout ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url;
             } else if (cron.command === 'vlc') {
                 // Run VLC as the 'vlc' user
-                commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + cron.times_run + '-' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
+                commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
             } else { // streamripper
-                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + cron.times_run + '-' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
+                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
             }
 
             console.log('CRON[' + cronid + "]: Executing: '" + commando);
