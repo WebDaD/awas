@@ -27,7 +27,7 @@ module.exports = {
         }
         var jsonfile = require('jsonfile');
         var id = record.id;
-        delete record.id;
+        //delete record.id;
         var file = database + '/records/' + id + '.json';
 
         jsonfile.writeFile(file, record, function(err) {
@@ -70,14 +70,14 @@ module.exports = {
         var r = jsonfile.readFileSync(file)
         r.stop = moment().tz('Europe/Berlin').format()
         r.id = id
-        if (typeof r.streamripper_pid !== 'undefined') {
-            ps.kill(r.streamripper_pid, function(err, stdout) {
+        if (typeof r.pid !== 'undefined') {
+            ps.kill(r.pid, function(err, stdout) {
                 if (err) {
                     callback({
                         status: 500
                     })
                 } else {
-                    ps.kill(r.streamripper_pid + 1, function(err, stdout) {
+                    ps.kill(r.pid + 1, function(err, stdout) {
                         if (err) {
                             callback({
                                 status: 500

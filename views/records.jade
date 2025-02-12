@@ -30,7 +30,7 @@ block content
 					else
 						th Start
 						th(data-defaultsort="desc") Stop
-					th SR-PID
+					th PID
 					th Comment
 					th filename
 					th FileType
@@ -46,7 +46,7 @@ block content
 						td= record.url
 						td.rstart(data-value=record.start)= record.start
 						td.rstop(data-value=record.stop)= record.stop
-						td.rspid= record.streamripper_pid
+						td.rspid= record.pid
 						td= record.comment
 						td= record.filename
 						td= record.type
