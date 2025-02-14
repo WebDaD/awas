@@ -27,7 +27,7 @@ module.exports = {
         }
         var jsonfile = require('jsonfile');
         var id = record.id;
-        //delete record.id;
+        delete record.id;
         var file = database + '/records/' + id + '.json';
 
         jsonfile.writeFile(file, record, function(err) {
