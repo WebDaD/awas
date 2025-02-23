@@ -46,7 +46,7 @@ block content
 						td= record.url
 						td.rstart(data-value=record.start)= record.start
 						td.rstop(data-value=record.stop)= record.stop
-						td.rspid= record.recording === true ? "🔴" : ""
+						td.rspid= (record.recording === true && Date.now() >= new Date(record.start).getTime() && Date.now() <= new Date(record.stop).getTime()) ? "🔴" : ""
 						td= record.comment
 						td= record.filename
 						td= record.type

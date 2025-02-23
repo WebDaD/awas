@@ -69,6 +69,8 @@ function startRecording(rec, length, now) {
         commando = `timeout ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()}`;
     } else if (rec.command === 'vlc') {
         commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep`;
+    } else if (rec.command === 'ffmpeg') {
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath}`;
     } else {
         commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
     }

@@ -23,7 +23,7 @@ mkdir -p ${DATABASE}archive
 echo 'OK'
 
 echo "Installing Ripper Software"
-apt-get install streamripper vlc mplayer
+apt-get install streamripper vlc mplayer ffmpeg
 
 echo "Installing pm2"
 npm install -g pm2
