@@ -63,43 +63,51 @@ module.exports = function(app, data, functions) {
         }
     });
     app.get('/files/:file', functions.isLoggedIn(data.loggedIn), function(req, res) {
-        if (typeof req.params.file === 'undefined') {
-            res.sendStatus(404);
-        } else {
-            var path = require('path');
-            var mime = require('mime-types');
-            var fs = require('fs');
+        if (!req.params.file) {
+            return res.sendStatus(404);
+        }
 
-            var file = app.downloads + '/' + req.params.file;
-            var nicefilename = "";
-            if (req.params.file.indexOf("_id-") > -1) {
-                nicefilename = req.params.file.split("_id-")[0] + "." + req.params.file.split("_id-")[1].split(".")[1];
-            } else {
-                nicefilename = path.basename(file);
+        var path = require('path');
+        var mime = require('mime-types');
+        var fs = require('fs');
+
+        var file = app.downloads + '/' + decodeURIComponent(req.params.file);
+        var nicefilename = path.basename(file);
+
+        if (req.params.file.includes("_id-")) {
+            let parts = req.params.file.split("_id-");
+            nicefilename = `${parts[0]}.${parts[1].split(".")[1]}`;
+        }
+
+        var mimetype = mime.lookup(file) || 'application/octet-stream';
+
+        res.setHeader('Content-Disposition', `attachment; filename="${nicefilename}"`);
+        res.setHeader('Content-Type', mimetype);
+
+        fs.access(file, fs.constants.F_OK, (err) => {
+            if (err) {
+                return res.status(404).send("File not found.");
             }
-            var mimetype = mime.lookup(file);
-
-            res.setHeader('Content-disposition', 'attachment; filename=' + nicefilename);
-            res.setHeader('Content-type', mimetype);
-
             var filestream = fs.createReadStream(file);
             filestream.pipe(res);
-        }
+        });
     });
+
     app.delete('/files/:file', functions.isLoggedIn(data.loggedIn), function(req, res) {
-        if (typeof req.params.file === 'undefined') {
-            res.sendStatus(400);
-        } else {
-            var fs = require('fs');
-            var file = app.downloads + "/" + req.params.file;
-            fs.unlink(file, function(err) {
-                if (err) {
-                    res.sendStatus(500);
-                } else {
-                    res.sendStatus(200);
-                }
-            });
+        if (!req.params.file) {
+            return res.sendStatus(400);
         }
+
+        var fs = require('fs');
+        var file = app.downloads + "/" + decodeURIComponent(req.params.file);
+
+        fs.unlink(file, function(err) {
+            if (err) {
+                console.error("Error deleting file:", err);
+                return res.status(500).send("File deletion failed.");
+            }
+            res.sendStatus(200);
+        });
     });
 };
 
