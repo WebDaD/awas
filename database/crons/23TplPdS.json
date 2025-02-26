@@ -1,1 +1,0 @@
-{ "tab": "0 0 * * *", "url": "https://streams.br.de/bayern1obb_1.m3u", "filename": "daily_test_cron", "type": "mp3", "command": "vlc", "comment": "Daily Test Snippet at 0:00", "length": "60", "user_id": "Test User", "times_run": 0 }
