@@ -27,7 +27,7 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
-            let filename = cron.filename;
+            let filename = cron.filename.endsWith('_%D') ? cron.filename : cron.filename + '_%D';
             if (cron.command !== 'streamripper') {
                 // Generate current date and time string in Germany timezone
                 const formattedDateTime = moment().tz('Europe/Berlin').format('YYYY-MM-DD_HH-mm-ss');
