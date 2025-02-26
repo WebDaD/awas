@@ -27,12 +27,12 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
-            // Generate current date and time string in Germany timezone
-            const formattedDateTime = moment().tz('Europe/Berlin').format('YYYY-MM-DD_HH-mm-ss');
-
-            // Replace `%D` in filename with the current date and time
-            let filename = cron.filename.replace('%D', formattedDateTime);
-
+            let filename = cron.filename;
+            if (cron.command !== 'streamripper') {
+                // Generate current date and time string in Germany timezone
+                const formattedDateTime = moment().tz('Europe/Berlin').format('YYYY-MM-DD_HH-mm-ss');
+                filename = filename.replace('%D', formattedDateTime);
+            }
             let commando = '';
             let options = {};
             if (cron.command === 'mplayer') {

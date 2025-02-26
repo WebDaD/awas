@@ -60,7 +60,10 @@ var job = new CronJob('* * * * *', function() {
 console.log("🚀 'RecordControl' running: " + job.running);
 
 function startRecording(rec, length, now) {
-    let filename = rec.filename.replace('%D', now.format('YYYY-MM-DD_HH-mm-ss'));
+    let filename = rec.filename;
+    if (rec.command !== 'streamripper') {
+        filename = filename.replace('%D', now.format('YYYY-MM-DD_HH-mm-ss'));
+    }
     let filePath = `${conf.downloads}/${filename.trim()}_id-${rec.id}.${rec.type}`;
 
     let commando = '';
