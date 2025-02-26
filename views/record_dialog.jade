@@ -31,7 +31,7 @@ div#dialog-record.modal.fade(role="dialog")
 						span#dialog-record-comment-addon.input-group-addon.glyphicon.glyphicon-align-left(style="top:0px;")
 						input#dialog-record-comment.input-xlarge.form-control(type="text" aria-describedby="dialog-record-comment-addon" placeholder="Kommentar")
 						
-				div#dialog-record-filename-group.form-group(data-toggle="tooltip" data-placement="right" data-html="true"  title="<p style=\"width:200px;\"><b>Leerzeichen sind nicht erlaubt!</b><br/>%S Stream <br/>%A Artist<br/>%T Title<br/>%a Album<br/>%D Date and time<br/>%% Percent sign</p>")
+				div#dialog-record-filename-group.form-group(data-toggle="tooltip" data-placement="right" data-html="true"  title="<p style=\"width:200px;\"><b>Leerzeichen sind nicht erlaubt!</b><br/>%D Date and time<br/>(YYYY-MM-DD_HH-mm-ss)<br/></p>")
 					label.control-label(for="dialog-record-filename-group") Dateiname
 					div.input-group
 						span#dialog-record-filename-addon.input-group-addon.glyphicon.glyphicon-file(style="top:0px;")
@@ -57,6 +57,7 @@ div#dialog-record.modal.fade(role="dialog")
 							option mplayer
 							option vlc	
 							option ffmpeg	
+							option ffmpeg-all	
 
 
 				input(type="hidden" id="dialog-record-id")
