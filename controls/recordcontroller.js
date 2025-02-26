@@ -60,8 +60,7 @@ var job = new CronJob('* * * * *', function() {
 console.log("🚀 'RecordControl' running: " + job.running);
 
 function startRecording(rec, length, now) {
-    const formattedDateTime = now.format('YYYY-MM-DD_HH-mm-ss');
-    let filename = rec.filename.replace('%D', formattedDateTime);
+    let filename = rec.filename.replace('%D', now.format('YYYY-MM-DD_HH-mm-ss'));
     let filePath = `${conf.downloads}/${filename.trim()}_id-${rec.id}.${rec.type}`;
 
     let commando = '';
@@ -71,6 +70,8 @@ function startRecording(rec, length, now) {
         commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep`;
     } else if (rec.command === 'ffmpeg') {
         commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath}`;
+    } else if (rec.command === 'ffmpeg-all') {
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath}`;
     } else {
         commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
     }
@@ -85,6 +86,9 @@ function startRecording(rec, length, now) {
         if (error) {
             console.error(`❌ Error executing command for record ${rec.id}: ${error.message}`);
             console.error(`📛 Stderr: ${stderr}`);
+            rec.recording = false;
+            rec.pid = null;
+            RECORDS.updateRecord(conf.database, rec);
             return;
         }
         console.log(`🎙️ Recording started for record ${rec.id}: ${stdout}`);

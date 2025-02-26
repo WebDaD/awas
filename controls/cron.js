@@ -3,6 +3,8 @@ var jsonfile = require('jsonfile');
 var CRON = require('cron');
 const childProcess = require('child_process');
 var http = require('http');
+const moment = require('moment-timezone');
+
 var httpOptions = {
     port: 8080,
     host: 'localhost',
@@ -25,8 +27,6 @@ try {
             console.log('CRON[' + cronid + '] TICK');
             cron = jsonfile.readFileSync(cronPath);
 
-            const moment = require('moment-timezone');
-
             // Generate current date and time string in Germany timezone
             const formattedDateTime = moment().tz('Europe/Berlin').format('YYYY-MM-DD_HH-mm-ss');
 
@@ -38,30 +38,26 @@ try {
             if (cron.command === 'mplayer') {
                 commando = 'timeout ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url;
             } else if (cron.command === 'vlc') {
-                // Run VLC as the 'vlc' user
                 commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
             } else if (cron.command === 'ffmpeg') {
-                commando = ' timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
+            } else if (cron.command === 'ffmpeg-all') {
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
             } else { // streamripper
-                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
+                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + '_' + formattedDateTime + ' -A --quiet -u winamp';
             }
 
             console.log('CRON[' + cronid + "]: Executing: '" + commando);
-
             cron.times_run++;
             jsonfile.writeFileSync(conf.database + '/crons/' + cronid + '.json', cron);
 
             // Execute the command
             childProcess.exec(commando, options, function(error, stdout, stderr) {
-                // Log the standard output and error for debugging
                 console.log('CRON[' + cronid + ']: Standard Output:', stdout);
                 console.log('CRON[' + cronid + ']: Standard Error:', stderr);
-
-                // Log error if there is any
                 if (error) {
                     console.log('CRON[' + cronid + ']: Error:', error);
                 }
-
                 console.log('CRON[' + cronid + ']: Done.');
                 writeHTTP();
             });
@@ -69,9 +65,7 @@ try {
         null, // onComplete
         true // start
     );
-
     console.log('Worker ' + cronid + ' running: ' + job.running);
-
 } catch (ex) {
     console.log('Worker ' + cronid + ' NOT running: Cron Error ' + ex);
 }
@@ -79,14 +73,11 @@ try {
 function writeHTTP() {
     var httpReq = http.request(httpOptions, function(res) {
         var responseString = '';
-
         res.on('data', function(data) {
             responseString += data;
-            // save all the data from response
         });
         res.on('end', function() {
             console.log(responseString);
-            // print to console when response ends
         });
     });
     httpReq.write('');
