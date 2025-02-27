@@ -64,7 +64,8 @@ function startRecording(rec, length, now) {
     if (rec.command !== 'streamripper') {
         filename = filename.replace('%D', now.format('YYYY-MM-DD_HH-mm-ss'));
     }
-    let filePath = `${conf.downloads}/${filename.trim()}_id-${rec.id}.${rec.type}`;
+    let filePathRaw = = `${conf.downloads}/${filename.trim()}_id-${rec.id}`;
+    let filePath = `${filePathRaw}.${rec.type}`;
 
     let commando = '';
     if (rec.command === 'mplayer') {
@@ -76,7 +77,7 @@ function startRecording(rec, length, now) {
     } else if (rec.command === 'ffmpeg-all') {
         commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath}`;
     } else {
-        commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePath} -A --quiet -u winamp`;
+        commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePathRaw} -A --quiet -u winamp`;
     }
 
     console.log(`🚀 Starting recording: '${commando}'`);
