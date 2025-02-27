@@ -73,9 +73,9 @@ function startRecording(rec, length, now) {
     } else if (rec.command === 'vlc') {
         commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep`;
     } else if (rec.command === 'ffmpeg') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath}`;
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet`;
     } else if (rec.command === 'ffmpeg-all') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath}`;
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet`;
     } else {
         commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePathRaw} -A --quiet -u winamp`;
     }
