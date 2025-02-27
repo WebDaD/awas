@@ -64,7 +64,7 @@ function startRecording(rec, length, now) {
     if (rec.command !== 'streamripper') {
         filename = filename.replace('%D', now.format('YYYY-MM-DD_HH-mm-ss'));
     }
-    let filePathRaw = = `${conf.downloads}/${filename.trim()}_id-${rec.id}`;
+    let filePathRaw = `${conf.downloads}/${filename.trim()}_id-${rec.id}`;
     let filePath = `${filePathRaw}.${rec.type}`;
 
     let commando = '';
