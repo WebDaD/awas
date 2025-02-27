@@ -1,8 +1,10 @@
 const conf = require('../config.json');
+const path = require('path');
 const CRONS = require('../data/crons');
 const CronJob = require('cron').CronJob;
 const pm2 = require('pm2');
-const childprogram = '../awas/controls/cron.js';
+
+const childprogram = path.join(__dirname, '../controls/cron.js');
 
 // Function to calculate a simple hash of a cron job configuration
 function hashCronConfig(cron) {

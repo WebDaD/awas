@@ -44,7 +44,7 @@ try {
             } else if (cron.command === 'ffmpeg-all') {
                 commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
             } else { // streamripper
-                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + '_' + formattedDateTime + ' -A --quiet -u winamp';
+                commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -A --quiet -u winamp';
             }
 
             console.log('CRON[' + cronid + "]: Executing: '" + commando);
