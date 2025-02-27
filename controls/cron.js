@@ -40,9 +40,9 @@ try {
             } else if (cron.command === 'vlc') {
                 commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
             } else if (cron.command === 'ffmpeg') {
-                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet';
             } else if (cron.command === 'ffmpeg-all') {
-                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type;
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet';
             } else { // streamripper
                 commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
             }
