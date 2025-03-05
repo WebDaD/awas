@@ -1,17 +1,10 @@
 # AWAS
 
-Save and manage Audio-Streams on the web
+Webstream-Rekorder mit Weboberfläche
 
-## Installation
+Installationsanleitung und Hinweise zur Verwendung im Wiki:
+https://github.com/WebDaD/awas/wiki
 
-1. Install node.js: https://nodejs.org/en/download
-2. Clone the Repository: `git clone https://github.com/WebDaD/awas.git`
-3. Install Dependencies: `npm install`
+## Manueller Start
 
-## Start
-
-`pm2 start app.js --name awas-demo -- 8080 `
-
-## Dev-Start:
-
-`pm2 start app.js --watch --ignore-watch="database public/css" --name awas-demo -- 8080 `
+`pm2 start app.js --name awas -- 80`
