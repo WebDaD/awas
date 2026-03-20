@@ -36,13 +36,13 @@ try {
             let commando = '';
             let options = {};
             if (cron.command === 'mplayer') {
-                commando = 'timeout ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url;
+                commando = 'timeout ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url + ' -cache 8192 -cache-min 50 -forceidx';
             } else if (cron.command === 'vlc') {
-                commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep';
+                commando = 'sudo -u vlc timeout ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap';
             } else if (cron.command === 'ffmpeg') {
-                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet';
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10';
             } else if (cron.command === 'ffmpeg-all') {
-                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet';
+                commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10';
             } else { // streamripper
                 commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
             }
