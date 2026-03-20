@@ -69,13 +69,13 @@ function startRecording(rec, length, now) {
 
     let commando = '';
     if (rec.command === 'mplayer') {
-        commando = `timeout ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()}`;
+        commando = `timeout ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()} -cache 8192 -cache-min 50 -forceidx`;
     } else if (rec.command === 'vlc') {
-        commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep`;
+        commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap`;
     } else if (rec.command === 'ffmpeg') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet`;
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else if (rec.command === 'ffmpeg-all') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet`;
+        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else {
         commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePathRaw} -A --quiet -u winamp`;
     }
