@@ -33,7 +33,7 @@ function record_new () {
   $('#dialog-record-stop').val('')
   $('#dialog-record-comment').val('')
   $('#dialog-record-filename').val('')
-  $('#dialog-record-type').val('mp3')
+  $('#dialog-record-type').val('ts')
   $('#dialog-record-command').val('streamripper')
   $('#dialog-record').modal('show')
 }
