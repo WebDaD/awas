@@ -11,7 +11,7 @@ function cron_new () {
   $('#dialog-cron-comment').val('')
   $('#dialog-cron-length').val('')
   $('#dialog-cron-filename').val('')
-  $('#dialog-cron-type').val('mp3')
+  $('#dialog-cron-type').val('ts')
   $('#dialog-cron-command').val('streamripper')
   $('#dialog-cron-times_run').val('0')
   $('#dialog-cron').modal('show')
