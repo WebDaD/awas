@@ -69,23 +69,23 @@ function startRecording(rec, length, now) {
 
     let commando = '';
     if (rec.command === 'mplayer') {
-        commando = `timeout ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()} -cache 8192 -cache-min 50 -forceidx`;
+        commando = `timeout -s INT -k 30s ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()} -cache 8192 -cache-min 50 -forceidx`;
     } else if (rec.command === 'vlc') {
-        commando = `sudo -u vlc timeout ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap`;
+        commando = `sudo -u vlc timeout -s INT -k 30s ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap`;
     } else if (rec.command === 'ffmpeg') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
+        commando = `timeout -s INT -k 30s ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else if (rec.command === 'ffmpeg-all') {
-        commando = `timeout ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
+        commando = `timeout -s INT -k 30s ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else if (rec.command === 'streamlink-hls-dash') {
-        commando = `timeout ${length} streamlink "${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
+        commando = `timeout -s INT -k 30s ${length} streamlink "${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
     } else if (rec.command === 'streamlink-http') {
-        commando = `timeout ${length} streamlink "httpstream://${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
+        commando = `timeout -s INT -k 30s ${length} streamlink "httpstream://${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
     } else if (rec.command === 'yt-dlp') {
-        commando = `timeout ${length} yt-dlp "${rec.url.trim()}" --output "${filePath}" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --hls-use-mpegts --no-part --quiet`;
+        commando = `timeout -s INT -k 30s ${length} yt-dlp "${rec.url.trim()}" --output "${filePath}" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --hls-use-mpegts --no-part --quiet`;
     } else if (rec.command === 'yt-dlp-ffmpeg') {
-        commando = `timeout ${length} yt-dlp "${rec.url.trim()}" --output "${filePath}" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --downloader ffmpeg --hls-use-mpegts --no-part --quiet`;
+        commando = `timeout -s INT -k 30s ${length} yt-dlp "${rec.url.trim()}" --output "${filePath}" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --downloader ffmpeg --hls-use-mpegts --no-part --quiet`;
     } else {
-        commando = `timeout ${length} streamripper ${rec.url.trim()} -a ${filePathRaw} -A --quiet -u winamp`;
+        commando = `timeout -s INT -k 30s ${length} streamripper ${rec.url.trim()} -a ${filePathRaw} -A --quiet -u winamp`;
     }
 
     console.log(`🚀 Starting recording: '${commando}'`);
