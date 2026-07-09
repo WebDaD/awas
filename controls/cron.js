@@ -43,6 +43,14 @@ try {
                 commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10';
             } else if (cron.command === 'ffmpeg-all') {
                 commando = 'timeout ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy -map 0 ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10';
+            } else if (cron.command === 'streamlink-hls-dash') {
+                commando = 'timeout ' + cron.length + ' streamlink "' + cron.url + '" best --output "' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + '" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00';
+            } else if (cron.command === 'streamlink-http') {
+                commando = 'timeout ' + cron.length + ' streamlink "httpstream://' + cron.url + '" best --output "' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + '" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00';
+            } else if (cron.command === 'yt-dlp') {
+                commando = 'timeout ' + cron.length + ' yt-dlp "' + cron.url + '" --output "' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + '" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --hls-use-mpegts --no-part --quiet';
+            } else if (cron.command === 'yt-dlp-ffmpeg') {
+                commando = 'timeout ' + cron.length + ' yt-dlp "' + cron.url + '" --output "' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + '" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --downloader ffmpeg --hls-use-mpegts --no-part --quiet'; 
             } else { // streamripper
                 commando = 'timeout ' + cron.length + ' streamripper ' + cron.url + ' -a ' + downloads + '/' + filename + '_id-' + cronid + ' -A --quiet -u winamp';
             }
