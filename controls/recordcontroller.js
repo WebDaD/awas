@@ -71,7 +71,7 @@ function startRecording(rec, length, now) {
     if (rec.command === 'mplayer') {
         commando = `timeout -s INT -k 30s ${length} mplayer -dumpstream -dumpfile ${filePath} ${rec.url.trim()} -cache 8192 -cache-min 50 -forceidx`;
     } else if (rec.command === 'vlc') {
-        commando = `sudo -u vlc timeout -s INT -k 30s ${length} vlc ${rec.url.trim()} --sout file:${filePath} --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap`;
+        commando = `sudo -u vlc timeout -s INT -k 30s ${length} cvlc ${rec.url.trim()} --sout file:${filePath} --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap`;
     } else if (rec.command === 'ffmpeg') {
         commando = `timeout -s INT -k 30s ${length} ffmpeg -i ${rec.url.trim()} -c copy ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else if (rec.command === 'ffmpeg-all') {
