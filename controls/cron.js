@@ -38,7 +38,7 @@ try {
             if (cron.command === 'mplayer') {
                 commando = 'timeout -s INT -k 30s ' + cron.length + ' mplayer -dumpstream -dumpfile ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' ' + cron.url + ' -cache 8192 -cache-min 50 -forceidx';
             } else if (cron.command === 'vlc') {
-                commando = 'sudo -u vlc timeout -s INT -k 30s ' + cron.length + ' vlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap';
+                commando = 'sudo -u vlc timeout -s INT -k 30s ' + cron.length + ' cvlc ' + cron.url + ' --sout file:' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' --sout-keep --http-reconnect --network-caching=10000 --rtsp-tcp --no-sout-rtp-sap --no-sout-standard-sap';
             } else if (cron.command === 'ffmpeg') {
                 commando = 'timeout -s INT -k 30s ' + cron.length + ' ffmpeg -i ' + cron.url + ' -c copy ' + downloads + '/' + filename + '_id-' + cronid + '.' + cron.type + ' -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10';
             } else if (cron.command === 'ffmpeg-all') {
