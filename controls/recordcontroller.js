@@ -77,9 +77,9 @@ function startRecording(rec, length, now) {
     } else if (rec.command === 'ffmpeg-all') {
         commando = `timeout -s INT -k 30s ${length} ffmpeg -i ${rec.url.trim()} -c copy -map 0 ${filePath} -loglevel quiet -reconnect -reconnect_at_eof -reconnect_on_network_error -reconnect_streamed -reconnect_delay_max 10`;
     } else if (rec.command === 'streamlink-hls-dash') {
-        commando = `timeout -s INT -k 30s ${length} streamlink "${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
+        commando = `timeout -s INT -k 30s ${length} streamlink "${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 120.0`;
     } else if (rec.command === 'streamlink-http') {
-        commando = `timeout -s INT -k 30s ${length} streamlink "httpstream://${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 3600.00`;
+        commando = `timeout -s INT -k 30s ${length} streamlink "httpstream://${rec.url.trim()}" best --output "${filePath}" --force --quiet --retry-streams 3 --retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 --stream-segment-timeout 60.0 --stream-timeout 120.0`;
     } else if (rec.command === 'yt-dlp') {
         commando = `timeout -s INT -k 30s ${length} yt-dlp "${rec.url.trim()}" --output "${filePath}" --no-abort-on-error --socket-timeout 3600 --file-access-retries infinite --fragment-retries infinite --hls-use-mpegts --no-part --quiet`;
     } else if (rec.command === 'yt-dlp-ffmpeg') {
