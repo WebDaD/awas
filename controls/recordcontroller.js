@@ -36,7 +36,7 @@ var job = new CronJob('* * * * *', function() {
             let checkProcessCmd = `ps -p ${rec.pid} -o comm=`;
 
             childProcess.exec(checkProcessCmd, function(error, stdout) {
-                if (!error && stdout.trim().includes("streamripper")) {
+                if (!error && stdout.trim() !== "") {
                     console.log(`⚠️ Record ${rec.id} is already running with PID ${rec.pid}. Skipping.`);
                     return;
                 }
