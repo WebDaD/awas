@@ -1,0 +1,38 @@
+[Unit]
+Description=AWAS Stream Recorder web application
+Documentation=https://github.com/WebDaD/awas/tree/v3
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=awas
+Group=awas
+Environment=AWAS_CONFIG=/etc/awas/awas.toml
+ExecStart=/opt/awas/.venv/bin/awas
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/awas /var/log/awas /srv/awas/recordings
+
+[Install]
+WantedBy=multi-user.target
+

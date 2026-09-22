@@ -1,6 +1,0 @@
-{
-	"database":"/var/awas/database",
-	"downloads":"/var/awas/downloads",
-	"ftp_port":21000,
-	"web_port":8080
-}

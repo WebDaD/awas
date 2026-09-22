@@ -1,0 +1,2 @@
+"""Database support for AWAS."""
+

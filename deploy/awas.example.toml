@@ -1,0 +1,15 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+proxy_headers = true
+forwarded_allow_ips = "127.0.0.1"
+
+[database]
+url = "sqlite:////var/lib/awas/awas.db"
+
+[recording]
+directory = "/srv/awas/recordings"
+
+[general]
+timezone = "Europe/Berlin"
+
