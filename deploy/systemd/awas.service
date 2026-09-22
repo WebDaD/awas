@@ -6,8 +6,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=awas
-Group=awas
+User=awas-service
+Group=awas-service
 Environment=AWAS_CONFIG=/etc/awas/awas.toml
 ExecStart=/opt/awas/.venv/bin/awas
 Restart=on-failure

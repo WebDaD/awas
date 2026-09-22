@@ -52,7 +52,7 @@ Clone or download the `v3` branch on the target system and run:
 sudo ./scripts/install.sh
 ```
 
-The installer creates the system user `awas` and uses these paths:
+The installer creates the non-login system user `awas-service` and uses these paths:
 
 | Purpose | Path |
 |---|---|

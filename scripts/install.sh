@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly APP_USER="awas"
-readonly APP_GROUP="awas"
+readonly APP_USER="awas-service"
+readonly APP_GROUP="awas-service"
 readonly APP_ROOT="/opt/awas"
 readonly APP_SOURCE="${APP_ROOT}/app"
 readonly CONFIG_DIR="/etc/awas"
