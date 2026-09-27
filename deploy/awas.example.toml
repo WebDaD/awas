@@ -13,3 +13,11 @@ directory = "/srv/awas/recordings"
 [general]
 timezone = "Europe/Berlin"
 
+[security]
+# HTTPS requests always use a separate Secure cookie. Leave this false while
+# authenticated access through HTTP should remain possible.
+session_cookie_secure = false
+session_lifetime_hours = 12
+login_window_minutes = 15
+login_max_attempts_per_account = 5
+login_max_attempts_per_ip = 20

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Streams · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <h1>Streams</h1>
+    </div>
+    <a class="button button-primary" href="/admin/streams/new">Stream hinzufügen</a>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <label class="filter-field">
+    <span>Streams filtern</span>
+    <input type="search" autocomplete="off" data-filter-input="stream-table">
+  </label>
+
+  <div data-live-page data-live-interval="5000">
+    <section class="panel table-panel" data-live-region="stream-table">
+      {% if streams %}
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Stream</th><th>Rekorder</th><th>Dateityp</th><th>Letzte Aufnahme</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for stream in streams %}
+                {% set last_recording = last_recordings.get(stream.id) %}
+                <tr class="stream-data-row{% if last_recording and last_recording.is_running %} recording-active-row{% endif %}" data-filter-row="stream-table" data-filter-text="{{ stream.stream_url }}" data-filter-group="stream-{{ stream.id }}">
+                  <td data-label="Stream"><strong>{{ stream.name }}</strong></td>
+                  <td data-label="Rekorder">{{ recorder_label(stream.preferred_recorder) }}</td>
+                  <td data-label="Dateityp">{{ stream.preferred_file_type }}</td>
+                  <td data-label="Letzte Aufnahme">
+                    {% if last_recording %}
+                      {{ last_recording.started_at|local_datetime }}
+                      <small>{{ 'Läuft' if last_recording.is_running else last_recording.stream_name }}</small>
+                    {% else %}
+                      <span class="muted-text">Keine</span>
+                    {% endif %}
+                  </td>
+                  <td class="table-action">
+                    <div class="action-group">
+                      <form method="post" action="/streams/{{ stream.id }}/recordings/start">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="button button-record button-small" type="submit">Aufnahme jetzt starten<span class="record-dot" aria-hidden="true"></span></button>
+                      </form>
+                      <a class="button button-quiet button-small" href="/admin/streams/{{ stream.id }}">Ändern</a>
+                      {% if current_user.is_admin %}
+                        <form method="post" action="/admin/streams/{{ stream.id }}/delete">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                            <span class="action-initial-label">Löschen</span>
+                            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                <tr class="stream-url-row{% if last_recording and last_recording.is_running %} recording-active-row{% endif %}" data-filter-companion="stream-{{ stream.id }}">
+                  <td colspan="5" data-label="Stream-URL">
+                    <div class="table-detail-line">
+                      <span class="stream-url">{{ stream.stream_url }}</span>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="empty-state compact-empty" data-filter-empty="stream-table" hidden><p>Keine passenden Streams.</p></div>
+      {% else %}
+        <div class="empty-state">
+          <h2>Keine Streams vorhanden</h2>
+          <a class="button button-primary" href="/admin/streams/new">Stream hinzufügen</a>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

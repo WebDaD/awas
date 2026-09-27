@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set editing = rule is not none %}
+{% block title %}{{ 'Wiederholung bearbeiten' if editing else 'Wiederkehrend planen' }} · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <h1>{{ 'Wiederholung bearbeiten' if editing else 'Wiederkehrend planen' }}</h1>
+    </div>
+    <a class="button button-quiet" href="/">Zur Planung</a>
+  </section>
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <section class="panel form-panel">
+    {% if streams %}
+      <form method="post" action="{{ '/schedules/recurring/' ~ rule.id if editing else '/schedules/recurring' }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label><span>Bezeichnung</span><input name="title" value="{{ values.title }}" required maxlength="128" autocomplete="off" data-file-title></label>
+        <label>
+          <span>Dateiname</span>
+          <input name="file_name_base" value="{{ values.file_name_base }}" required maxlength="128" autocomplete="off" data-file-name-base data-initial-value="{{ values.file_name_base }}">
+          <small>Unterstriche bleiben erhalten. Datum, Uhrzeit, eindeutige Kennung und Dateiendung ergänzt AWAS bei jeder Aufnahme automatisch.</small>
+        </label>
+        <label>
+          <span>Stream</span>
+          <select name="stream_id" required data-stream-select>
+            <option value="" {% if not values.stream_id %}selected{% endif %} disabled>Stream auswählen</option>
+            {% for stream in streams %}
+              <option value="{{ stream.id }}" data-preferred-recorder="{{ stream.preferred_recorder }}" data-preferred-file-type="{{ stream.preferred_file_type }}" {% if values.stream_id|string == stream.id|string %}selected{% endif %}>{{ stream.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Rekorder</span>
+          <select name="recorder" required data-recorder-select data-initial-value="{{ values.recorder }}">
+            <option value="" {% if not values.recorder %}selected{% endif %} disabled>Rekorder auswählen</option>
+            {% for key, label in recorder_choices %}<option value="{{ key }}" {% if values.recorder == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Der bevorzugte Rekorder des Streams ist vorausgewählt und kann für diese Wiederholung geändert werden.</small>
+        </label>
+        <label>
+          <span>Dateityp</span>
+          <select name="file_type" required data-file-type-select data-initial-value="{{ values.file_type }}">
+            <option value="" {% if not values.file_type %}selected{% endif %} disabled>Dateityp auswählen</option>
+            {% for key, label in file_type_choices %}<option value="{{ key }}" {% if values.file_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Der bevorzugte Dateityp des Streams ist vorausgewählt und kann geändert werden.</small>
+        </label>
+        <label>
+          <span>Wiederholung</span>
+          <select name="recurrence_type" required data-recurrence-type>
+            <option value="" {% if not values.recurrence_type %}selected{% endif %} disabled>Wiederholung auswählen</option>
+            {% for key, label in recurrence_type_options %}<option value="{{ key }}" {% if values.recurrence_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Intervall</span>
+          <span class="interval-control">
+            <span>Alle</span>
+            <input type="number" name="interval_count" value="{{ values.interval_count }}" min="1" max="999" inputmode="numeric" required>
+            <span data-recurrence-unit>Einheiten</span>
+          </span>
+        </label>
+        <fieldset class="weekday-fieldset recurrence-fields" data-recurrence-fields="weekly" {% if values.recurrence_type != 'weekly' %}hidden{% endif %}>
+          <legend>Wochentage</legend>
+          <div class="weekday-grid">
+            {% for day, label in weekday_options %}
+              <label class="weekday-option"><input type="checkbox" name="weekdays" value="{{ day }}" {% if day in values.weekdays %}checked{% endif %}><span>{{ label }}</span></label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <div class="recurrence-fields" data-recurrence-fields="monthly_day" {% if values.recurrence_type != 'monthly_day' %}hidden{% endif %}>
+          <label><span>Tag im Monat</span><input type="number" name="month_day" value="{{ values.month_day }}" min="1" max="31" inputmode="numeric" data-pattern-required></label>
+          <small class="form-hint">In Monaten ohne diesen Kalendertag wird keine Aufnahme angelegt.</small>
+        </div>
+        <div class="form-grid recurrence-fields" data-recurrence-fields="monthly_weekday" {% if values.recurrence_type != 'monthly_weekday' %}hidden{% endif %}>
+          <label>
+            <span>Position im Monat</span>
+            <select name="month_week" data-pattern-required>
+              <option value="" {% if not values.month_week %}selected{% endif %} disabled>Position auswählen</option>
+              {% for key, label in month_week_options %}<option value="{{ key }}" {% if values.month_week|string == key|string %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>Wochentag</span>
+            <select name="month_weekday" data-pattern-required>
+              <option value="" {% if not values.month_weekday %}selected{% endif %} disabled>Wochentag auswählen</option>
+              {% for day, label in weekday_options %}<option value="{{ day }}" {% if values.month_weekday|string == day|string %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+        </div>
+        <div class="form-grid">
+          <label><span>Startzeit</span><input type="time" name="start_time" value="{{ values.start_time }}" required></label>
+          <label><span>Endzeit</span><input type="time" name="end_time" value="{{ values.end_time }}" required></label>
+        </div>
+        <div class="form-grid date-range-grid">
+          <label><span>Gültig ab</span><input type="date" name="valid_from" value="{{ values.valid_from }}" required></label>
+          <label><span>Gültig bis</span><input type="date" name="valid_until" value="{{ values.valid_until }}"></label>
+        </div>
+        <small class="form-hint">Gültig bis kann für eine unbegrenzte Wiederholung leer bleiben.</small>
+        <div class="notice notice-info">AWAS legt die kommenden Termine im Voraus an und führt die Wiederholung automatisch fort.</div>
+        <div class="form-actions">
+        <a class="button button-quiet" href="/">Abbrechen</a>
+          <button class="button button-primary" type="submit">{{ 'Änderungen speichern' if editing else 'Speichern' }}</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="empty-state">
+        <h2>Kein aktiver Stream</h2>
+        <p>Vor dem Anlegen einer Wiederholung muss ein Stream aktiviert werden.</p>
+        <a class="button button-primary" href="/streams">Streams verwalten</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

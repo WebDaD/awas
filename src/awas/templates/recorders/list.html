@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Rekorder · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Rekorder</h1>
+    </div>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <div class="notice notice-info recorder-placeholder-info">
+    Platzhalter: <code>{url}</code> für die Stream-Adresse, <code>{output}</code> für die Ausgabedatei und bei streamripper <code>{output_base}</code> für den Ausgabepfad ohne Dateiendung.
+  </div>
+
+  <section class="recorders-grid">
+    {% for recorder in recorders %}
+      <article class="panel recorder-card">
+        <div class="recorder-card-heading">
+          <h2>{{ recorder.label }}</h2>
+          <code>{{ recorder.executable }}</code>
+        </div>
+        <form method="post" action="/admin/recorders/{{ recorder.key }}" class="form-stack">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label>
+            <span>Parameter</span>
+            <textarea name="arguments" rows="5" maxlength="4096" required spellcheck="false">{{ values[recorder.key] }}</textarea>
+          </label>
+          <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
+        </form>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

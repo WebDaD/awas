@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#3B35CE">
+    <title>{% block title %}AWAS{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='/favicon.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', path='/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ version }}">
+    <script defer src="{{ url_for('static', path='/app.js') }}?v={{ version }}"></script>
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AWAS Startseite">
+        <img class="brand-mark" src="{{ url_for('static', path='/favicon.png') }}" alt="" width="42" height="42">
+        <span class="brand-copy">
+          <strong>AWAS</strong>
+          <small>Stream Recorder</small>
+        </span>
+      </a>
+
+      {% if current_user %}
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-navigation" aria-label="Hauptmenü öffnen" data-menu-toggle>
+          <span></span><span></span><span></span>
+        </button>
+        <div class="header-navigation" id="main-navigation" data-main-menu>
+          <nav class="main-nav" aria-label="Hauptnavigation">
+            <a href="/" {% if request.url.path == '/' or request.url.path.startswith('/schedules') %}aria-current="page"{% endif %}>Planung</a>
+            <a href="/history" {% if request.url.path == '/history' %}aria-current="page"{% endif %}>Historie</a>
+            <a href="/streams" {% if request.url.path == '/streams' or request.url.path.startswith('/admin/streams') %}aria-current="page"{% endif %}>Streams</a>
+            <a href="/recordings" {% if request.url.path.startswith('/recordings') %}aria-current="page"{% endif %}>Aufnahmen</a>
+            {% if current_user.is_admin %}
+              <a href="/admin/storage" {% if request.url.path.startswith('/admin/storage') %}aria-current="page"{% endif %}>Speicher</a>
+              <a href="/admin/recorders" {% if request.url.path.startswith('/admin/recorders') %}aria-current="page"{% endif %}>Rekorder</a>
+              <a href="/admin/users" {% if request.url.path.startswith('/admin/users') %}aria-current="page"{% endif %}>Benutzer</a>
+            {% endif %}
+          </nav>
+          <div class="account-nav">
+            <div class="account-name">
+              <strong>{{ current_user.display_name }}</strong>
+              <small>{{ 'Administrator' if current_user.is_admin else 'Benutzer' }}</small>
+            </div>
+            <a class="button button-quiet button-small" href="/account/password">Passwort</a>
+            <form method="post" action="/logout">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="button button-quiet button-small" type="submit">Abmelden</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <span class="version">Version {{ version }}</span>
+      {% endif %}
+    </header>
+
+    <main class="page">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

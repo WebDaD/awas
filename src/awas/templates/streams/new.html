@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Stream hinzufügen · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading">
+    <div><h1>Stream hinzufügen</h1></div>
+  </section>
+  <section class="panel form-panel">
+    {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="/admin/streams" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label><span>Streamname</span><input name="name" value="{{ values.name }}" required maxlength="128" autocomplete="off"></label>
+      <label><span>Stream-URL</span><input type="url" name="stream_url" value="{{ values.stream_url }}" required maxlength="2048" autocomplete="off"><small>Direkte Stream-Adresse, keine gewöhnliche Webseite.</small></label>
+      <label>
+        <span>Bevorzugter Rekorder</span>
+        <select name="preferred_recorder" required>
+          <option value="" {% if not values.preferred_recorder %}selected{% endif %} disabled>Rekorder auswählen</option>
+          {% for key, label in recorder_choices %}<option value="{{ key }}" {% if values.preferred_recorder == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <small>Dieser Rekorder wird bei Spontanaufnahmen direkt verwendet und bei Planungen vorausgewählt.</small>
+      </label>
+      <label>
+        <span>Bevorzugter Dateityp</span>
+        <select name="preferred_file_type" required>
+          <option value="" {% if not values.preferred_file_type %}selected{% endif %} disabled>Dateityp auswählen</option>
+          {% for key, label in file_type_choices %}<option value="{{ key }}" {% if values.preferred_file_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <small>Dieser Dateityp wird bei Spontanaufnahmen verwendet und bei Planungen vorausgewählt.</small>
+      </label>
+      <div class="form-actions"><a class="button button-quiet" href="/streams">Abbrechen</a><button class="button button-primary" type="submit">Stream hinzufügen</button></div>
+    </form>
+  </section>
+{% endblock %}

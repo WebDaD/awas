@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Planung · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div><h1>Planung</h1></div>
+    <div class="heading-actions">
+      <a class="button button-primary" href="/schedules/new">Einmalig planen</a>
+      <a class="button button-primary" href="/schedules/recurring/new">Wiederkehrend planen</a>
+    </div>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+
+  <div data-live-page data-live-interval="5000">
+    <section class="panel table-panel schedule-section" data-live-region="running-schedules">
+      <div class="section-heading"><h2>Laufend</h2></div>
+      {% if running_entries %}
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Beginn</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for entry in running_entries %}
+                {% set schedule = entry.schedule %}
+                {% set recording = entry.recording %}
+                {% set current_size = running_file_sizes.get(recording.id) if recording else none %}
+                <tr class="recording-data-row recording-active-row">
+                  <td data-label="Aufnahme">
+                    <strong>{{ schedule.title if schedule else 'Spontanaufnahme' }}</strong>
+                    <small>{{ ('Wiederkehrend' if schedule.recurrence_id else 'Einmalig') if schedule else 'Spontan' }}</small>
+                    {% if schedule and schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% elif recording and recording.started_by %}<small>von {{ recording.started_by.display_name }}</small>{% endif %}
+                  </td>
+                  <td data-label="Stream">{{ schedule.stream.name if schedule else recording.stream_name }}</td>
+                  <td data-label="Rekorder">{{ recorder_label(recording.recorder if recording else schedule.recorder) }}<small>Dateityp: {{ recording.file_type if recording else schedule.file_type }}</small></td>
+                  <td data-label="Beginn">{{ (recording.started_at if recording else schedule.starts_at)|local_datetime }}</td>
+                  <td data-label="Dauer">{{ (recording.duration_seconds if recording else 0)|duration }}</td>
+                  <td data-label="Status">
+                    <span class="badge badge-warning">{{ status_labels[schedule.status] if not recording else ('Wird beendet' if recording.status == 'stopping' else ('Wird gestartet' if recording.status == 'starting' else 'Läuft')) }}</span>
+                    {% if schedule and schedule.error_message %}<small>{{ schedule.error_message }}</small>{% elif recording and recording.error_message %}<small>{{ recording.error_message }}</small>{% endif %}
+                  </td>
+                  <td class="table-action">
+                    {% if recording %}
+                      <div class="action-group">
+                        {% if current_size is not none %}<a class="button button-quiet button-small" href="/recordings/{{ recording.id }}/download">Herunterladen</a>{% endif %}
+                        {% if current_user.is_admin or recording.started_by_id == current_user.id %}
+                          <form method="post" action="/recordings/{{ recording.id }}/stop">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="return_to" value="/">
+                            <input type="hidden" name="stop_confirmed" value="" data-action-confirm-value>
+                            <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm {% if recording.status == 'stopping' %}disabled{% endif %}>
+                              <span class="action-initial-label">{{ 'Wird beendet' if recording.status == 'stopping' else 'Stoppen' }}</span>
+                              <span class="action-confirm-label" aria-hidden="true">Wirklich stoppen?</span>
+                            </button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% if recording %}
+                  <tr class="recording-file-row recording-active-row">
+                    <td colspan="7" data-label="Datei">
+                      <div class="table-detail-line">
+                        <span class="recording-file">{{ recording.file_name }}</span>
+                        <span class="table-detail-value">{{ current_size|filesize if current_size is not none else 'Nicht vorhanden' }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state compact-empty"><p>Derzeit läuft keine Aufnahme.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="panel table-panel schedule-section" data-live-region="upcoming-schedules">
+      <div class="section-heading"><h2>Anstehend</h2></div>
+      {% if upcoming_schedules %}
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for schedule in upcoming_schedules %}
+                <tr>
+                  <td data-label="Aufnahme">
+                    <strong>{{ schedule.title }}</strong>
+                    <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
+                    {% if schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% endif %}
+                  </td>
+                  <td data-label="Stream">{{ schedule.stream.name }}</td>
+                  <td data-label="Rekorder">{{ recorder_label(schedule.recorder) }}<small>Dateityp: {{ schedule.file_type }}</small></td>
+                  <td data-label="Start">{{ schedule.starts_at|local_datetime }}</td>
+                  <td data-label="Ende">{{ schedule.ends_at|local_datetime }}</td>
+                  <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
+                  <td data-label="Status"><span class="badge">{{ status_labels[schedule.status] }}</span></td>
+                  <td class="table-action">
+                    {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
+                      <div class="action-group">
+                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/edit">Bearbeiten</a>
+                        <form method="post" action="/schedules/{{ schedule.id }}/cancel">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="discard_confirmed" value="" data-action-confirm-value>
+                          <button class="button button-warning button-small action-confirm-button" type="submit" data-action-confirm>
+                            <span class="action-initial-label">Verwerfen</span>
+                            <span class="action-confirm-label" aria-hidden="true">Wirklich verwerfen?</span>
+                          </button>
+                        </form>
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state compact-empty"><p>Derzeit ist keine Aufnahme geplant.</p></div>
+      {% endif %}
+    </section>
+
+    <section class="panel table-panel schedule-section" data-live-region="recurring-schedules">
+      <div class="section-heading"><h2>Wiederholungen</h2></div>
+      {% if recurring_schedules %}
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholung</th><th>Zeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for rule in recurring_schedules %}
+                <tr>
+                  <td data-label="Aufnahme">
+                    <strong>{{ rule.title }}</strong>
+                    <small>Wiederholung</small>
+                    {% if rule.created_by %}<small>von {{ rule.created_by.display_name }}</small>{% endif %}
+                  </td>
+                  <td data-label="Stream">{{ rule.stream.name }}</td>
+                  <td data-label="Rekorder">{{ recorder_label(rule.recorder) }}<small>Dateityp: {{ rule.file_type }}</small></td>
+                  <td data-label="Wiederholung">{{ rule.recurrence_label }}</td>
+                  <td data-label="Zeit">{{ rule.start_time_label }}–{{ rule.end_time_label }}</td>
+                  <td data-label="Gültigkeit">ab {{ rule.valid_from.strftime('%d.%m.%Y') }}{% if rule.valid_until %}<small>bis {{ rule.valid_until.strftime('%d.%m.%Y') }}</small>{% else %}<small>unbegrenzt</small>{% endif %}</td>
+                  <td data-label="Status">
+                    {% if rule.valid_until and rule.valid_until < local_today %}
+                      <span class="badge badge-muted">Beendet</span>
+                    {% else %}
+                      <span class="badge {{ '' if rule.is_active else 'badge-muted' }}">{{ 'Aktiv' if rule.is_active else 'Pausiert' }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="table-action">
+                    {% if current_user.is_admin or rule.created_by_id == current_user.id %}
+                      <div class="action-group">
+                        <a class="button button-quiet button-small" href="/schedules/recurring/{{ rule.id }}/edit">Bearbeiten</a>
+                        {% if not rule.valid_until or rule.valid_until >= local_today %}
+                          <form method="post" action="/schedules/recurring/{{ rule.id }}/status">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="enabled" value="{{ 'false' if rule.is_active else 'true' }}">
+                            <button class="button {{ 'button-warning' if rule.is_active else 'button-success' }} button-small" type="submit">{{ 'Pausieren' if rule.is_active else 'Aktivieren' }}</button>
+                          </form>
+                        {% endif %}
+                        <form method="post" action="/schedules/recurring/{{ rule.id }}/delete">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                            <span class="action-initial-label">Eintrag löschen</span>
+                            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                          </button>
+                        </form>
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state compact-empty"><p>Keine Wiederholung eingerichtet.</p></div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

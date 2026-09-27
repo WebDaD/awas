@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · AWAS{% endblock %}
+{% block content %}
+  <section class="error-state panel">
+    <span class="error-code">403</span>
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <a class="button button-primary" href="/">Zur Planung</a>
+  </section>
+{% endblock %}

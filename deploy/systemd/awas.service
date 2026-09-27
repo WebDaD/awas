@@ -13,6 +13,7 @@ ExecStart=/opt/awas/.venv/bin/awas
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=30s
+KillMode=mixed
 UMask=0027
 
 NoNewPrivileges=true
@@ -35,4 +36,3 @@ ReadWritePaths=/var/lib/awas /var/log/awas /srv/awas/recordings
 
 [Install]
 WantedBy=multi-user.target
-

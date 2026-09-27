@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "awas"
-version = "0.1.0"
+version = "3.0.0"
 description = "A modern, self-hosted stream recorder for Debian, Raspberry Pi OS and Ubuntu"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,20 +13,35 @@ authors = [{ name = "AWAS contributors" }]
 dependencies = [
   "alembic>=1.14,<2",
   "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
   "jinja2>=3.1,<4",
+  "pwdlib[argon2]>=0.3,<1",
+  "python-multipart>=0.0.20,<1",
   "sqlalchemy>=2.0,<3",
   "uvicorn[standard]>=0.34,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.28,<1",
   "pytest>=8.3,<10",
   "ruff>=0.9,<1",
 ]
 
 [project.scripts]
 awas = "awas.__main__:main"
+awas-admin = "awas.cli:main"
+
+[tool.hatch.build]
+exclude = [
+  "/.codex",
+  "/.test-venv",
+  "/.venv",
+  "/dist",
+  "/upload",
+  "/*.zip",
+  "**/__pycache__",
+  "**/*.pyc",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/awas"]
@@ -41,3 +56,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/awas/main.py" = ["B008"]
+"src/awas/web/*.py" = ["B008"]

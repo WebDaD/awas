@@ -6,6 +6,11 @@ readonly APP_GROUP="awas-service"
 readonly APP_ROOT="/opt/awas"
 readonly APP_SOURCE="${APP_ROOT}/app"
 readonly CONFIG_DIR="/etc/awas"
+readonly TLS_DIR="${CONFIG_DIR}/tls"
+readonly TLS_CERTIFICATE="${TLS_DIR}/fullchain.pem"
+readonly TLS_PRIVATE_KEY="${TLS_DIR}/privkey.pem"
+readonly NGINX_HTTP_CONFIG="/etc/nginx/sites-available/awas.conf"
+readonly NGINX_HTTPS_CONFIG="/etc/nginx/sites-available/awas-https.conf"
 readonly DATA_DIR="/var/lib/awas"
 readonly LOG_DIR="/var/log/awas"
 readonly RECORDING_DIR="/srv/awas/recordings"
@@ -47,7 +52,8 @@ esac
 
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates nginx python3 python3-pip python3-venv rsync sqlite3
+    ca-certificates ffmpeg mplayer mpv nginx python3 python3-pip python3-venv \
+    rsync sqlite3 streamlink streamripper vlc-bin vlc-plugin-base yt-dlp
 
 if ! getent group "${APP_GROUP}" >/dev/null; then
     groupadd --system "${APP_GROUP}"
@@ -58,11 +64,14 @@ fi
 
 install -d -o root -g root -m 0755 "${APP_ROOT}" "${APP_SOURCE}"
 install -d -o root -g "${APP_GROUP}" -m 0750 "${CONFIG_DIR}"
+install -d -o root -g root -m 0700 "${TLS_DIR}"
 install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${DATA_DIR}" "${LOG_DIR}" "${RECORDING_DIR}"
 
 rsync -a --delete \
+    --chown=root:root --chmod=D755,F644 \
     --exclude '.git/' --exclude '.venv/' --exclude '__pycache__/' --exclude '*.pyc' \
     "${SOURCE_DIR}/" "${APP_SOURCE}/"
+find "${APP_SOURCE}/scripts" -type f -name '*.sh' -exec chmod 0755 {} +
 
 if [[ ! -x "${APP_ROOT}/.venv/bin/python" ]]; then
     python3 -m venv "${APP_ROOT}/.venv"
@@ -76,20 +85,48 @@ if [[ ! -f "${CONFIG_DIR}/awas.toml" ]]; then
 fi
 
 install -o root -g root -m 0644 "${APP_SOURCE}/deploy/systemd/awas.service" /etc/systemd/system/awas.service
-install -o root -g root -m 0644 "${APP_SOURCE}/deploy/nginx/awas.conf" /etc/nginx/sites-available/awas.conf
-ln -sfn /etc/nginx/sites-available/awas.conf /etc/nginx/sites-enabled/awas.conf
+if [[ ! -f "${NGINX_HTTP_CONFIG}" ]]; then
+    install -o root -g root -m 0644 "${APP_SOURCE}/deploy/nginx/awas.conf" "${NGINX_HTTP_CONFIG}"
+fi
+if [[ ! -f "${NGINX_HTTPS_CONFIG}" ]]; then
+    install -o root -g root -m 0644 "${APP_SOURCE}/deploy/nginx/awas-https.conf" "${NGINX_HTTPS_CONFIG}"
+fi
+ln -sfn "${NGINX_HTTP_CONFIG}" /etc/nginx/sites-enabled/awas.conf
 rm -f /etc/nginx/sites-enabled/default
 
-runuser -u "${APP_USER}" -- env AWAS_CONFIG="${CONFIG_DIR}/awas.toml" \
-    "${APP_ROOT}/.venv/bin/alembic" -c "${APP_SOURCE}/alembic.ini" upgrade head
+https_enabled=false
+if [[ -s "${TLS_CERTIFICATE}" && -s "${TLS_PRIVATE_KEY}" ]]; then
+    ln -sfn "${NGINX_HTTPS_CONFIG}" /etc/nginx/sites-enabled/awas-https.conf
+    https_enabled=true
+else
+    rm -f /etc/nginx/sites-enabled/awas-https.conf
+fi
 
 nginx -t
 systemctl daemon-reload
-systemctl enable --now awas.service nginx.service
+if systemctl is-active --quiet awas.service; then
+    systemctl stop awas.service
+fi
+
+(
+    cd "${APP_SOURCE}"
+    runuser -u "${APP_USER}" -- env AWAS_CONFIG="${CONFIG_DIR}/awas.toml" \
+        "${APP_ROOT}/.venv/bin/alembic" -c "${APP_SOURCE}/alembic.ini" upgrade head
+)
+
+systemctl enable awas.service nginx.service
 systemctl restart awas.service nginx.service
 
 echo
 echo "AWAS 3 installation completed."
 echo "Open http://$(hostname -I | awk '{print $1}')/"
+if [[ "${https_enabled}" == true ]]; then
+    echo "HTTPS is enabled on port 443. Use the hostname covered by the installed certificate."
+else
+    echo "HTTPS is prepared but not enabled because the certificate or private key is missing."
+    echo "Install ${TLS_CERTIFICATE} and ${TLS_PRIVATE_KEY}, then run:"
+    echo "sudo bash ${APP_SOURCE}/scripts/enable-https.sh"
+fi
 echo "Check the service with: systemctl status awas"
-
+echo "Create an administrator with:"
+echo "sudo -u ${APP_USER} env AWAS_CONFIG=${CONFIG_DIR}/awas.toml ${APP_ROOT}/.venv/bin/awas-admin create-admin"

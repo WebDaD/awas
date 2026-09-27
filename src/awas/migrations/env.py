@@ -7,6 +7,19 @@ from sqlalchemy import engine_from_config, pool
 
 from awas.config import get_settings
 from awas.db.base import Base
+from awas.models import (  # noqa: F401
+    AuditLog,
+    LoginAttempt,
+    RecorderSetting,
+    Recording,
+    RecordingSchedule,
+    RecurringSchedule,
+    RetentionPolicy,
+    StorageConfiguration,
+    Stream,
+    User,
+    WebSession,
+)
 
 config = context.config
 if config.config_file_name is not None:

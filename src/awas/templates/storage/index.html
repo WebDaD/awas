@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Speicher · AWAS{% endblock %}
+{% block content %}
+  {% set form_enabled = values.enabled if values else policy.enabled %}
+  {% set form_days = values.retention_days if values else policy.retention_days %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Speicher</h1>
+    </div>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <div data-live-page data-live-interval="5000">
+  <section class="storage-grid" aria-label="Speicherübersicht" data-live-region="storage-summary">
+    <article class="storage-card"><span>Verlauf</span><strong>{{ storage.recording_count }}</strong><small>Aufnahmeeinträge</small></article>
+    <article class="storage-card"><span>Dateien</span><strong>{{ storage.file_count }}</strong><small>{{ storage.recording_bytes|filesize }} erfasst</small></article>
+    <article class="storage-card"><span>Freier Speicher</span><strong>{{ storage.free_bytes|filesize }}</strong><small>Auf dem Aufnahmedatenträger</small></article>
+    <article class="storage-card"><span>Datenträger belegt</span><strong>{{ storage.used_percent }} %</strong><small>{{ storage.used_bytes|filesize }} von {{ storage.total_bytes|filesize }}</small></article>
+  </section>
+
+  <section class="panel settings-card settings-card-wide storage-directory-card">
+    <h2>Aufnahmepfad</h2>
+    <form method="post" action="/admin/storage/directory" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>
+        <span>Verzeichnis für neue Aufnahmen</span>
+        <input name="recording_directory" value="{{ recording_directory }}" required maxlength="4096" autocomplete="off" spellcheck="false">
+        <small>Das Verzeichnis muss bereits vorhanden sein. Der Systembenutzer awas-service benötigt dort Schreib- und Ausführungsrechte sowie Ausführungsrechte auf allen übergeordneten Verzeichnissen.</small>
+      </label>
+      <div class="notice notice-info">Die Änderung gilt für neu gestartete Aufnahmen. Bereits vorhandene und laufende Aufnahmen bleiben mit ihrem bisherigen Speicherort verknüpft.</div>
+      <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
+    </form>
+  </section>
+
+  <section class="panel settings-card settings-card-wide database-backup-card">
+    <h2>Datenbank-Sicherung</h2>
+    <p>Der Export enthält Benutzer, Streams, Planungen, Aufnahmeverlauf und Einstellungen. Aufnahmedateien und die Systemkonfiguration sind nicht enthalten.</p>
+    <div class="database-backup-grid">
+      <div class="database-backup-action">
+        <h3>Export</h3>
+        <a class="button button-primary" href="/admin/storage/database/export">Datenbank exportieren</a>
+      </div>
+      <form method="post" action="/admin/storage/database/import" enctype="multipart/form-data" class="form-stack database-backup-action">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <h3>Import</h3>
+        <label>
+          <span>AWAS-Datenbank</span>
+          <input type="file" name="database_file" accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3" required>
+          <small>Maximal {{ max_database_import_mib }} MiB. Die vorhandene Datenbank wird vollständig ersetzt. Während des Imports dürfen keine Aufnahmen laufen.</small>
+        </label>
+        <div class="form-actions"><button class="button button-primary" type="submit">Datenbank importieren</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="settings-grid">
+    <article class="panel settings-card">
+      <h2>Automatische Aufbewahrung</h2>
+      <p>Aufnahmedateien werden gelöscht, sobald ihr Aufnahmeende länger als die eingestellte Frist zurückliegt. Die Einträge im Verlauf bleiben erhalten.</p>
+      <form method="post" action="/admin/storage" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          <span>Aufbewahrungsdauer in Tagen</span>
+          <input type="number" name="retention_days" min="1" max="3650" required value="{{ form_days }}">
+          <small>Erlaubt sind 1 bis 3650 Tage. Der Standardwert beträgt 90 Tage.</small>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="enabled" value="on" {% if form_enabled %}checked{% endif %}>
+          <span>Automatische Bereinigung aktivieren</span>
+        </label>
+        <div class="notice notice-info">Beim Aktivieren beginnt die Bereinigung unmittelbar und läuft danach stündlich. Pro Lauf werden höchstens {{ batch_limit }} Dateien gelöscht.</div>
+        <div class="form-actions"><button class="button button-primary" type="submit">Einstellungen speichern</button></div>
+      </form>
+    </article>
+
+    <article class="panel settings-card" data-live-region="retention-status">
+      <h2>Letzter Bereinigungslauf</h2>
+      {% if policy.last_run_at %}
+        <p>{{ policy.last_run_at|local_datetime }} · {{ 'Automatisch' if policy.last_run_mode == 'automatic' else 'Manuell' }}</p>
+        <span class="meta-line normal-meta">{{ policy.last_deleted_count }} Dateien gelöscht · {{ policy.last_freed_bytes|filesize }} freigegeben · {{ policy.last_failed_count }} Fehler</span>
+        {% if policy.last_error %}<div class="notice notice-error" role="alert">{{ policy.last_error }}</div>{% endif %}
+      {% else %}
+        <p>Es wurde noch keine automatische oder manuelle Bereinigung ausgeführt.</p>
+      {% endif %}
+      <span class="badge {{ '' if policy.enabled else 'badge-muted' }}">Automatik {{ 'aktiv' if policy.enabled else 'deaktiviert' }}</span>
+      <small class="meta-line normal-meta">Zuletzt geändert {{ policy.updated_at|local_datetime }}{% if policy.updated_by %} von {{ policy.updated_by.display_name }}{% endif %}</small>
+    </article>
+  </section>
+
+  <section class="panel table-panel retention-preview" data-live-region="retention-preview">
+    <div class="panel-heading-row section-heading">
+      <div>
+        <p class="eyebrow">Vorschau</p>
+        <h2>{{ preview.total_count }} abgelaufene Datei{{ '' if preview.total_count == 1 else 'en' }}</h2>
+        <small>Aufnahmeende bis einschließlich {{ preview.cutoff|local_datetime }} · {{ preview.total_bytes|filesize }} erfasst</small>
+      </div>
+      {% if preview.total_count %}
+        <form method="post" action="/admin/storage/cleanup">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+            <span class="action-initial-label">Jetzt bereinigen</span>
+            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+          </button>
+        </form>
+      {% endif %}
+    </div>
+    {% if preview.recordings %}
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Datei</th><th>Stream</th><th>Aufnahmeende</th><th>Größe</th></tr></thead>
+          <tbody>
+            {% for recording in preview.recordings %}
+              <tr>
+                <td data-label="Datei"><span class="recording-file">{{ recording.file_name }}</span></td>
+                <td data-label="Stream">{{ recording.stream_name }}</td>
+                <td data-label="Aufnahmeende">{{ recording.ended_at|local_datetime }}</td>
+                <td data-label="Größe">{{ recording.file_size_bytes|filesize if recording.file_size_bytes is not none else 'Unbekannt' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if preview.is_truncated %}<div class="notice notice-info retention-more">Gezeigt werden die 20 ältesten Treffer.</div>{% endif %}
+    {% else %}
+      <div class="empty-state compact-empty"><p>Mit der aktuellen Frist ist keine Datei zu löschen.</p></div>
+    {% endif %}
+  </section>
+  </div>
+{% endblock %}

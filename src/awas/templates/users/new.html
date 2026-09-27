@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Benutzer anlegen · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading">
+    <div><p class="eyebrow">Administration</p><h1>Benutzer anlegen</h1></div>
+  </section>
+  <section class="panel form-panel">
+    {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="/admin/users" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label><span>Benutzername</span><input name="username" value="{{ values.username }}" required minlength="3" maxlength="32" pattern="[a-z][a-z0-9._-]{2,31}" autocomplete="off"><small>Kleinbuchstaben, Zahlen, Punkt, _ und -.</small></label>
+      <label><span>Anzeigename</span><input name="display_name" value="{{ values.display_name }}" required maxlength="128" autocomplete="off"></label>
+      <label><span>Rolle</span><select name="role"><option value="user" {% if values.role == 'user' %}selected{% endif %}>Benutzer</option><option value="admin" {% if values.role == 'admin' %}selected{% endif %}>Administrator</option></select></label>
+      <label><span>Vorläufiges Passwort</span><input type="password" name="password" required maxlength="128" autocomplete="new-password"></label>
+      <label><span>Passwort wiederholen</span><input type="password" name="password_confirmation" required maxlength="128" autocomplete="new-password"></label>
+      <div class="form-actions"><a class="button button-quiet" href="/admin/users">Abbrechen</a><button class="button button-primary" type="submit">Benutzer anlegen</button></div>
+    </form>
+  </section>
+{% endblock %}

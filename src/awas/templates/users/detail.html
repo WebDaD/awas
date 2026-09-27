@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ target.display_name }} · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div><p class="eyebrow">Benutzer verwalten</p><h1>{{ target.display_name }}</h1></div>
+    <a class="button button-quiet" href="/admin/users">Zu den Benutzern</a>
+  </section>
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+  <section class="settings-grid">
+    <article class="panel settings-card">
+      <h2>Zugriffsstatus</h2>
+      <p>{{ 'Das Konto kann sich anmelden.' if target.is_active else 'Das Konto ist gesperrt.' }}</p>
+      <form method="post" action="/admin/users/{{ target.id }}/status">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="enabled" value="{{ 'false' if target.is_active else 'true' }}">
+        <button class="button {{ 'button-danger' if target.is_active else 'button-success' }}" type="submit">{{ 'Konto sperren' if target.is_active else 'Konto aktivieren' }}</button>
+      </form>
+    </article>
+    <article class="panel settings-card">
+      <h2>Rolle</h2>
+      <p>Administratoren können Benutzer und Systemeinstellungen verwalten.</p>
+      <form method="post" action="/admin/users/{{ target.id }}/role" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="role"><option value="user" {% if not target.is_admin %}selected{% endif %}>Benutzer</option><option value="admin" {% if target.is_admin %}selected{% endif %}>Administrator</option></select>
+        <button class="button button-primary" type="submit">Rolle speichern</button>
+      </form>
+    </article>
+    <article class="panel settings-card settings-card-wide">
+      <h2>Vorläufiges Passwort setzen</h2>
+      <p>Alle aktiven Sitzungen werden beendet. Bei der nächsten Anmeldung muss ein eigenes Passwort gewählt werden.</p>
+      <form method="post" action="/admin/users/{{ target.id }}/password" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label><span>Neues Passwort</span><input type="password" name="password" required maxlength="128" autocomplete="new-password"></label>
+        <label><span>Passwort wiederholen</span><input type="password" name="password_confirmation" required maxlength="128" autocomplete="new-password"></label>
+        <div class="form-grid-action"><button class="button button-primary" type="submit">Passwort setzen</button></div>
+      </form>
+    </article>
+    {% if target.id != current_user.id %}
+      <article class="panel settings-card settings-card-wide danger-zone">
+        <h2>Benutzer löschen</h2>
+        <p>Das Konto wird anonymisiert. Aufnahmen, Planungen und Historie bleiben erhalten.</p>
+        <form method="post" action="/admin/users/{{ target.id }}/delete">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+          <button class="button button-danger action-confirm-button" type="submit" data-action-confirm>
+            <span class="action-initial-label">Löschen</span>
+            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+          </button>
+        </form>
+      </article>
+    {% endif %}
+  </section>
+{% endblock %}

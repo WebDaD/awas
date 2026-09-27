@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ stream.name }} · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div><h1>{{ stream.name }}</h1></div>
+    <a class="button button-quiet" href="/streams">Zu den Streams</a>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <div data-live-page data-live-interval="5000">
+  <section class="settings-grid">
+    <article class="panel settings-card settings-card-wide">
+      <h2>Streamdaten</h2>
+      <p>Name, Stream-Adresse, Rekorder und Dateityp.</p>
+      <form method="post" action="/admin/streams/{{ stream.id }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label><span>Streamname</span><input name="name" value="{{ stream.name }}" required maxlength="128" autocomplete="off"></label>
+        <label><span>Stream-URL</span><input type="url" name="stream_url" value="{{ stream.stream_url }}" required maxlength="2048" autocomplete="off"></label>
+        <label>
+          <span>Bevorzugter Rekorder</span>
+          <select name="preferred_recorder" required>
+            {% for key, label in recorder_choices %}<option value="{{ key }}" {% if stream.preferred_recorder == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Dieser Rekorder wird bei Spontanaufnahmen direkt verwendet und bei Planungen vorausgewählt.</small>
+        </label>
+        <label>
+          <span>Bevorzugter Dateityp</span>
+          <select name="preferred_file_type" required>
+            {% for key, label in file_type_choices %}<option value="{{ key }}" {% if stream.preferred_file_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Dieser Dateityp wird bei Spontanaufnahmen verwendet und bei Planungen vorausgewählt.</small>
+        </label>
+        <div class="form-actions"><button class="button button-primary" type="submit">Änderungen speichern</button></div>
+      </form>
+    </article>
+
+    <article class="panel settings-card" data-live-region="stream-connection">
+      <h2>Stream-Verbindung</h2>
+      {% if stream.last_check_ok is sameas true %}
+        <p><span class="badge">Erreichbar</span> {{ stream.last_check_message }}</p>
+      {% elif stream.last_check_ok is sameas false %}
+        <p><span class="badge badge-danger">Fehlgeschlagen</span> {{ stream.last_check_message }}</p>
+      {% else %}
+        <p>Die Stream-Adresse wurde noch nicht vom Raspberry Pi geprüft.</p>
+      {% endif %}
+      {% if stream.last_checked_at %}<small class="meta-line normal-meta">Letzte Prüfung: {{ stream.last_checked_at|local_datetime }}</small>{% endif %}
+      <form method="post" action="/admin/streams/{{ stream.id }}/test">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="button button-primary" type="submit">Verbindung testen</button>
+      </form>
+    </article>
+
+    {% if current_user.is_admin %}
+      <article class="panel settings-card danger-zone">
+        <h2>Stream löschen</h2>
+        <p>Streams mit sichtbaren Zeitplänen oder Wiederholungen können nicht gelöscht werden. Vorhandene Aufnahmen und die Aufnahmehistorie bleiben unabhängig vom Stream erhalten.</p>
+        <form method="post" action="/admin/streams/{{ stream.id }}/delete">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+          <button class="button button-danger action-confirm-button" type="submit" data-action-confirm>
+            <span class="action-initial-label">Löschen</span>
+            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+          </button>
+        </form>
+      </article>
+    {% endif %}
+  </section>
+  </div>
+{% endblock %}

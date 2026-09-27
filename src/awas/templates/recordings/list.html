@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Aufnahmen · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <h1>Aufnahmen</h1>
+    </div>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <div data-live-page data-live-interval="5000">
+    <section class="storage-grid" aria-label="Speicherübersicht" data-live-region="recording-storage">
+      <article class="storage-card"><span>Verlauf</span><strong>{{ storage.recording_count }}</strong><small>Aufnahmeeinträge</small></article>
+      <article class="storage-card"><span>Dateien</span><strong>{{ storage.file_count }}</strong><small>{{ storage.recording_bytes|filesize }} erfasst</small></article>
+      <article class="storage-card"><span>Freier Speicher</span><strong>{{ storage.free_bytes|filesize }}</strong><small>Auf dem Aufnahmedatenträger</small></article>
+      <article class="storage-card"><span>Datenträger belegt</span><strong>{{ storage.used_percent }} %</strong><small>{{ storage.used_bytes|filesize }} von {{ storage.total_bytes|filesize }}</small></article>
+    </section>
+
+    <section class="panel table-panel" data-live-region="recording-table">
+      {% if recordings %}
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Beginn</th><th>Dauer</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for recording in recordings %}
+                {% set current_size = file_sizes.get(recording.id) %}
+                <tr class="recording-data-row{% if recording.is_running %} recording-active-row{% endif %}">
+                  <td data-label="Aufnahme">
+                    <strong>{{ recording.schedule.title if recording.schedule else 'Spontanaufnahme' }}</strong>
+                    <small>{{ 'Zeitplan' if recording.schedule else 'Spontan' }}</small>
+                    {% if recording.started_by %}<small>von {{ recording.started_by.display_name }}</small>{% endif %}
+                  </td>
+                  <td data-label="Stream"><strong>{{ recording.stream_name }}</strong></td>
+                  <td data-label="Rekorder">{{ recorder_label(recording.recorder) }}<small>Dateityp: {{ recording.file_type }}</small></td>
+                  <td data-label="Beginn">{{ recording.started_at|local_datetime }}</td>
+                  <td data-label="Dauer">{{ recording.duration_seconds|duration }}</td>
+                  <td data-label="Status">
+                    <span class="badge {% if recording.status in ('failed', 'interrupted') %}badge-danger{% elif recording.is_running %}badge-warning{% endif %}">{{ status_labels[recording.status] }}</span>
+                    {% if recording.error_message %}<small>{{ recording.error_message }}</small>{% endif %}
+                  </td>
+                  <td class="table-action">
+                    <div class="action-group">
+                      {% if current_size is not none %}<a class="button button-quiet button-small" href="/recordings/{{ recording.id }}/download">Herunterladen</a>{% endif %}
+                      {% if recording.is_running %}
+                        {% if current_user.is_admin or recording.started_by_id == current_user.id %}
+                          <form method="post" action="/recordings/{{ recording.id }}/stop">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="return_to" value="/recordings">
+                            <input type="hidden" name="stop_confirmed" value="" data-action-confirm-value>
+                            <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm {% if recording.status == 'stopping' %}disabled{% endif %}>
+                              <span class="action-initial-label">{{ 'Wird beendet' if recording.status == 'stopping' else 'Stoppen' }}</span>
+                              <span class="action-confirm-label" aria-hidden="true">Wirklich stoppen?</span>
+                            </button>
+                          </form>
+                        {% endif %}
+                      {% else %}
+                        {% if current_user.is_admin or recording.started_by_id == current_user.id %}
+                          <form method="post" action="/recordings/{{ recording.id }}/delete">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                            <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                              <span class="action-initial-label">Löschen</span>
+                              <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                            </button>
+                          </form>
+                        {% endif %}
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                <tr class="recording-file-row{% if recording.is_running %} recording-active-row{% endif %}">
+                  <td colspan="7" data-label="Datei">
+                    <div class="table-detail-line">
+                      <span class="recording-file">{{ recording.file_name }}</span>
+                      <span class="table-detail-value">
+                        {% if current_size is not none %}
+                          {{ current_size|filesize }}
+                        {% elif recording.file_deleted_at and recording.file_size_bytes is not none %}
+                          {{ recording.file_size_bytes|filesize }}
+                        {% else %}
+                          Nicht vorhanden
+                        {% endif %}
+                      </span>
+                    </div>
+                    {% if recording.file_deleted_at %}
+                      <small>Datei gelöscht am {{ recording.file_deleted_at|local_datetime }}</small>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <h2>Keine Aufnahmen vorhanden</h2>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Benutzer · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Benutzer</h1>
+    </div>
+    <a class="button button-primary" href="/admin/users/new">Benutzer anlegen</a>
+  </section>
+  {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
+  <div data-live-page data-live-interval="5000">
+  <section class="panel table-panel" data-live-region="user-table">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Benutzer</th><th>Rolle</th><th>Status</th><th>Letzte Anmeldung</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td data-label="Benutzer"><strong>{{ user.display_name }}</strong><small>@{{ user.username }}</small></td>
+              <td data-label="Rolle">{{ 'Administrator' if user.is_admin else 'Benutzer' }}</td>
+              <td data-label="Status">
+                {% if user.is_active %}<span class="badge">Aktiv</span>{% else %}<span class="badge badge-danger">Gesperrt</span>{% endif %}
+                {% if user.must_change_password %}<span class="badge badge-warning">Passwortwechsel</span>{% endif %}
+              </td>
+              <td data-label="Letzte Anmeldung">{{ user.last_login_at|local_datetime if user.last_login_at else 'Noch nie' }}</td>
+              <td class="table-action">
+                <div class="action-group">
+                  <a class="button button-quiet button-small" href="/admin/users/{{ user.id }}">Ändern</a>
+                  {% if user.id != current_user.id %}
+                    <form method="post" action="/admin/users/{{ user.id }}/delete">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                      <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                      <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                        <span class="action-initial-label">Löschen</span>
+                        <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+{% endblock %}

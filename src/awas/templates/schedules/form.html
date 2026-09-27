@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set editing = schedule is not none %}
+{% block title %}{{ 'Zeitplan bearbeiten' if editing else 'Aufnahme planen' }} · AWAS{% endblock %}
+{% block content %}
+  <section class="page-heading compact-heading heading-with-action">
+    <div>
+      <h1>{{ 'Zeitplan bearbeiten' if editing else 'Aufnahme planen' }}</h1>
+    </div>
+    <a class="button button-quiet" href="/">Zur Planung</a>
+  </section>
+  {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
+
+  <section class="panel form-panel">
+    {% if streams %}
+      <form method="post" action="{{ '/schedules/' ~ schedule.id if editing else '/schedules' }}" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          <span>Bezeichnung</span>
+          <input name="title" value="{{ values.title }}" required maxlength="128" autocomplete="off" data-file-title>
+        </label>
+        <label>
+          <span>Dateiname</span>
+          <input name="file_name_base" value="{{ values.file_name_base }}" required maxlength="128" autocomplete="off" data-file-name-base data-initial-value="{{ values.file_name_base }}">
+          <small>Unterstriche bleiben erhalten. Datum, Uhrzeit, eindeutige Kennung und Dateiendung ergänzt AWAS automatisch.</small>
+        </label>
+        <label>
+          <span>Stream</span>
+          <select name="stream_id" required data-stream-select>
+            <option value="" {% if not values.stream_id %}selected{% endif %} disabled>Stream auswählen</option>
+            {% for stream in streams %}
+              <option value="{{ stream.id }}" data-preferred-recorder="{{ stream.preferred_recorder }}" data-preferred-file-type="{{ stream.preferred_file_type }}" {% if values.stream_id|string == stream.id|string %}selected{% endif %}>{{ stream.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Dateityp</span>
+          <select name="file_type" required data-file-type-select data-initial-value="{{ values.file_type }}">
+            <option value="" {% if not values.file_type %}selected{% endif %} disabled>Dateityp auswählen</option>
+            {% for key, label in file_type_choices %}<option value="{{ key }}" {% if values.file_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Der bevorzugte Dateityp des Streams ist vorausgewählt und kann geändert werden.</small>
+        </label>
+        <label>
+          <span>Rekorder</span>
+          <select name="recorder" required data-recorder-select data-initial-value="{{ values.recorder }}">
+            <option value="" {% if not values.recorder %}selected{% endif %} disabled>Rekorder auswählen</option>
+            {% for key, label in recorder_choices %}<option value="{{ key }}" {% if values.recorder == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <small>Der bevorzugte Rekorder des Streams ist vorausgewählt und kann für diesen Zeitplan geändert werden.</small>
+        </label>
+        <div class="form-grid">
+          <label><span>Start</span><input type="datetime-local" name="starts_at" value="{{ values.starts_at }}" required></label>
+          <label><span>Ende</span><input type="datetime-local" name="ends_at" value="{{ values.ends_at }}" required></label>
+        </div>
+        <div class="form-actions">
+        <a class="button button-quiet" href="/">Abbrechen</a>
+          <button class="button button-primary" type="submit">{{ 'Änderungen speichern' if editing else 'Speichern' }}</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="empty-state">
+        <h2>Kein aktiver Stream</h2>
+        <p>Vor dem Anlegen eines Zeitplans muss ein Stream aktiviert werden.</p>
+        <a class="button button-primary" href="/streams">Streams verwalten</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
