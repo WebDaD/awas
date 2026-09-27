@@ -20,6 +20,7 @@ from awas.services.recurrence import (
     update_recurring_schedule,
 )
 from awas.services.scheduling import RecordingScheduler
+from awas.services.streams import stream_name_sort_key
 from awas.web.dependencies import (
     AuthorizationDenied,
     client_ip,
@@ -504,7 +505,10 @@ def render_recurring_form(
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    streams = list(db.scalars(select(Stream).order_by(Stream.name)))
+    streams = sorted(
+        db.scalars(select(Stream)),
+        key=lambda stream: stream_name_sort_key(stream.name),
+    )
     if rule is not None and all(stream.id != rule.stream_id for stream in streams):
         streams.append(rule.stream)
     return templates.TemplateResponse(

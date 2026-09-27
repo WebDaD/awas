@@ -53,7 +53,7 @@ esac
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates ffmpeg mplayer mpv nginx python3 python3-pip python3-venv \
-    rsync sqlite3 streamlink streamripper vlc-bin vlc-plugin-base yt-dlp
+    rsync sqlite3 streamlink streamripper vlc-bin vlc-plugin-base
 
 if ! getent group "${APP_GROUP}" >/dev/null; then
     groupadd --system "${APP_GROUP}"

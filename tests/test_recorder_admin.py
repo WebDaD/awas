@@ -22,6 +22,7 @@ def test_admin_views_and_updates_recorder_parameters(
     assert "Tools" not in page.text
     assert len(RECORDER_PROFILES) == page.text.count('name="arguments"')
     assert page.text.count("<h2>vlc</h2>") == 1
+    assert "yt-dlp" not in page.text
     assert "-metadata title=" not in page.text
     assert "-y " not in page.text
 

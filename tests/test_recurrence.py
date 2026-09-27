@@ -126,6 +126,9 @@ def test_recurring_route_create_edit_pause_and_resume(
         assert rule.weekday_mask == 31
         assert rule.start_minute == 22 * 60 + 15
         assert rule.duration_minutes == 90
+        stream = db.get(Stream, stream_id)
+        assert stream.preferred_recorder == "ffmpeg"
+        assert stream.preferred_file_type == "mp3"
         generated_count = db.scalar(
             select(func.count(RecordingSchedule.id)).where(
                 RecordingSchedule.recurrence_id == rule_id

@@ -76,6 +76,7 @@ def test_user_creates_edits_and_cancels_schedule(
 
     listing = client.get("/")
     assert "Morgensendung" in listing.text
+    assert "<h2>Anstehend (1)</h2>" in listing.text
     assert listing.text.count('class="button button-primary"') >= 2
     assert 'data-live-interval="5000"' in listing.text
     assert listing.text.index("<small>Einmalig</small>") < listing.text.index(
@@ -100,6 +101,13 @@ def test_user_creates_edits_and_cancels_schedule(
         follow_redirects=False,
     )
     assert changed.status_code == 303
+    with app.state.session_factory() as db:
+        schedule = db.get(RecordingSchedule, schedule_id)
+        stream = db.get(Stream, stream_id)
+        assert schedule.recorder == "mpv"
+        assert schedule.file_type == "ogg"
+        assert stream.preferred_recorder == "ffmpeg"
+        assert stream.preferred_file_type == "mp3"
 
     listing = client.get("/")
     assert "Wirklich verwerfen?" in listing.text
@@ -508,6 +516,93 @@ def test_scheduler_resumes_interrupted_schedule(
     with app.state.session_factory() as db:
         assert db.get(RecordingSchedule, schedule_id).status == "completed"
         assert db.scalar(select(AuditLog).where(AuditLog.action == "schedule.resumed"))
+
+
+def test_user_stops_retrying_schedule_after_unexpected_recorder_exit(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    now = utc_now().replace(microsecond=0)
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Retry Stop Stream",
+            stream_url="https://radio.example/retry-stop",
+            preferred_recorder="ffmpeg",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        schedule = RecordingSchedule(
+            stream_id=stream.id,
+            title="Retry stoppen",
+            recorder="ffmpeg",
+            file_type="ts",
+            starts_at=now - timedelta(minutes=2),
+            ends_at=now + timedelta(minutes=10),
+            status="running",
+            error_message="AWAS versucht die Aufnahme automatisch erneut.",
+            created_by_id=admin.id,
+        )
+        db.add(schedule)
+        db.flush()
+        recording = Recording(
+            stream_id=stream.id,
+            stream_name=stream.name,
+            file_name="retry-stop.ts",
+            recorder="ffmpeg",
+            file_type="ts",
+            status="interrupted",
+            started_at=now - timedelta(minutes=1),
+            ended_at=now,
+            started_by_id=admin.id,
+            schedule_id=schedule.id,
+        )
+        db.add(recording)
+        db.commit()
+        schedule_id = schedule.id
+        recording_id = recording.id
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    planning = client.get("/")
+    assert "<h2>Laufend (1)</h2>" in planning.text
+    assert f'action="/schedules/{schedule_id}/stop"' in planning.text
+    assert "Wirklich stoppen?" in planning.text
+
+    recordings = client.get("/recordings")
+    assert f'action="/schedules/{schedule_id}/stop"' in recordings.text
+    assert f'action="/recordings/{recording_id}/delete"' in recordings.text
+
+    unconfirmed = client.post(
+        f"/schedules/{schedule_id}/stop",
+        data={"csrf_token": form_token(recordings.text), "return_to": "/recordings"},
+    )
+    assert unconfirmed.status_code == 400
+
+    stopped = client.post(
+        f"/schedules/{schedule_id}/stop",
+        data={
+            "csrf_token": form_token(recordings.text),
+            "return_to": "/recordings",
+            "stop_confirmed": "true",
+        },
+        follow_redirects=False,
+    )
+    assert stopped.status_code == 303
+    assert stopped.headers["location"] == "/recordings?status=stopped"
+
+    app.state.recording_scheduler.run_due(now + timedelta(minutes=5))
+    with app.state.session_factory() as db:
+        schedule = db.get(RecordingSchedule, schedule_id)
+        assert schedule.status == "completed"
+        assert schedule.error_message is None
+        assert db.scalar(
+            select(AuditLog).where(AuditLog.action == "schedule.stopped")
+        )
+        attempts = list(
+            db.scalars(select(Recording).where(Recording.schedule_id == schedule_id))
+        )
+        assert [attempt.id for attempt in attempts] == [recording_id]
 
 
 @pytest.mark.parametrize("recorder", [key for key, _ in RECORDER_CHOICES])

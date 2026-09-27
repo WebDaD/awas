@@ -38,16 +38,16 @@ RECORDER_PROFILES = (
         "ffmpeg",
         "ffmpeg",
         "-nostdin -hide_banner -loglevel warning -rw_timeout 15000000 "
-        "-reconnect 1 -reconnect_at_eof 1 -reconnect_on_network_error 1 "
+        "-reconnect 1 -reconnect_on_network_error 1 "
         "-reconnect_streamed 1 -reconnect_delay_max 5 -i {url} "
-        "-map 0:a:0 -vn -c:a copy {output}",
+        "-sn -dn -c copy {output}",
     ),
     RecorderProfile(
         "ffmpeg-all",
         "ffmpeg-all",
         "ffmpeg",
         "-nostdin -hide_banner -loglevel warning -rw_timeout 15000000 "
-        "-reconnect 1 -reconnect_at_eof 1 -reconnect_on_network_error 1 "
+        "-reconnect 1 -reconnect_on_network_error 1 "
         "-reconnect_streamed 1 -reconnect_delay_max 5 -i {url} "
         "-map 0 -c copy {output}",
     ),
@@ -67,23 +67,6 @@ RECORDER_PROFILES = (
         "--loglevel warning --force --quiet --output {output} --retry-streams 3 "
         "--retry-max 9999 --retry-open 9999 --stream-segment-attempts 9999 "
         "--stream-segment-timeout 60.0 --stream-timeout 120.0 {url} best",
-    ),
-    RecorderProfile(
-        "yt-dlp",
-        "yt-dlp",
-        "yt-dlp",
-        "--no-playlist --no-part --force-overwrites --hls-use-mpegts "
-        "--no-abort-on-error --socket-timeout 3600 --file-access-retries infinite "
-        "--fragment-retries infinite --quiet --output {output} {url}",
-    ),
-    RecorderProfile(
-        "yt-dlp-ffmpeg",
-        "yt-dlp-ffmpeg",
-        "yt-dlp",
-        "--no-playlist --no-part --force-overwrites --hls-use-mpegts "
-        "--no-abort-on-error --socket-timeout 3600 --file-access-retries infinite "
-        "--fragment-retries infinite --quiet --output {output} "
-        "--downloader ffmpeg {url}",
     ),
     RecorderProfile(
         "vlc",
@@ -136,8 +119,6 @@ LEGACY_RECORDER_EXTENSIONS = {
     "ffmpeg-all": ".mkv",
     "streamlink-http": ".stream",
     "streamlink-hls-dash": ".ts",
-    "yt-dlp": ".media",
-    "yt-dlp-ffmpeg": ".media",
     "vlc": ".mkv",
     "mpv": ".mkv",
     "mplayer": ".stream",

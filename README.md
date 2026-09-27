@@ -3,7 +3,7 @@
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder. The `v3` branch is
 independent of the legacy Node.js application on `master`.
 
-Version 3.0.0 provides the production foundation, authentication, stream
+Version 3.0.2 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -32,11 +32,12 @@ management and recording:
   activation state
 - one-click recordings from the stream list
 - any number of spontaneous and planned recordings of the same stream can run in parallel
-- a preferred recorder and file type per stream, with overrides for each schedule
+- a preferred recorder and file type per stream, with overrides that apply only to
+  the individual schedule
 - editable file-name bases for one-time and recurring schedules
 - file-name bases retain underscores in addition to letters, numbers and hyphens
 - administrator-managed argument templates for every recorder
-- streamripper, ffmpeg, streamlink, yt-dlp, vlc, mpv and mplayer recorder profiles
+- streamripper, ffmpeg, streamlink, vlc, mpv and mplayer recorder profiles
 - recording history, stop control and authenticated snapshot downloads while recording
 - running planned and spontaneous recordings expose the same file name, live file size,
   download and permitted stop controls on the planning and recordings pages
@@ -50,6 +51,8 @@ management and recording:
 - future recurring occurrences represented only by their recurrence rule until they run
 - automatic continuation of every time-limited recording after restarts and recorder
   failures, with retry delays of 15, 30, 60, 120 and at most 300 seconds
+- manual termination of retrying schedules after an unexpected recorder exit
+- planning section headings with the total number of listed entries
 - recording storage overview with free-space and usage information
 - administrator-configurable recording directory with a write-access check
 - owner-or-administrator deletion of a recording entry and its associated file
@@ -63,6 +66,8 @@ management and recording:
 - administrator export and validated replacement import of the complete SQLite database,
   including the persisted schedule history
 - five-second live updates for running recordings, planning and storage data
+- case-insensitive stream sorting with numeric and special-character prefixes first
+- automatic removal of streamripper cue files when a recording ends
 - consistent attribution of planning and recording entries to their initiating users
 - stream URLs and recording files grouped visually with their respective entries
 - desktop content using 90 percent of the available page width
@@ -89,12 +94,10 @@ provides these profiles:
 | Selection | Program | Intended input |
 |---|---|---|
 | `streamripper` | streamripper | Shoutcast/Icecast-style radio streams |
-| `ffmpeg` | ffmpeg | first audio stream, copied without re-encoding |
-| `ffmpeg-all` | ffmpeg | all input streams, copied without re-encoding |
+| `ffmpeg` | ffmpeg | best video and audio stream, or best audio stream for audio-only input, copied without re-encoding |
+| `ffmpeg-all` | ffmpeg | every input stream and every available quality, copied without re-encoding |
 | `streamlink-http` | streamlink | progressive HTTP/HTTPS streams |
 | `streamlink-hls-dash` | streamlink | HLS or DASH manifests |
-| `yt-dlp` | yt-dlp | sites and streams supported by yt-dlp |
-| `yt-dlp-ffmpeg` | yt-dlp with ffmpeg | yt-dlp extraction with ffmpeg downloading |
 | `vlc` | vlc | media inputs supported by vlc |
 | `mpv` | mpv | media inputs supported by mpv |
 | `mplayer` | mplayer | media inputs supported by mplayer |
@@ -119,7 +122,15 @@ unexpected recorder exit, regardless of the recorder's return code. Consecutive
 short failures use delays of 15, 30, 60, 120 and then 300 seconds. A recording
 attempt that runs for at least one minute resets the delay to 15 seconds. Each
 successful restart creates a separate recording segment; spontaneous recordings
-have no end time and are therefore not restarted automatically.
+have no end time and are therefore not restarted automatically. A retrying schedule
+can be stopped manually to prevent any further attempts.
+
+Recorder diagnostics inherit the AWAS service's standard error output and are
+therefore available in the system journal without being buffered in AWAS memory.
+After streamripper exits, AWAS removes the cue file created alongside the recording.
+The ffmpeg profiles retry network and streamed-input failures, but do not treat a
+regular end-of-file as a connection failure. This keeps finite HLS playlists and
+Akamai HLS inputs compatible while retaining reconnect handling for network outages.
 
 For planned recordings, AWAS derives the file-name base from the description.
 The value can be edited before saving. Date, time, a uniqueness token and the

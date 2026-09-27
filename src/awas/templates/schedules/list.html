@@ -12,7 +12,7 @@
 
   <div data-live-page data-live-interval="5000">
     <section class="panel table-panel schedule-section" data-live-region="running-schedules">
-      <div class="section-heading"><h2>Laufend</h2></div>
+      <div class="section-heading"><h2>Laufend ({{ running_entries|length }})</h2></div>
       {% if running_entries %}
         <div class="table-scroll">
           <table>
@@ -52,6 +52,16 @@
                           </form>
                         {% endif %}
                       </div>
+                    {% elif schedule and (current_user.is_admin or schedule.created_by_id == current_user.id) %}
+                      <form method="post" action="/schedules/{{ schedule.id }}/stop">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="return_to" value="/">
+                        <input type="hidden" name="stop_confirmed" value="" data-action-confirm-value>
+                        <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                          <span class="action-initial-label">Stoppen</span>
+                          <span class="action-confirm-label" aria-hidden="true">Wirklich stoppen?</span>
+                        </button>
+                      </form>
                     {% endif %}
                   </td>
                 </tr>
@@ -75,7 +85,7 @@
     </section>
 
     <section class="panel table-panel schedule-section" data-live-region="upcoming-schedules">
-      <div class="section-heading"><h2>Anstehend</h2></div>
+      <div class="section-heading"><h2>Anstehend ({{ upcoming_schedules|length }})</h2></div>
       {% if upcoming_schedules %}
         <div class="table-scroll">
           <table>
@@ -120,7 +130,7 @@
     </section>
 
     <section class="panel table-panel schedule-section" data-live-region="recurring-schedules">
-      <div class="section-heading"><h2>Wiederholungen</h2></div>
+      <div class="section-heading"><h2>Wiederholungen ({{ recurring_schedules|length }})</h2></div>
       {% if recurring_schedules %}
         <div class="table-scroll">
           <table>

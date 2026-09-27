@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -245,6 +246,97 @@ def test_startup_marks_orphaned_recording_as_interrupted(
         assert recording.status == "interrupted"
         assert recording.ended_at is not None
         assert "neu gestartet" in recording.error_message
+
+
+def test_recorder_stderr_is_inherited_instead_of_buffered(
+    app: FastAPI,
+    admin,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    install_fake_ffmpeg(tmp_path, monkeypatch)
+    real_popen = subprocess.Popen
+    captured_kwargs: dict[str, object] = {}
+
+    def capturing_popen(*args, **kwargs):
+        captured_kwargs.update(kwargs)
+        return real_popen(*args, **kwargs)
+
+    monkeypatch.setattr("awas.services.recording.subprocess.Popen", capturing_popen)
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Standardfehler Stream",
+            stream_url="https://radio.example/stderr",
+            preferred_recorder="ffmpeg",
+            preferred_file_type="mp3",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        recording = app.state.recording_manager.start_recording(
+            db,
+            stream=stream,
+            actor=admin,
+            ip_address="127.0.0.1",
+        )
+        recording_id = recording.id
+        assert "stderr" not in captured_kwargs
+        app.state.recording_manager.stop_recording(
+            db,
+            recording=recording,
+            actor=admin,
+            ip_address="127.0.0.1",
+        )
+    wait_for_status(app, recording_id, "completed")
+
+
+def test_streamripper_cue_file_is_removed_when_recording_ends(
+    app: FastAPI,
+    admin,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "fake-streamripper"
+    executable.write_text(
+        "#!/usr/bin/env python3\n"
+        "import pathlib\n"
+        "import sys\n"
+        "output = pathlib.Path(sys.argv[1])\n"
+        "output.write_bytes(b'recorded-audio')\n"
+        "output.with_suffix('.cue').write_text('cue data', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+
+    def build_fake_command(*_args, output_path, **_kwargs):
+        return [str(executable), str(output_path)]
+
+    monkeypatch.setattr(
+        "awas.services.recording.build_recorder_command",
+        build_fake_command,
+    )
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Cue Stream",
+            stream_url="http://radio.example/cue",
+            preferred_recorder="streamripper",
+            preferred_file_type="mp3",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        recording = app.state.recording_manager.start_recording(
+            db,
+            stream=stream,
+            actor=admin,
+            ip_address="127.0.0.1",
+        )
+        recording_id = recording.id
+        output_path = app.state.recording_manager.output_path(recording)
+
+    wait_for_status(app, recording_id, "completed")
+    assert output_path.is_file()
+    assert not output_path.with_suffix(".cue").exists()
 
 
 def test_normal_user_can_start_and_stop_recording(

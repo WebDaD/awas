@@ -20,6 +20,7 @@ def test_installer_stops_awas_before_database_migration() -> None:
     restart = installer.index("systemctl restart awas.service nginx.service")
     assert nginx_test < stop_service
     assert daemon_reload < stop_service < migrate < restart
+    assert "yt-dlp" not in installer
 
 
 def test_nginx_keeps_http_and_adds_optional_https() -> None:

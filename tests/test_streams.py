@@ -375,3 +375,29 @@ def test_normal_user_can_create_and_edit_streams_but_not_delete_them(
     assert rejected.status_code == 403
     with app.state.session_factory() as db:
         assert db.get(Stream, existing_id).name == "Edited by User"
+
+
+def test_streams_are_sorted_case_insensitively_with_nonletters_first(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    names = ("zulu", "Beta", "alpha", "9 Radio", "!Sonderzeichen")
+    with app.state.session_factory() as db:
+        db.add_all(
+            Stream(
+                name=name,
+                stream_url=f"https://radio.example/{index}",
+                preferred_recorder="ffmpeg",
+                created_by_id=admin.id,
+            )
+            for index, name in enumerate(names)
+        )
+        db.commit()
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    expected = ("!Sonderzeichen", "9 Radio", "alpha", "Beta", "zulu")
+    for path in ("/streams", "/schedules/new", "/schedules/recurring/new"):
+        page = client.get(path)
+        positions = [page.text.index(name) for name in expected]
+        assert positions == sorted(positions)

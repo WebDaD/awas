@@ -20,7 +20,7 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.0", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.2", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
@@ -68,9 +68,11 @@ def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
     planning = client.get("/")
     assert planning.status_code == 200
     assert "<h1>Planung</h1>" in planning.text
-    assert planning.text.index("<h2>Laufend</h2>") < planning.text.index("<h2>Anstehend</h2>")
-    assert planning.text.index("<h2>Anstehend</h2>") < planning.text.index(
-        "<h2>Wiederholungen</h2>"
+    assert planning.text.index("<h2>Laufend (0)</h2>") < planning.text.index(
+        "<h2>Anstehend (0)</h2>"
+    )
+    assert planning.text.index("<h2>Anstehend (0)</h2>") < planning.text.index(
+        "<h2>Wiederholungen (0)</h2>"
     )
     assert 'data-live-interval="5000"' in planning.text
     assert 'data-menu-toggle' in planning.text

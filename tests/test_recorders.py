@@ -22,8 +22,6 @@ EXPECTED_RECORDERS = (
     ("ffmpeg-all", "ffmpeg-all"),
     ("streamlink-http", "streamlink-http"),
     ("streamlink-hls-dash", "streamlink-hls-dash"),
-    ("yt-dlp", "yt-dlp"),
-    ("yt-dlp-ffmpeg", "yt-dlp-ffmpeg"),
     ("vlc", "vlc"),
     ("mpv", "mpv"),
     ("mplayer", "mplayer"),
@@ -70,8 +68,6 @@ def test_file_types_match_previous_awas_and_are_validated() -> None:
         ("ffmpeg-all", ".mkv", "/usr/bin/ffmpeg"),
         ("streamlink-http", ".stream", "/usr/bin/streamlink"),
         ("streamlink-hls-dash", ".ts", "/usr/bin/streamlink"),
-        ("yt-dlp", ".media", "/usr/bin/yt-dlp"),
-        ("yt-dlp-ffmpeg", ".media", "/usr/bin/yt-dlp"),
         ("vlc", ".mkv", "/usr/bin/cvlc"),
         ("mpv", ".mkv", "/usr/bin/mpv"),
         ("mplayer", ".stream", "/usr/bin/mplayer"),
@@ -126,21 +122,21 @@ def test_recorder_specific_modes_are_kept_separate(
         stream_name="Radio",
         output_path=output_path,
     )
-    yt_dlp_ffmpeg = build_recorder_command(
-        "yt-dlp-ffmpeg",
-        stream_url="https://radio.example/live",
-        stream_name="Radio",
-        output_path=output_path,
-    )
-
-    assert _arguments_after(ffmpeg, "-map")[:1] == ["0:a:0"]
+    assert "-map" not in ffmpeg
+    assert "-vn" not in ffmpeg
+    assert "-sn" in ffmpeg
+    assert "-dn" in ffmpeg
+    assert "-reconnect_at_eof" not in ffmpeg
+    assert "-reconnect_at_eof" not in ffmpeg_all
+    assert "-reconnect_on_network_error" in ffmpeg
+    assert "-reconnect_on_network_error" in ffmpeg_all
+    assert _arguments_after(ffmpeg, "-c")[:1] == ["copy"]
     assert _arguments_after(ffmpeg_all, "-map")[:1] == ["0"]
     assert "-y" not in ffmpeg
     assert "-metadata" not in ffmpeg
     assert "-y" not in ffmpeg_all
     assert "-metadata" not in ffmpeg_all
     assert "httpstream://https://radio.example/live" in streamlink_http
-    assert _arguments_after(yt_dlp_ffmpeg, "--downloader")[:1] == ["ffmpeg"]
 
 
 def test_selected_file_type_controls_output_and_ffmpeg_uses_suffix(

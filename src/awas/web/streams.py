@@ -27,6 +27,7 @@ from awas.services.streams import (
     StreamInputError,
     check_stream_url,
     create_stream,
+    stream_name_sort_key,
     update_stream,
 )
 from awas.web.dependencies import (
@@ -343,7 +344,10 @@ def render_stream_list(
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    streams = list(db.scalars(select(Stream).order_by(Stream.name)))
+    streams = sorted(
+        db.scalars(select(Stream)),
+        key=lambda stream: stream_name_sort_key(stream.name),
+    )
     latest_recording_ids = select(func.max(Recording.id)).group_by(Recording.stream_id)
     last_recordings = {
         recording.stream_id: recording

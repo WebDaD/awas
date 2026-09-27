@@ -35,6 +35,7 @@ STATUS_MESSAGES = {
     "started": "Die Aufnahme wurde gestartet.",
     "stopping": "Die Aufnahme wird beendet und die Datei abgeschlossen.",
     "deleted": "Die Aufnahme wurde gelöscht.",
+    "stopped": "Die Aufnahme wurde beendet. Weitere Versuche finden nicht statt.",
 }
 
 STATUS_LABELS = {

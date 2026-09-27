@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
@@ -22,6 +23,15 @@ from awas.services.recorders import (
 
 class StreamInputError(ValueError):
     pass
+
+
+def stream_name_sort_key(value: str) -> tuple[int, str, str]:
+    normalized = unicodedata.normalize("NFKD", value.casefold())
+    normalized = "".join(
+        character for character in normalized if not unicodedata.combining(character)
+    )
+    starts_with_letter = bool(normalized and normalized[0].isalpha())
+    return (1 if starts_with_letter else 0, normalized, value)
 
 
 @dataclass(frozen=True, slots=True)

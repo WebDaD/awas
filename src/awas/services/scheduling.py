@@ -297,6 +297,55 @@ class RecordingScheduler:
             self._recurrence_refresh_requested.set()
         self._wake_event.set()
 
+    def stop_schedule(
+        self,
+        schedule_id: int,
+        *,
+        actor: User,
+        ip_address: str,
+    ) -> None:
+        with self._run_lock, self._session_factory() as db:
+            schedule = db.get(RecordingSchedule, schedule_id)
+            if schedule is None:
+                raise ScheduleInputError("Der Zeitplan wurde nicht gefunden.")
+            if schedule.status != "running":
+                raise ScheduleInputError("Diese Aufnahme wird nicht mehr ausgeführt.")
+
+            active = self._active_recording(db, schedule)
+            if active is not None and active.status != "stopping":
+                try:
+                    self._recording_manager.stop_recording(
+                        db,
+                        recording=active,
+                        actor=actor,
+                        ip_address=ip_address,
+                        reason="user",
+                    )
+                except RecordingError:
+                    logger.info(
+                        "Recording %s ended while schedule %s was being stopped",
+                        active.id,
+                        schedule.id,
+                    )
+
+            schedule.status = "completed"
+            schedule.error_message = None
+            schedule.updated_at = utc_now()
+            add_audit_entry(
+                db,
+                "schedule.stopped",
+                actor=actor,
+                target_type="recording_schedule",
+                target_id=schedule.id,
+                ip_address=ip_address,
+                details={
+                    "stream_id": schedule.stream_id,
+                    "recording_id": active.id if active is not None else None,
+                },
+            )
+            db.commit()
+        self.wake()
+
     def shutdown(self) -> None:
         self._stop_event.set()
         self._wake_event.set()

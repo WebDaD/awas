@@ -29,6 +29,7 @@ from awas.services.scheduling import (
     parse_local_datetime,
     update_schedule,
 )
+from awas.services.streams import stream_name_sort_key
 from awas.web.dependencies import (
     AuthorizationDenied,
     client_ip,
@@ -38,12 +39,14 @@ from awas.web.dependencies import (
     validate_csrf,
     validate_delete_confirmation,
     validate_discard_confirmation,
+    validate_stop_confirmation,
 )
 
 STATUS_MESSAGES = {
     "created": "Der Zeitplan wurde angelegt.",
     "updated": "Der Zeitplan wurde gespeichert.",
     "discarded": "Der Zeitplan wurde verworfen.",
+    "stopped": "Die Aufnahme wurde beendet. Weitere Versuche finden nicht statt.",
     "deleted": "Der Zeitplaneintrag wurde ausgeblendet.",
     "recurrence-created": "Die Wiederholung wurde angelegt.",
     "recurrence-updated": "Die Wiederholung wurde gespeichert.",
@@ -271,6 +274,32 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
         scheduler.wake()
         return RedirectResponse(url="/?status=discarded", status_code=303)
 
+    @router.post("/{schedule_id}/stop", include_in_schema=False)
+    async def stop_schedule(
+        schedule_id: int,
+        request: Request,
+        return_to: str = Form("/", max_length=32),
+        stop_confirmed: str = Form("", max_length=5),
+        csrf_token: str = Form(..., max_length=128),
+        user: User = Depends(require_user),
+        db: Session = Depends(database),
+    ) -> Response:
+        validate_csrf(request, csrf_token)
+        validate_stop_confirmation(stop_confirmed)
+        schedule = get_schedule(db, schedule_id)
+        ensure_can_manage(schedule, user)
+        scheduler: RecordingScheduler = request.app.state.recording_scheduler
+        try:
+            scheduler.stop_schedule(
+                schedule.id,
+                actor=user,
+                ip_address=client_ip(request),
+            )
+        except ScheduleInputError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        destination = return_to if return_to in {"/", "/recordings"} else "/"
+        return RedirectResponse(url=f"{destination}?status=stopped", status_code=303)
+
     @router.post("/{schedule_id}/delete", include_in_schema=False)
     async def delete_schedule_entry(
         schedule_id: int,
@@ -328,7 +357,6 @@ def render_planning(
                 RecordingSchedule.recurrence_id.is_(None),
             )
             .order_by(RecordingSchedule.starts_at, RecordingSchedule.id)
-            .limit(500)
         )
     )
     recurring_schedules = list(
@@ -465,7 +493,10 @@ def render_schedule_form(
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    streams = list(db.scalars(select(Stream).order_by(Stream.name)))
+    streams = sorted(
+        db.scalars(select(Stream)),
+        key=lambda stream: stream_name_sort_key(stream.name),
+    )
     return templates.TemplateResponse(
         request=request,
         name="schedules/form.html",

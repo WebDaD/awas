@@ -102,6 +102,7 @@ class RecordingManager:
                 recording.status = "interrupted"
                 recording.ended_at = utc_now()
                 recording.error_message = "AWAS wurde während der Aufnahme neu gestartet."
+                self._remove_streamripper_cue(recording)
                 self._set_file_size(recording)
                 add_audit_entry(
                     db,
@@ -420,7 +421,6 @@ class RecordingManager:
                     command,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
                     start_new_session=True,
                 )
             except OSError as exc:
@@ -525,7 +525,7 @@ class RecordingManager:
                     running.thread.join(timeout=2)
 
     def _watch_process(self, recording_id: int, process: subprocess.Popen[bytes]) -> None:
-        process.communicate()
+        process.wait()
         with self._lock:
             running = self._running.get(recording_id)
             stop_reason = running.stop_reason if running else None
@@ -536,6 +536,7 @@ class RecordingManager:
                 if recording is None:
                     return
                 recording.ended_at = utc_now()
+                self._remove_streamripper_cue(recording)
                 self._set_file_size(recording)
                 ended_early = (
                     recording.schedule is not None
@@ -594,6 +595,29 @@ class RecordingManager:
                     recording.file_type = suffix[:16]
         except (OSError, RecordingError):
             recording.file_size_bytes = None
+
+    def _remove_streamripper_cue(self, recording: Recording) -> None:
+        if recording.recorder != "streamripper":
+            return
+        base = Path(
+            recording.storage_directory or self._default_recording_directory
+        ).resolve()
+        expected_path = base / recording.file_name
+        output_base = expected_path.with_suffix("")
+        candidates = {
+            output_base.parent / f"{output_base.name}.cue",
+            expected_path.parent / f"{expected_path.name}.cue",
+        }
+        for cue_path in candidates:
+            try:
+                if cue_path.parent == base and cue_path.is_file() and not cue_path.is_symlink():
+                    cue_path.unlink()
+            except OSError:
+                logger.warning(
+                    "Could not remove streamripper cue file %s",
+                    cue_path.name,
+                    exc_info=True,
+                )
 
     @staticmethod
     def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:

@@ -58,6 +58,17 @@
                         {% endif %}
                       {% else %}
                         {% if current_user.is_admin or recording.started_by_id == current_user.id %}
+                          {% if recording.status in ('failed', 'interrupted') and recording.schedule and recording.schedule.status == 'running' %}
+                            <form method="post" action="/schedules/{{ recording.schedule.id }}/stop">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                              <input type="hidden" name="return_to" value="/recordings">
+                              <input type="hidden" name="stop_confirmed" value="" data-action-confirm-value>
+                              <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                                <span class="action-initial-label">Stoppen</span>
+                                <span class="action-confirm-label" aria-hidden="true">Wirklich stoppen?</span>
+                              </button>
+                            </form>
+                          {% endif %}
                           <form method="post" action="/recordings/{{ recording.id }}/delete">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
