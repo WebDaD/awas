@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from awas.models import Recording, RetentionPolicy, User
 from awas.models.auth import utc_now
 from awas.services.auth import add_audit_entry
-from awas.services.recording import RecordingError, RecordingManager
+from awas.services.recording import RecordingError, RecordingGroup, RecordingManager
 
 logger = logging.getLogger(__name__)
 DEFAULT_RETENTION_DAYS = 90
@@ -30,7 +30,7 @@ class RetentionPreview:
     cutoff: datetime
     total_count: int
     total_bytes: int
-    recordings: tuple[Recording, ...]
+    recordings: tuple[RecordingGroup, ...]
 
     @property
     def is_truncated(self) -> bool:
@@ -159,25 +159,42 @@ class RetentionManager:
         limit: int = 50,
     ) -> RetentionPreview:
         cutoff = (now or utc_now()) - timedelta(days=policy.retention_days)
-        filters = self._eligible_filters(cutoff)
-        total_count, total_bytes = db.execute(
-            select(
-                func.count(Recording.id),
-                func.coalesce(func.sum(Recording.file_size_bytes), 0),
-            ).where(*filters)
-        ).one()
-        recordings = tuple(
+        latest_attempt_ids = (
+            select(func.max(Recording.id))
+            .group_by(Recording.group_key)
+            .scalar_subquery()
+        )
+        attempts = list(
             db.scalars(
-                select(Recording)
-                .where(*filters)
-                .order_by(Recording.ended_at, Recording.id)
-                .limit(max(0, limit))
+                select(Recording).where(
+                    Recording.id.in_(latest_attempt_ids),
+                    Recording.status.in_(TERMINAL_RECORDING_STATUSES),
+                    Recording.file_deleted_at.is_(None),
+                    Recording.ended_at.is_not(None),
+                    Recording.ended_at <= cutoff,
+                )
             )
         )
+        groups = [
+            group
+            for group in self._recording_manager.recording_groups(db, attempts)
+            if any(item.deleted_at is None for item in group.files)
+        ]
+        groups.sort(
+            key=lambda item: (item.ended_at or datetime.min, item.id),
+        )
+        total_count = len(groups)
+        total_bytes = sum(
+            item.size_bytes or 0
+            for group in groups
+            for item in group.files
+            if item.deleted_at is None
+        )
+        recordings = tuple(groups[: max(0, limit)])
         return RetentionPreview(
             cutoff=cutoff,
-            total_count=int(total_count),
-            total_bytes=int(total_bytes),
+            total_count=total_count,
+            total_bytes=total_bytes,
             recordings=recordings,
         )
 
@@ -197,20 +214,17 @@ class RetentionManager:
             if mode == "automatic" and not policy.enabled:
                 return CleanupResult(0, 0, 0, 0, skipped=True)
 
-            preview = self.preview(db, policy, now=current_time, limit=0)
-            candidate_ids = list(
-                db.scalars(
-                    select(Recording.id)
-                    .where(*self._eligible_filters(preview.cutoff))
-                    .order_by(Recording.ended_at, Recording.id)
-                    .limit(MAX_DELETIONS_PER_RUN)
-                )
+            preview = self.preview(
+                db,
+                policy,
+                now=current_time,
+                limit=MAX_DELETIONS_PER_RUN,
             )
             deleted_count = 0
             freed_bytes = 0
             failed_count = 0
-            for recording_id in candidate_ids:
-                recording = db.get(Recording, recording_id)
+            for recording_group in preview.recordings:
+                recording = db.get(Recording, recording_group.id)
                 if recording is None:
                     continue
                 try:
@@ -224,12 +238,18 @@ class RetentionManager:
                 except RecordingError:
                     db.rollback()
                     failed_count += 1
-                    logger.exception("Retention could not delete recording %s", recording_id)
+                    logger.exception(
+                        "Retention could not delete recording group %s",
+                        recording_group.group_key,
+                    )
                     continue
                 except Exception:
                     db.rollback()
                     failed_count += 1
-                    logger.exception("Retention deletion failed for recording %s", recording_id)
+                    logger.exception(
+                        "Retention deletion failed for recording group %s",
+                        recording_group.group_key,
+                    )
                     continue
                 deleted_count += 1
                 freed_bytes += deletion.freed_bytes
@@ -291,12 +311,3 @@ class RetentionManager:
             except Exception:
                 logger.exception("Retention cleanup iteration failed")
             delay = self._poll_interval
-
-    @staticmethod
-    def _eligible_filters(cutoff: datetime) -> tuple[object, ...]:
-        return (
-            Recording.status.in_(TERMINAL_RECORDING_STATUSES),
-            Recording.file_deleted_at.is_(None),
-            Recording.ended_at.is_not(None),
-            Recording.ended_at <= cutoff,
-        )

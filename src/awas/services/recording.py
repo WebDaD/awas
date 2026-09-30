@@ -10,13 +10,20 @@ import subprocess
 import threading
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import datetime
 from glob import escape as glob_escape
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from awas.models import ACTIVE_RECORDING_STATUSES, Recording, Stream, User
+from awas.models import (
+    ACTIVE_RECORDING_STATUSES,
+    Recording,
+    RecordingFile,
+    Stream,
+    User,
+)
 from awas.models.auth import utc_now
 from awas.services.auth import add_audit_entry
 from awas.services.filenames import recording_file_name
@@ -33,7 +40,36 @@ from awas.services.recorders import (
 )
 
 logger = logging.getLogger(__name__)
-STAGED_DELETE_PATTERN = re.compile(r"^\.awas-delete-(\d+)-[0-9a-f]{8}\.pending$")
+STAGED_DELETE_PATTERN = re.compile(
+    r"^\.awas-delete-(\d+)(?:-(\d+))?-[0-9a-f]{8}\.pending$"
+)
+STREAMRIPPER_SEQUENCE_SUFFIX = re.compile(r" \(([1-9]\d*)\)$")
+RECORDING_TIMESTAMP_PREFIX = re.compile(
+    r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_"
+)
+
+
+def _streamripper_name_parts(expected: Path) -> tuple[str, str | None]:
+    output_stem = STREAMRIPPER_SEQUENCE_SUFFIX.sub("", expected.stem)
+    stable_stem = RECORDING_TIMESTAMP_PREFIX.sub("", output_stem, count=1)
+    if stable_stem == output_stem:
+        return output_stem, None
+    return output_stem, f"_{stable_stem}"
+
+
+def _streamripper_name_matches(expected: Path, candidate_name: str) -> bool:
+    output_stem, stable_marker = _streamripper_name_parts(expected)
+    markers = ((output_stem, True), (stable_marker, False))
+    for marker, must_start in markers:
+        if marker is None:
+            continue
+        marker_index = candidate_name.find(marker)
+        if marker_index < 0 or (must_start and marker_index != 0):
+            continue
+        remainder = candidate_name[marker_index + len(marker) :]
+        if not remainder or remainder[0] in " ._-([":
+            return True
+    return False
 
 
 class RecordingError(RuntimeError):
@@ -60,6 +96,121 @@ class StorageSnapshot:
 class RecordingDeletionResult:
     file_present: bool
     freed_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class RecordingFileInfo:
+    id: int
+    recording_id: int
+    file_name: str
+    size_bytes: int | None
+    available: bool
+    deleted_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class RecordingGroup:
+    group_key: str
+    attempts: tuple[Recording, ...]
+    files: tuple[RecordingFileInfo, ...]
+
+    @property
+    def id(self) -> int:
+        return self.attempts[0].id
+
+    @property
+    def active_recording(self) -> Recording | None:
+        return next(
+            (item for item in reversed(self.attempts) if item.is_running),
+            None,
+        )
+
+    @property
+    def current_recording(self) -> Recording:
+        return self.active_recording or self.attempts[-1]
+
+    @property
+    def is_running(self) -> bool:
+        return self.active_recording is not None
+
+    @property
+    def status(self) -> str:
+        return self.current_recording.status
+
+    @property
+    def stream_name(self) -> str:
+        return self.attempts[0].stream_name
+
+    @property
+    def recorder(self) -> str:
+        return self.current_recording.recorder
+
+    @property
+    def file_type(self) -> str:
+        return self.current_recording.file_type
+
+    @property
+    def started_at(self) -> datetime:
+        return self.attempts[0].started_at
+
+    @property
+    def ended_at(self) -> datetime | None:
+        return max(
+            (item.ended_at for item in self.attempts if item.ended_at is not None),
+            default=None,
+        )
+
+    @property
+    def duration_seconds(self) -> int:
+        end = utc_now() if self.is_running else self.ended_at
+        if end is None:
+            return 0
+        return max(0, int((end - self.started_at).total_seconds()))
+
+    @property
+    def error_message(self) -> str | None:
+        return self.current_recording.error_message
+
+    @property
+    def schedule(self):
+        return next(
+            (item.schedule for item in self.attempts if item.schedule is not None),
+            None,
+        )
+
+    @property
+    def schedule_id(self) -> int | None:
+        return self.attempts[0].schedule_id
+
+    @property
+    def started_by(self):
+        return next(
+            (item.started_by for item in self.attempts if item.started_by is not None),
+            None,
+        )
+
+    @property
+    def started_by_id(self) -> int | None:
+        return next(
+            (item.started_by_id for item in self.attempts if item.started_by_id is not None),
+            None,
+        )
+
+    @property
+    def available_file_count(self) -> int:
+        return sum(item.available for item in self.files)
+
+    @property
+    def file_size_bytes(self) -> int:
+        return sum(item.size_bytes or 0 for item in self.files)
+
+    @property
+    def display_file_name(self) -> str:
+        if not self.files:
+            return "Keine Datei"
+        if len(self.files) == 1:
+            return self.files[0].file_name
+        return f"{len(self.files)} Dateien"
 
 
 @dataclass(slots=True)
@@ -91,6 +242,88 @@ class RecordingManager:
         with self._lock:
             self._recording_directory = recording_directory.resolve()
 
+    def recording_groups(
+        self,
+        db: Session,
+        recordings: list[Recording] | tuple[Recording, ...],
+    ) -> list[RecordingGroup]:
+        if not recordings:
+            return []
+        group_keys = {recording.group_key for recording in recordings}
+        attempts = list(
+            db.scalars(
+                select(Recording)
+                .where(Recording.group_key.in_(group_keys))
+                .order_by(Recording.started_at, Recording.id)
+            )
+        )
+        if self._sync_recording_files(db, attempts):
+            db.commit()
+        files = list(
+            db.scalars(
+                select(RecordingFile)
+                .where(RecordingFile.recording_id.in_([item.id for item in attempts]))
+                .order_by(RecordingFile.discovered_at, RecordingFile.id)
+            )
+        )
+        files_by_recording: dict[int, list[RecordingFileInfo]] = {}
+        for recording_file in files:
+            files_by_recording.setdefault(recording_file.recording_id, []).append(
+                self._file_info(recording_file)
+            )
+
+        attempts_by_group: dict[str, list[Recording]] = {}
+        for attempt in attempts:
+            attempts_by_group.setdefault(attempt.group_key, []).append(attempt)
+        groups = [
+            RecordingGroup(
+                group_key=group_key,
+                attempts=tuple(group_attempts),
+                files=tuple(
+                    file_info
+                    for attempt in group_attempts
+                    for file_info in files_by_recording.get(attempt.id, ())
+                ),
+            )
+            for group_key, group_attempts in attempts_by_group.items()
+        ]
+        groups.sort(key=lambda item: (item.started_at, item.id), reverse=True)
+        return groups
+
+    def recording_group(self, db: Session, recording: Recording) -> RecordingGroup:
+        groups = self.recording_groups(db, [recording])
+        if not groups:
+            raise RecordingError("Die Aufnahme wurde nicht gefunden.")
+        return groups[0]
+
+    def available_group_files(
+        self,
+        db: Session,
+        recording: Recording,
+    ) -> list[tuple[RecordingFile, Path, int]]:
+        group = self.recording_group(db, recording)
+        file_ids = [item.id for item in group.files if item.available]
+        if not file_ids:
+            return []
+        file_records = {
+            item.id: item
+            for item in db.scalars(
+                select(RecordingFile).where(RecordingFile.id.in_(file_ids))
+            )
+        }
+        result: list[tuple[RecordingFile, Path, int]] = []
+        for info in group.files:
+            recording_file = file_records.get(info.id)
+            if recording_file is None or not info.available:
+                continue
+            path = self.recording_file_path(recording_file)
+            try:
+                size = path.stat().st_size
+            except OSError:
+                continue
+            result.append((recording_file, path, size))
+        return result
+
     def reconcile_interrupted(self) -> None:
         with self._session_factory() as db:
             recordings = list(
@@ -103,7 +336,7 @@ class RecordingManager:
                 recording.ended_at = utc_now()
                 recording.error_message = "AWAS wurde während der Aufnahme neu gestartet."
                 self._remove_streamripper_cue(recording)
-                self._set_file_size(recording)
+                self._sync_recording_files(db, [recording])
                 add_audit_entry(
                     db,
                     "recording.interrupted",
@@ -129,6 +362,15 @@ class RecordingManager:
                     )
                     if value
                 ),
+                *(
+                    Path(value)
+                    for value in db.scalars(
+                        select(RecordingFile.storage_directory).where(
+                            RecordingFile.storage_directory.is_not(None)
+                        )
+                    )
+                    if value
+                ),
             }
             for directory in directories:
                 if not directory.is_dir():
@@ -137,16 +379,39 @@ class RecordingManager:
                     match = STAGED_DELETE_PATTERN.fullmatch(staged_path.name)
                     if match is None or not staged_path.is_file():
                         continue
-                    recording = db.get(Recording, int(match.group(1)))
                     try:
-                        if recording is None or recording.file_deleted_at is not None:
+                        recording = db.get(Recording, int(match.group(1)))
+                        recording_file = (
+                            db.get(RecordingFile, int(match.group(2)))
+                            if match.group(2)
+                            else None
+                        )
+                        completed = (
+                            (recording_file is None and match.group(2) is not None)
+                            or (
+                                recording_file is not None
+                                and recording_file.file_deleted_at is not None
+                            )
+                            or (
+                                match.group(2) is None
+                                and (
+                                    recording is None
+                                    or recording.file_deleted_at is not None
+                                )
+                            )
+                        )
+                        if completed:
                             staged_path.unlink()
                             logger.info(
                                 "Removed completed recording deletion stage %s",
                                 staged_path.name,
                             )
                             continue
-                        output_path = self.output_path(recording)
+                        output_path = (
+                            self.recording_file_path(recording_file)
+                            if recording_file is not None
+                            else self.output_path(recording)
+                        )
                         if output_path.exists():
                             logger.warning(
                                 "Recording deletion stage %s has an existing target",
@@ -156,7 +421,7 @@ class RecordingManager:
                         staged_path.replace(output_path)
                         logger.warning(
                             "Restored recording %s after an interrupted deletion",
-                            recording.id,
+                            recording.id if recording is not None else match.group(1),
                         )
                     except OSError:
                         logger.exception(
@@ -165,13 +430,25 @@ class RecordingManager:
 
     def storage_snapshot(self, db: Session) -> StorageSnapshot:
         self.recording_directory.mkdir(parents=True, exist_ok=True)
+        sync_candidates = list(
+            db.scalars(
+                select(Recording).where(
+                    Recording.status.in_(ACTIVE_RECORDING_STATUSES)
+                    | ~Recording.files.any()
+                )
+            )
+        )
+        if self._sync_recording_files(db, sync_candidates):
+            db.commit()
         usage = shutil.disk_usage(self.recording_directory)
-        recording_count = db.scalar(select(func.count(Recording.id))) or 0
+        recording_count = (
+            db.scalar(select(func.count(distinct(Recording.group_key)))) or 0
+        )
         file_count, recording_bytes = db.execute(
             select(
-                func.count(Recording.id),
-                func.coalesce(func.sum(Recording.file_size_bytes), 0),
-            ).where(Recording.file_deleted_at.is_(None))
+                func.count(RecordingFile.id),
+                func.coalesce(func.sum(RecordingFile.file_size_bytes), 0),
+            ).where(RecordingFile.file_deleted_at.is_(None))
         ).one()
         return StorageSnapshot(
             total_bytes=usage.total,
@@ -202,69 +479,58 @@ class RecordingManager:
     ) -> RecordingDeletionResult:
         if reason not in {"manual", "retention.manual", "retention.automatic"}:
             raise ValueError("Unknown recording deletion reason")
-        if recording.is_running:
+        group = self.recording_group(db, recording)
+        if group.is_running:
             raise RecordingError("Die Datei einer laufenden Aufnahme kann nicht gelöscht werden.")
-        if recording.file_deleted_at is not None:
+        if group.attempts and all(
+            item.file_deleted_at is not None for item in group.attempts
+        ):
             raise RecordingError("Die Aufnahmedatei wurde bereits gelöscht.")
-
-        output_path = self.output_path(recording)
-        staged_path: Path | None = None
-        file_removed = False
-        file_size_on_disk = 0
-        if output_path.exists():
-            if not output_path.is_file():
-                raise RecordingError("Der Aufnahmepfad ist keine reguläre Datei.")
-            staged_path = output_path.parent / (
-                f".awas-delete-{recording.id}-{secrets.token_hex(4)}.pending"
+        staged = self._stage_group_files(db, group)
+        file_records = list(
+            db.scalars(
+                select(RecordingFile).where(
+                    RecordingFile.recording_id.in_([item.id for item in group.attempts])
+                )
             )
-            try:
-                file_size_on_disk = output_path.stat().st_size
-                output_path.replace(staged_path)
-            except OSError as exc:
-                raise RecordingError("Die Aufnahmedatei konnte nicht gelöscht werden.") from exc
-            file_removed = True
+        )
+        deleted_at = utc_now()
 
         add_audit_entry(
             db,
             "recording.file_deleted",
             actor=actor,
             target_type="recording",
-            target_id=recording.id,
+            target_id=group.id,
             ip_address=ip_address,
             details={
-                "stream_id": recording.stream_id,
-                "stream_name": recording.stream_name,
-                "file_name": recording.file_name,
-                "file_size_bytes": recording.file_size_bytes,
-                "status": recording.status,
-                "file_removed": file_removed,
+                "stream_id": group.attempts[0].stream_id,
+                "stream_name": group.stream_name,
+                "file_name": group.files[0].file_name if group.files else None,
+                "file_names": [item.file_name for item in group.files],
+                "file_size_bytes": group.file_size_bytes,
+                "status": group.status,
+                "file_removed": bool(staged),
                 "reason": reason,
             },
         )
-        recording.file_deleted_at = utc_now()
-        recording.file_delete_reason = reason
+        for recording_file in file_records:
+            if recording_file.file_deleted_at is None:
+                recording_file.file_deleted_at = deleted_at
+                recording_file.file_delete_reason = reason
+        for attempt in group.attempts:
+            attempt.file_deleted_at = deleted_at
+            attempt.file_delete_reason = reason
         try:
             db.commit()
         except Exception:
             db.rollback()
-            if staged_path is not None and staged_path.exists() and not output_path.exists():
-                try:
-                    staged_path.replace(output_path)
-                except OSError:
-                    logger.exception("Could not restore recording file after database failure")
+            self._restore_staged_files(staged)
             raise
-
-        freed_bytes = 0
-        if staged_path is not None:
-            try:
-                staged_path.unlink()
-                freed_bytes = file_size_on_disk
-            except OSError:
-                logger.exception(
-                    "Could not remove recording deletion stage %s; retrying at next startup",
-                    staged_path,
-                )
-        return RecordingDeletionResult(file_present=file_removed, freed_bytes=freed_bytes)
+        return RecordingDeletionResult(
+            file_present=bool(staged),
+            freed_bytes=self._finalize_staged_files(staged),
+        )
 
     def delete_recording(
         self,
@@ -274,71 +540,103 @@ class RecordingManager:
         actor: User | None,
         ip_address: str | None,
     ) -> RecordingDeletionResult:
-        if recording.is_running:
+        group = self.recording_group(db, recording)
+        if group.is_running:
             raise RecordingError("Eine laufende Aufnahme kann nicht gelöscht werden.")
-
-        output_path = self.output_path(recording)
-        staged_path: Path | None = None
-        file_removed = False
-        file_size_on_disk = 0
-        if output_path.exists():
-            if not output_path.is_file():
-                raise RecordingError("Der Aufnahmepfad ist keine reguläre Datei.")
-            staged_path = output_path.parent / (
-                f".awas-delete-{recording.id}-{secrets.token_hex(4)}.pending"
-            )
-            try:
-                file_size_on_disk = output_path.stat().st_size
-                output_path.replace(staged_path)
-            except OSError as exc:
-                raise RecordingError("Die Aufnahme konnte nicht gelöscht werden.") from exc
-            file_removed = True
+        staged = self._stage_group_files(db, group)
 
         add_audit_entry(
             db,
             "recording.deleted",
             actor=actor,
             target_type="recording",
-            target_id=recording.id,
+            target_id=group.id,
             ip_address=ip_address,
             details={
-                "stream_id": recording.stream_id,
-                "stream_name": recording.stream_name,
-                "file_name": recording.file_name,
-                "file_size_bytes": recording.file_size_bytes,
-                "status": recording.status,
-                "schedule_id": recording.schedule_id,
-                "file_removed": file_removed,
-                "file_deleted_at": (
-                    recording.file_deleted_at.isoformat()
-                    if recording.file_deleted_at is not None
-                    else None
-                ),
+                "stream_id": group.attempts[0].stream_id,
+                "stream_name": group.stream_name,
+                "file_name": group.files[0].file_name if group.files else None,
+                "file_names": [item.file_name for item in group.files],
+                "file_size_bytes": group.file_size_bytes,
+                "status": group.status,
+                "schedule_id": group.schedule_id,
+                "file_removed": bool(staged),
             },
         )
-        db.delete(recording)
+        for attempt in group.attempts:
+            db.delete(attempt)
         try:
             db.commit()
         except Exception:
             db.rollback()
-            if staged_path is not None and staged_path.exists() and not output_path.exists():
-                try:
-                    staged_path.replace(output_path)
-                except OSError:
-                    logger.exception("Could not restore recording file after database failure")
+            self._restore_staged_files(staged)
             raise
+        return RecordingDeletionResult(
+            file_present=bool(staged),
+            freed_bytes=self._finalize_staged_files(staged),
+        )
 
+    def _stage_group_files(
+        self,
+        db: Session,
+        group: RecordingGroup,
+    ) -> list[tuple[Path, Path, int]]:
+        for attempt in group.attempts:
+            self._expected_output_path(attempt)
+        file_records = list(
+            db.scalars(
+                select(RecordingFile).where(
+                    RecordingFile.recording_id.in_([item.id for item in group.attempts]),
+                    RecordingFile.file_deleted_at.is_(None),
+                )
+            )
+        )
+        staged: list[tuple[Path, Path, int]] = []
+        try:
+            for recording_file in file_records:
+                output_path = self.recording_file_path(recording_file)
+                if not output_path.exists():
+                    continue
+                if not output_path.is_file() or output_path.is_symlink():
+                    raise RecordingError("Der Aufnahmepfad ist keine reguläre Datei.")
+                staged_path = output_path.parent / (
+                    f".awas-delete-{group.id}-{recording_file.id}-"
+                    f"{secrets.token_hex(4)}.pending"
+                )
+                size = output_path.stat().st_size
+                output_path.replace(staged_path)
+                staged.append((output_path, staged_path, size))
+        except RecordingError:
+            self._restore_staged_files(staged)
+            raise
+        except OSError as exc:
+            self._restore_staged_files(staged)
+            raise RecordingError("Die Aufnahmedateien konnten nicht gelöscht werden.") from exc
+        return staged
+
+    @staticmethod
+    def _restore_staged_files(staged: list[tuple[Path, Path, int]]) -> None:
+        for output_path, staged_path, _ in reversed(staged):
+            if not staged_path.exists() or output_path.exists():
+                continue
+            try:
+                staged_path.replace(output_path)
+            except OSError:
+                logger.exception("Could not restore recording file after database failure")
+
+    @staticmethod
+    def _finalize_staged_files(staged: list[tuple[Path, Path, int]]) -> int:
         freed_bytes = 0
-        if staged_path is not None:
+        for _, staged_path, size in staged:
             try:
                 staged_path.unlink()
-                freed_bytes = file_size_on_disk
+                freed_bytes += size
             except OSError:
                 logger.exception(
                     "Could not remove recording deletion stage %s; retrying at next startup",
                     staged_path,
                 )
-        return RecordingDeletionResult(file_present=file_removed, freed_bytes=freed_bytes)
+        return freed_bytes
 
     def start_recording(
         self,
@@ -383,7 +681,18 @@ class RecordingManager:
                 )
             except (RecorderInputError, RecorderUnavailableError) as exc:
                 raise RecordingError(str(exc)) from exc
+            group_key = secrets.token_hex(16)
+            if schedule_id is not None:
+                existing_group_key = db.scalar(
+                    select(Recording.group_key)
+                    .where(Recording.schedule_id == schedule_id)
+                    .order_by(Recording.id)
+                    .limit(1)
+                )
+                if existing_group_key:
+                    group_key = existing_group_key
             recording = Recording(
+                group_key=group_key,
                 stream_id=stream.id,
                 stream_name=stream.name,
                 file_name=file_name,
@@ -412,6 +721,7 @@ class RecordingManager:
                     "file_type": selected_file_type,
                     "file_name_base": file_name_base or stream.name,
                     "storage_directory": str(recording_directory),
+                    "group_key": group_key,
                 },
             )
             db.commit()
@@ -484,6 +794,25 @@ class RecordingManager:
             self._terminate_process_group(process)
 
     def output_path(self, recording: Recording) -> Path:
+        expected = self._expected_output_path(recording)
+        candidates = self._recording_candidate_paths(recording)
+        if expected in candidates:
+            return expected
+        if candidates:
+            return max(candidates, key=lambda item: item.stat().st_size)
+        return expected
+
+    def recording_file_path(self, recording_file: RecordingFile) -> Path:
+        base = Path(
+            recording_file.storage_directory or self._default_recording_directory
+        ).resolve()
+        candidate = base / recording_file.file_name
+        path = candidate.resolve()
+        if path.parent != base or candidate.is_symlink():
+            raise RecordingError("Ungültiger Aufnahmepfad.")
+        return path
+
+    def _expected_output_path(self, recording: Recording) -> Path:
         base = Path(
             recording.storage_directory or self._default_recording_directory
         ).resolve()
@@ -491,21 +820,154 @@ class RecordingManager:
         path = candidate.resolve()
         if path.parent != base or candidate.is_symlink():
             raise RecordingError("Ungültiger Aufnahmepfad.")
-        if not path.exists() and recording.recorder == "streamripper":
-            output_base = path.with_suffix("")
-            if output_base.is_file() and not output_base.is_symlink():
-                return output_base
-            candidates = [
-                item.resolve()
-                for item in base.glob(f"{glob_escape(output_base.name)}.*")
-                if item.is_file()
-                and not item.is_symlink()
-                and item.suffix.lower() not in {".cue", ".pending"}
-            ]
-            candidates = [item for item in candidates if item.parent == base]
-            if candidates:
-                return max(candidates, key=lambda item: item.stat().st_size)
         return path
+
+    def _recording_candidate_paths(self, recording: Recording) -> list[Path]:
+        expected = self._expected_output_path(recording)
+        if recording.recorder != "streamripper":
+            return [expected] if expected.is_file() and not expected.is_symlink() else []
+
+        base = expected.parent
+        output_stem, stable_marker = _streamripper_name_parts(expected)
+        patterns = [f"{glob_escape(output_stem)}*"]
+        if stable_marker is not None:
+            patterns.append(f"*{glob_escape(stable_marker)}*")
+        candidates: list[Path] = []
+        seen: set[Path] = set()
+        for pattern in patterns:
+            for item in base.glob(pattern):
+                if (
+                    item in seen
+                    or not _streamripper_name_matches(expected, item.name)
+                    or not item.is_file()
+                    or item.is_symlink()
+                    or item.name.lower().endswith((".cue", ".pending"))
+                ):
+                    continue
+                resolved = item.resolve()
+                if resolved.parent != base:
+                    continue
+                seen.add(item)
+                candidates.append(resolved)
+
+        def sort_key(path: Path) -> tuple[object, ...]:
+            natural_parts = tuple(
+                (0, int(part)) if part.isdigit() else (1, part.casefold())
+                for part in re.split(r"(\d+)", path.name)
+                if part
+            )
+            return (0 if path == expected else 1, natural_parts)
+
+        candidates.sort(key=sort_key)
+        return candidates
+
+    def _sync_recording_files(
+        self,
+        db: Session,
+        recordings: list[Recording] | tuple[Recording, ...],
+    ) -> bool:
+        if not recordings:
+            return False
+        recording_ids = [recording.id for recording in recordings]
+        existing_files = list(
+            db.scalars(
+                select(RecordingFile).where(
+                    RecordingFile.recording_id.in_(recording_ids)
+                )
+            )
+        )
+        by_key = {
+            (item.recording_id, item.file_name): item for item in existing_files
+        }
+        changed = False
+        now = utc_now()
+        for recording in recordings:
+            try:
+                discovered = self._recording_candidate_paths(recording)
+            except RecordingError:
+                logger.warning(
+                    "Skipped unsafe recording path for recording %s",
+                    recording.id,
+                )
+                discovered = []
+            for path in discovered:
+                key = (recording.id, path.name)
+                recording_file = by_key.get(key)
+                try:
+                    size = path.stat().st_size
+                except OSError:
+                    continue
+                if recording_file is None:
+                    recording_file = RecordingFile(
+                        recording_id=recording.id,
+                        file_name=path.name,
+                        storage_directory=str(path.parent),
+                        file_size_bytes=size,
+                        discovered_at=now,
+                        updated_at=now,
+                    )
+                    db.add(recording_file)
+                    existing_files.append(recording_file)
+                    by_key[key] = recording_file
+                    changed = True
+                elif (
+                    recording_file.file_deleted_at is None
+                    and recording_file.file_size_bytes != size
+                ):
+                    recording_file.file_size_bytes = size
+                    recording_file.updated_at = now
+                    changed = True
+
+            recording_files = [
+                item for item in existing_files if item.recording_id == recording.id
+            ]
+            if not recording_files and not recording.is_running:
+                recording_file = RecordingFile(
+                    recording_id=recording.id,
+                    file_name=recording.file_name,
+                    storage_directory=recording.storage_directory,
+                    file_size_bytes=recording.file_size_bytes,
+                    discovered_at=recording.started_at,
+                    updated_at=recording.ended_at or recording.started_at,
+                    file_deleted_at=recording.file_deleted_at,
+                    file_delete_reason=recording.file_delete_reason,
+                )
+                db.add(recording_file)
+                existing_files.append(recording_file)
+                by_key[(recording.id, recording.file_name)] = recording_file
+                changed = True
+
+            total_size = sum(
+                item.file_size_bytes or 0
+                for item in existing_files
+                if item.recording_id == recording.id
+            )
+            if recording.file_size_bytes != total_size:
+                recording.file_size_bytes = total_size
+                changed = True
+        if changed:
+            db.flush()
+        return changed
+
+    def _file_info(self, recording_file: RecordingFile) -> RecordingFileInfo:
+        available = False
+        current_size = recording_file.file_size_bytes
+        if recording_file.file_deleted_at is None:
+            try:
+                path = self.recording_file_path(recording_file)
+                if path.is_file() and not path.is_symlink():
+                    current_size = path.stat().st_size
+                    available = True
+            except (OSError, RecordingError):
+                available = False
+        return RecordingFileInfo(
+            id=recording_file.id,
+            recording_id=recording_file.recording_id,
+            file_name=recording_file.file_name,
+            size_bytes=current_size,
+            available=available,
+            deleted_at=recording_file.file_deleted_at,
+        )
 
     def shutdown(self) -> None:
         with self._lock:
@@ -537,7 +999,7 @@ class RecordingManager:
                     return
                 recording.ended_at = utc_now()
                 self._remove_streamripper_cue(recording)
-                self._set_file_size(recording)
+                self._sync_recording_files(db, [recording])
                 ended_early = (
                     recording.schedule is not None
                     and recording.ended_at < recording.schedule.ends_at
@@ -584,40 +1046,35 @@ class RecordingManager:
             with self._lock:
                 self._running.pop(recording_id, None)
 
-    def _set_file_size(self, recording: Recording) -> None:
-        try:
-            path = self.output_path(recording)
-            recording.file_size_bytes = path.stat().st_size
-            if path.name != recording.file_name:
-                recording.file_name = path.name
-                suffix = path.suffix.lower().lstrip(".")
-                if suffix:
-                    recording.file_type = suffix[:16]
-        except (OSError, RecordingError):
-            recording.file_size_bytes = None
-
     def _remove_streamripper_cue(self, recording: Recording) -> None:
         if recording.recorder != "streamripper":
             return
-        base = Path(
-            recording.storage_directory or self._default_recording_directory
-        ).resolve()
-        expected_path = base / recording.file_name
-        output_base = expected_path.with_suffix("")
-        candidates = {
-            output_base.parent / f"{output_base.name}.cue",
-            expected_path.parent / f"{expected_path.name}.cue",
-        }
-        for cue_path in candidates:
-            try:
-                if cue_path.parent == base and cue_path.is_file() and not cue_path.is_symlink():
-                    cue_path.unlink()
-            except OSError:
-                logger.warning(
-                    "Could not remove streamripper cue file %s",
-                    cue_path.name,
-                    exc_info=True,
-                )
+        expected_path = self._expected_output_path(recording)
+        output_stem, stable_marker = _streamripper_name_parts(expected_path)
+        patterns = [f"{glob_escape(output_stem)}*.cue"]
+        if stable_marker is not None:
+            patterns.append(f"*{glob_escape(stable_marker)}*.cue")
+        seen: set[Path] = set()
+        for pattern in patterns:
+            for cue_path in expected_path.parent.glob(pattern):
+                if cue_path in seen:
+                    continue
+                seen.add(cue_path)
+                try:
+                    if (
+                        _streamripper_name_matches(expected_path, cue_path.name)
+                        and cue_path.name.lower().endswith(".cue")
+                        and cue_path.parent == expected_path.parent
+                        and cue_path.is_file()
+                        and not cue_path.is_symlink()
+                    ):
+                        cue_path.unlink()
+                except OSError:
+                    logger.warning(
+                        "Could not remove streamripper cue file %s",
+                        cue_path.name,
+                        exc_info=True,
+                    )
 
     @staticmethod
     def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:

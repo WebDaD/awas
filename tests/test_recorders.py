@@ -95,7 +95,10 @@ def test_each_recorder_builds_a_direct_command(
 
     assert recorder_extension(recorder) == extension
     assert command[0] == executable
-    assert any(str(output_path) in argument for argument in command)
+    if recorder == "streamripper":
+        assert str(output_path.with_name(f"%D_{output_path.name}")) in command
+    else:
+        assert any(str(output_path) in argument for argument in command)
     assert any(stream_url in argument for argument in command)
 
 
@@ -161,8 +164,27 @@ def test_selected_file_type_controls_output_and_ffmpeg_uses_suffix(
 
     assert str(output_path) in ffmpeg
     assert "-f" not in ffmpeg
-    assert str(output_path.with_suffix("")) in streamripper
+    dynamic_output = output_path.with_name(f"%D_{output_path.stem}").with_suffix("")
+    assert str(dynamic_output) in streamripper
     assert str(output_path) not in streamripper
+
+
+def test_streamripper_replaces_leading_file_timestamp_with_dynamic_timestamp(
+    installed_recorders,
+    tmp_path: Path,
+) -> None:
+    output_path = tmp_path / "2026-09-30_14-30-00_radio_abc123.mp3"
+
+    command = build_recorder_command(
+        "streamripper",
+        stream_url="http://radio.example/live",
+        output_path=output_path,
+        file_type="mp3",
+    )
+
+    output_argument = command[command.index("-a") + 1]
+    assert output_argument == str(tmp_path / "%D_radio_abc123")
+    assert "2026-09-30_14-30-00" not in output_argument
 
 
 def test_streamripper_rejects_https() -> None:

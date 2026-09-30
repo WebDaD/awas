@@ -11,7 +11,7 @@
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
 
   <div class="notice notice-info recorder-placeholder-info">
-    Platzhalter: <code>{url}</code> für die Stream-Adresse, <code>{output}</code> für die Ausgabedatei und bei streamripper <code>{output_base}</code> für den Ausgabepfad ohne Dateiendung.
+    Platzhalter: <code>{url}</code> für die Stream-Adresse, <code>{output}</code> für die Ausgabedatei und bei streamripper <code>{output_base}</code> für den Ausgabepfad ohne Dateiendung. Bei streamripper beginnt <code>{output_base}</code> automatisch mit <code>%D</code>, damit jede neue Datei vorne ihren eigenen Zeitstempel erhält.
   </div>
 
   <section class="recorders-grid">

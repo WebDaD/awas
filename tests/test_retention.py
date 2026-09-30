@@ -271,7 +271,7 @@ def test_manual_cleanup_deletes_only_expired_terminal_recordings(
     )
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
     page = client.get("/admin/storage")
-    assert "1 abgelaufene Datei" in page.text
+    assert "1 abgelaufene Aufnahme" in page.text
     assert client.get("/admin/storage/cleanup").status_code == 405
     rejected = client.post(
         "/admin/storage/cleanup",
@@ -439,3 +439,39 @@ def test_cleanup_counts_only_bytes_removed_from_disk(app: FastAPI, admin) -> Non
         assert recording.file_deleted_at is not None
         policy = db.get(RetentionPolicy, 1)
         assert policy.last_freed_bytes == 0
+
+
+def test_retention_cleans_all_attempts_and_files_as_one_recording(
+    app: FastAPI,
+    admin,
+) -> None:
+    first_id, first_path = create_recording(
+        app,
+        admin,
+        file_name="group-first.mka",
+        age_days=110,
+        contents=b"first",
+    )
+    second_id, second_path = create_recording(
+        app,
+        admin,
+        file_name="group-second.mka",
+        age_days=100,
+        contents=b"second",
+    )
+    with app.state.session_factory() as db:
+        first = db.get(Recording, first_id)
+        second = db.get(Recording, second_id)
+        second.group_key = first.group_key
+        db.commit()
+
+    result = app.state.retention_manager.run_cleanup(mode="manual", actor=admin)
+
+    assert result.eligible_count == 1
+    assert result.deleted_count == 1
+    assert result.freed_bytes == len(b"firstsecond")
+    assert not first_path.exists()
+    assert not second_path.exists()
+    with app.state.session_factory() as db:
+        assert db.get(Recording, first_id).file_deleted_at is not None
+        assert db.get(Recording, second_id).file_deleted_at is not None

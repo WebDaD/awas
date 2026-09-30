@@ -70,7 +70,7 @@
           <input type="checkbox" name="enabled" value="on" {% if form_enabled %}checked{% endif %}>
           <span>Automatische Bereinigung aktivieren</span>
         </label>
-        <div class="notice notice-info">Beim Aktivieren beginnt die Bereinigung unmittelbar und läuft danach stündlich. Pro Lauf werden höchstens {{ batch_limit }} Dateien gelöscht.</div>
+        <div class="notice notice-info">Beim Aktivieren beginnt die Bereinigung unmittelbar und läuft danach stündlich. Pro Lauf werden höchstens {{ batch_limit }} Aufnahmen einschließlich aller zugehörigen Dateien bereinigt.</div>
         <div class="form-actions"><button class="button button-primary" type="submit">Einstellungen speichern</button></div>
       </form>
     </article>
@@ -79,7 +79,7 @@
       <h2>Letzter Bereinigungslauf</h2>
       {% if policy.last_run_at %}
         <p>{{ policy.last_run_at|local_datetime }} · {{ 'Automatisch' if policy.last_run_mode == 'automatic' else 'Manuell' }}</p>
-        <span class="meta-line normal-meta">{{ policy.last_deleted_count }} Dateien gelöscht · {{ policy.last_freed_bytes|filesize }} freigegeben · {{ policy.last_failed_count }} Fehler</span>
+        <span class="meta-line normal-meta">{{ policy.last_deleted_count }} Aufnahmen bereinigt · {{ policy.last_freed_bytes|filesize }} freigegeben · {{ policy.last_failed_count }} Fehler</span>
         {% if policy.last_error %}<div class="notice notice-error" role="alert">{{ policy.last_error }}</div>{% endif %}
       {% else %}
         <p>Es wurde noch keine automatische oder manuelle Bereinigung ausgeführt.</p>
@@ -93,7 +93,7 @@
     <div class="panel-heading-row section-heading">
       <div>
         <p class="eyebrow">Vorschau</p>
-        <h2>{{ preview.total_count }} abgelaufene Datei{{ '' if preview.total_count == 1 else 'en' }}</h2>
+        <h2>{{ preview.total_count }} abgelaufene Aufnahme{{ '' if preview.total_count == 1 else 'n' }}</h2>
         <small>Aufnahmeende bis einschließlich {{ preview.cutoff|local_datetime }} · {{ preview.total_bytes|filesize }} erfasst</small>
       </div>
       {% if preview.total_count %}
@@ -110,11 +110,11 @@
     {% if preview.recordings %}
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Datei</th><th>Stream</th><th>Aufnahmeende</th><th>Größe</th></tr></thead>
+          <thead><tr><th>Dateien</th><th>Stream</th><th>Aufnahmeende</th><th>Größe</th></tr></thead>
           <tbody>
             {% for recording in preview.recordings %}
               <tr>
-                <td data-label="Datei"><span class="recording-file">{{ recording.file_name }}</span></td>
+                <td data-label="Dateien"><span class="recording-file">{{ recording.display_file_name }}</span></td>
                 <td data-label="Stream">{{ recording.stream_name }}</td>
                 <td data-label="Aufnahmeende">{{ recording.ended_at|local_datetime }}</td>
                 <td data-label="Größe">{{ recording.file_size_bytes|filesize if recording.file_size_bytes is not none else 'Unbekannt' }}</td>
@@ -125,7 +125,7 @@
       </div>
       {% if preview.is_truncated %}<div class="notice notice-info retention-more">Gezeigt werden die 20 ältesten Treffer.</div>{% endif %}
     {% else %}
-      <div class="empty-state compact-empty"><p>Mit der aktuellen Frist ist keine Datei zu löschen.</p></div>
+      <div class="empty-state compact-empty"><p>Mit der aktuellen Frist ist keine Aufnahme zu bereinigen.</p></div>
     {% endif %}
   </section>
   </div>

@@ -209,6 +209,7 @@ td small { margin-top: .15rem; color: var(--muted); }
 .recording-file { min-width: 0; overflow-wrap: anywhere; color: #333; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .76rem; }
 .stream-url { min-width: 0; overflow-x: auto; color: #333; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; white-space: nowrap; scrollbar-width: thin; }
 .recording-data-row td, .stream-data-row td { padding-bottom: .65rem; }
+.recording-file-entry + .recording-file-entry { margin-top: .45rem; padding-top: .45rem; border-top: 1px solid rgba(0, 0, 0, .08); }
 .recording-file-row td, .stream-url-row td { padding-top: .65rem; border-top: 0; background: transparent; }
 .recording-active-row > td { background: var(--recording-active); }
 .schedule-section + .schedule-section { margin-top: 1rem; }
@@ -294,10 +295,12 @@ td small { margin-top: .15rem; color: var(--muted); }
   .panel-heading-row > form { width: 100%; }
   .table-scroll { overflow: visible; }
   table, thead, tbody, tr, th, td { display: block; }
+  tr[hidden] { display: none; }
   thead { display: none; }
   tr { padding: .8rem 1rem; border-top: 1px solid var(--border); }
   tr:first-child { border-top: 0; }
   .recording-file-row, .stream-url-row { border-top: 0; padding-top: 0; }
+  .recording-data-row-with-file.recording-active-row { padding-bottom: 0; }
   td { display: grid; grid-template-columns: 8.5rem 1fr; gap: .75rem; padding: .48rem 0; border: 0; }
   td::before { content: attr(data-label); color: #666; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
   td.table-action { display: block; padding-top: .8rem; text-align: left; }

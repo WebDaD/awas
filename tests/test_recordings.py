@@ -1,6 +1,8 @@
+import io
 import os
 import subprocess
 import time
+import zipfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -8,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from awas.models import AuditLog, Recording, RecordingSchedule, Stream
+from awas.models import AuditLog, Recording, RecordingFile, RecordingSchedule, Stream
 from awas.models.auth import utc_now
 from awas.services.auth import create_user
 from tests.conftest import form_token, login
@@ -115,7 +117,10 @@ def test_manual_recording_start_stop_and_download(
     assert 'data-live-interval="5000"' in recordings_page.text
     assert "Speicher verwalten" not in recordings_page.text
     assert f'href="/recordings/{recording_id}/download"' in recordings_page.text
-    assert 'class="recording-data-row recording-active-row"' in recordings_page.text
+    assert (
+        'class="recording-data-row recording-data-row-with-file recording-active-row"'
+        in recordings_page.text
+    )
     assert 'class="recording-file-row recording-active-row"' in recordings_page.text
     assert 'class="table-detail-value"' in recordings_page.text
     assert recording.file_name in recordings_page.text
@@ -332,11 +337,120 @@ def test_streamripper_cue_file_is_removed_when_recording_ends(
             ip_address="127.0.0.1",
         )
         recording_id = recording.id
-        output_path = app.state.recording_manager.output_path(recording)
+        output_path = Path(recording.storage_directory) / recording.file_name
 
     wait_for_status(app, recording_id, "completed")
     assert output_path.is_file()
     assert not output_path.with_suffix(".cue").exists()
+
+
+def test_streamripper_segments_are_listed_downloaded_as_zip_and_deleted_together(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "segmented-streamripper"
+    executable.write_text(
+        "#!/usr/bin/env python3\n"
+        "import pathlib\n"
+        "import sys\n"
+        "output = pathlib.Path(sys.argv[1])\n"
+        "stable = output.stem[20:]\n"
+        "first = output.with_name(f'2026_09_30_13_40_00_{stable}{output.suffix}')\n"
+        "first.write_bytes(b'first-segment')\n"
+        "second = output.with_name(f'2026_09_30_14_10_00_{stable}{output.suffix}')\n"
+        "second.write_bytes(b'second-segment')\n"
+        "output.write_bytes(b'legacy-segment')\n"
+        "legacy = output.with_name(f'{output.stem} (1){output.suffix}')\n"
+        "legacy.write_bytes(b'legacy-numbered-segment')\n"
+        "first.with_suffix('.cue').write_text('cue', encoding='utf-8')\n"
+        "second.with_suffix('.cue').write_text('cue', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+
+    def build_fake_command(*_args, output_path, **_kwargs):
+        return [str(executable), str(output_path)]
+
+    monkeypatch.setattr(
+        "awas.services.recording.build_recorder_command",
+        build_fake_command,
+    )
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Segment Stream",
+            stream_url="http://radio.example/segments",
+            preferred_recorder="streamripper",
+            preferred_file_type="mp3",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        recording = app.state.recording_manager.start_recording(
+            db,
+            stream=stream,
+            actor=admin,
+            ip_address="127.0.0.1",
+        )
+        recording_id = recording.id
+        output_path = Path(recording.storage_directory) / recording.file_name
+
+    wait_for_status(app, recording_id, "completed")
+    stable_stem = output_path.stem[20:]
+    segment_paths = [
+        output_path.with_name(
+            f"2026_09_30_13_40_00_{stable_stem}{output_path.suffix}"
+        ),
+        output_path.with_name(
+            f"2026_09_30_14_10_00_{stable_stem}{output_path.suffix}"
+        ),
+        output_path,
+        output_path.with_name(f"{output_path.stem} (1){output_path.suffix}"),
+    ]
+    assert all(path.is_file() for path in segment_paths)
+    assert not segment_paths[0].with_suffix(".cue").exists()
+    assert not segment_paths[1].with_suffix(".cue").exists()
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    listing = client.get("/recordings")
+    assert listing.status_code == 200
+    assert all(path.name in listing.text for path in segment_paths)
+    with app.state.session_factory() as db:
+        assert len(
+            list(
+                db.scalars(
+                    select(RecordingFile).where(
+                        RecordingFile.recording_id == recording_id
+                    )
+                )
+            )
+        ) == 4
+
+    download = client.get(f"/recordings/{recording_id}/download")
+    assert download.status_code == 200
+    assert download.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(io.BytesIO(download.content)) as archive:
+        assert set(archive.namelist()) == {path.name for path in segment_paths}
+        assert archive.read(segment_paths[0].name) == b"first-segment"
+        assert archive.read(segment_paths[1].name) == b"second-segment"
+        assert archive.read(segment_paths[2].name) == b"legacy-segment"
+        assert archive.read(segment_paths[3].name) == b"legacy-numbered-segment"
+
+    deleted = client.post(
+        f"/recordings/{recording_id}/delete",
+        data={
+            "csrf_token": form_token(listing.text),
+            "delete_confirmed": "true",
+        },
+        follow_redirects=False,
+    )
+    assert deleted.status_code == 303
+    assert not any(path.exists() for path in segment_paths)
+    with app.state.session_factory() as db:
+        assert db.get(Recording, recording_id) is None
+        assert db.scalar(select(RecordingFile.id)) is None
 
 
 def test_normal_user_can_start_and_stop_recording(

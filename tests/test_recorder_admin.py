@@ -25,6 +25,7 @@ def test_admin_views_and_updates_recorder_parameters(
     assert "yt-dlp" not in page.text
     assert "-metadata title=" not in page.text
     assert "-y " not in page.text
+    assert "beginnt <code>{output_base}</code> automatisch mit <code>%D</code>" in page.text
 
     arguments = "-nostdin -i {url} -map 0:a:0 -c:a copy {output}"
     updated = client.post(

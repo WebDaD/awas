@@ -306,7 +306,10 @@ def test_scheduler_starts_and_stops_recording(
 
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
     planning = client.get("/")
-    assert '<tr class="recording-data-row recording-active-row">' in planning.text
+    assert (
+        '<tr class="recording-data-row recording-data-row-with-file recording-active-row">'
+        in planning.text
+    )
     assert recording.file_name in planning.text
     assert f'href="/recordings/{recording_id}/download"' in planning.text
     assert f'action="/recordings/{recording_id}/stop"' in planning.text
@@ -623,6 +626,20 @@ def test_shutdown_interrupts_and_resumes_every_recorder(
         "awas.services.recording.build_recorder_command",
         build_fake_command,
     )
+    generated_file_names = iter(
+        (
+            f"2026-09-30_14-30-00_restart-{recorder}_aaaaaa.mp3",
+            f"2026-09-30_14-30-15_restart-{recorder}_bbbbbb.mp3",
+        )
+    )
+
+    def generate_file_name(*_args, **_kwargs):
+        return next(generated_file_names)
+
+    monkeypatch.setattr(
+        "awas.services.recording.recording_file_name",
+        generate_file_name,
+    )
     now = utc_now().replace(microsecond=0)
     with app.state.session_factory() as db:
         stream = Stream(
@@ -690,6 +707,14 @@ def test_shutdown_interrupts_and_resumes_every_recorder(
         )
         assert [item.status for item in recordings] == ["interrupted", "recording"]
         assert {item.recorder for item in recordings} == {recorder}
+        assert [item.file_name for item in recordings] == [
+            f"2026-09-30_14-30-00_restart-{recorder}_aaaaaa.mp3",
+            f"2026-09-30_14-30-15_restart-{recorder}_bbbbbb.mp3",
+        ]
+        assert len({item.group_key for item in recordings}) == 1
+        groups = app.state.recording_manager.recording_groups(db, recordings)
+        assert len(groups) == 1
+        assert len(groups[0].attempts) == 2
         resumed_id = recordings[-1].id
         schedule = db.get(RecordingSchedule, schedule_id)
         schedule.ends_at = retry_at

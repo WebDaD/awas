@@ -20,7 +20,7 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.2", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.7", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
@@ -46,6 +46,11 @@ def test_health_and_protected_pages(client: TestClient) -> None:
         ".recording-file-row, .stream-url-row { border-top: 0; padding-top: 0; }"
         in stylesheet.text
     )
+    assert (
+        ".recording-data-row-with-file.recording-active-row { padding-bottom: 0; }"
+        in stylesheet.text
+    )
+    assert "tr[hidden] { display: none; }" in stylesheet.text
     script = client.get("/static/app.js")
     assert "initializeMobileMenu" in script.text
     assert "window.confirm" not in script.text

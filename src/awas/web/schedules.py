@@ -19,6 +19,7 @@ from awas.models import (
 )
 from awas.models.auth import utc_now
 from awas.services.recorders import FILE_TYPE_CHOICES, RECORDER_CHOICES, recorder_label
+from awas.services.recording import RecordingGroup
 from awas.services.scheduling import (
     RecordingScheduler,
     ScheduleInputError,
@@ -380,12 +381,29 @@ def render_planning(
             .order_by(Recording.started_at.desc(), Recording.id.desc())
         )
     )
-    running_recordings: dict[int, Recording] = {}
     running_schedule_ids = {schedule.id for schedule in running_schedules}
-    for recording in active_recordings:
+    schedule_attempts = (
+        list(
+            db.scalars(
+                select(Recording)
+                .options(joinedload(Recording.started_by))
+                .where(Recording.schedule_id.in_(running_schedule_ids))
+                .order_by(Recording.started_at, Recording.id)
+            )
+        )
+        if running_schedule_ids
+        else []
+    )
+    group_inputs = schedule_attempts + [
+        recording for recording in active_recordings if recording.schedule_id is None
+    ]
+    recording_manager = request.app.state.recording_manager
+    active_groups = recording_manager.recording_groups(db, group_inputs)
+    running_recordings: dict[int, RecordingGroup] = {}
+    for recording in active_groups:
         if recording.schedule_id in running_schedule_ids:
             running_recordings.setdefault(recording.schedule_id, recording)
-    running_entries: list[dict[str, RecordingSchedule | Recording | None]] = [
+    running_entries: list[dict[str, RecordingSchedule | RecordingGroup | None]] = [
         {
             "schedule": schedule,
             "recording": running_recordings.get(schedule.id),
@@ -394,24 +412,19 @@ def render_planning(
     ]
     running_entries.extend(
         {"schedule": None, "recording": recording}
-        for recording in active_recordings
-        if recording.schedule_id is None
+        for recording in active_groups
+        if recording.schedule_id is None and recording.is_running
     )
     running_entries.sort(
         key=lambda entry: (
             entry["recording"].started_at
-            if isinstance(entry["recording"], Recording)
+            if isinstance(entry["recording"], RecordingGroup)
             else entry["schedule"].starts_at
             if isinstance(entry["schedule"], RecordingSchedule)
             else utc_now()
         ),
         reverse=True,
     )
-    recording_manager = request.app.state.recording_manager
-    running_file_sizes = {
-        recording.id: recording_manager.current_file_size(recording)
-        for recording in active_recordings
-    }
     timezone = request.app.state.settings.general.timezone
     local_today = utc_now().replace(tzinfo=UTC).astimezone(ZoneInfo(timezone)).date()
     return templates.TemplateResponse(
@@ -420,7 +433,6 @@ def render_planning(
         context=template_context(
             request,
             running_entries=running_entries,
-            running_file_sizes=running_file_sizes,
             upcoming_schedules=upcoming_schedules,
             recurring_schedules=recurring_schedules,
             local_today=local_today,

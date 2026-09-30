@@ -3,7 +3,7 @@
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder. The `v3` branch is
 independent of the legacy Node.js application on `master`.
 
-Version 3.0.2 provides the production foundation, authentication, stream
+Version 3.0.7 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -55,14 +55,16 @@ management and recording:
 - planning section headings with the total number of listed entries
 - recording storage overview with free-space and usage information
 - administrator-configurable recording directory with a write-access check
-- owner-or-administrator deletion of a recording entry and its associated file
+- all physical files and restarted segments belonging to one logical recording are
+  displayed together; multi-file downloads are provided as an uncompressed ZIP archive
+- owner-or-administrator deletion of a recording entry and all its associated files
 - inline two-click confirmation for deleting, stopping and discarding with a
   five-second deadline; the blinking button reserves its full width and uses no popup
   or separate page
 - stream deletion that retains recordings and detached recording history
 - optional age-based automatic retention, disabled by default
 - retention that deletes files while preserving recording history
-- cleanup preview, inline two-click confirmation and a 100-file limit per run
+- cleanup preview, inline two-click confirmation and a 100-recording limit per run
 - administrator export and validated replacement import of the complete SQLite database,
   including the persisted schedule history
 - five-second live updates for running recordings, planning and storage data
@@ -110,7 +112,9 @@ Administrators can inspect and edit every recorder's argument template under
 **Rekorder**. Program paths remain fixed; parameters are split into a direct
 argument list and are never executed through a shell. Templates use `{url}` and
 `{output}`; `streamripper` uses `{output_base}` instead of `{output}` because it
-adds the actual stream suffix itself. AWAS validates the required placeholders
+adds the actual stream suffix itself. For streamripper, AWAS replaces the static
+leading start time in this placeholder with `%D`, allowing every internally split
+file to receive its own leading timestamp. AWAS validates the required placeholders
 before saving.
 
 While a recording is running, its download link returns a fixed-size snapshot
@@ -121,13 +125,22 @@ Every planned recording is retried until its configured end time after an
 unexpected recorder exit, regardless of the recorder's return code. Consecutive
 short failures use delays of 15, 30, 60, 120 and then 300 seconds. A recording
 attempt that runs for at least one minute resets the delay to 15 seconds. Each
-successful restart creates a separate recording segment; spontaneous recordings
-have no end time and are therefore not restarted automatically. A retrying schedule
-can be stopped manually to prevent any further attempts.
+successful restart creates a separate physical recording segment. AWAS groups all
+attempts and files of the same planned recording into one visible entry. A download
+containing more than one file is delivered as an uncompressed ZIP archive; deleting
+the entry removes every associated file. Spontaneous recordings have no end time and
+are therefore not restarted automatically. A retrying schedule can be stopped manually
+to prevent any further attempts.
 
 Recorder diagnostics inherit the AWAS service's standard error output and are
 therefore available in the system journal without being buffered in AWAS memory.
-After streamripper exits, AWAS removes the cue file created alongside the recording.
+AWAS assigns every newly created physical file the timestamp of its own start at the
+beginning of the file name. This applies to automatic attempts after a recorder exit or
+an AWAS restart for every recorder. For files split internally by streamripper, AWAS
+passes `%D` at the beginning of its output pattern instead of appending another
+timestamp or accepting a parenthesized sequence number. After streamripper exits, AWAS
+removes all cue files created alongside the recording and discovers timestamped as well
+as legacy numbered files automatically.
 The ffmpeg profiles retry network and streamed-input failures, but do not treat a
 regular end-of-file as a connection failure. This keeps finite HLS playlists and
 Akamai HLS inputs compatible while retaining reconnect handling for network outages.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shlex
 import shutil
 from dataclasses import dataclass
@@ -124,6 +125,9 @@ LEGACY_RECORDER_EXTENSIONS = {
     "mplayer": ".stream",
 }
 ARGUMENT_PLACEHOLDERS = frozenset(("url", "output", "output_base"))
+FILE_TIMESTAMP_PREFIX = re.compile(
+    r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_"
+)
 
 
 def validate_recorder(value: str) -> str:
@@ -245,6 +249,11 @@ def build_recorder_command(
         argument_template if argument_template is not None else profile.default_arguments,
     )
     output_base = output_path.with_suffix("") if file_type else output_path
+    if profile.key == "streamripper":
+        dynamic_name = FILE_TIMESTAMP_PREFIX.sub("%D_", output_base.name, count=1)
+        if dynamic_name == output_base.name:
+            dynamic_name = f"%D_{dynamic_name}"
+        output_base = output_base.with_name(dynamic_name)
     values = {
         "url": stream_url,
         "output": str(output_path),

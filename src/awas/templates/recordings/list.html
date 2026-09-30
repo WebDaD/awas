@@ -26,8 +26,7 @@
             </thead>
             <tbody>
               {% for recording in recordings %}
-                {% set current_size = file_sizes.get(recording.id) %}
-                <tr class="recording-data-row{% if recording.is_running %} recording-active-row{% endif %}">
+                <tr class="recording-data-row recording-data-row-with-file{% if recording.is_running %} recording-active-row{% endif %}">
                   <td data-label="Aufnahme">
                     <strong>{{ recording.schedule.title if recording.schedule else 'Spontanaufnahme' }}</strong>
                     <small>{{ 'Zeitplan' if recording.schedule else 'Spontan' }}</small>
@@ -43,10 +42,10 @@
                   </td>
                   <td class="table-action">
                     <div class="action-group">
-                      {% if current_size is not none %}<a class="button button-quiet button-small" href="/recordings/{{ recording.id }}/download">Herunterladen</a>{% endif %}
+                      {% if recording.available_file_count %}<a class="button button-quiet button-small" href="/recordings/{{ recording.id }}/download">Herunterladen</a>{% endif %}
                       {% if recording.is_running %}
                         {% if current_user.is_admin or recording.started_by_id == current_user.id %}
-                          <form method="post" action="/recordings/{{ recording.id }}/stop">
+                          <form method="post" action="/recordings/{{ recording.active_recording.id }}/stop">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <input type="hidden" name="return_to" value="/recordings">
                             <input type="hidden" name="stop_confirmed" value="" data-action-confirm-value>
@@ -83,21 +82,23 @@
                   </td>
                 </tr>
                 <tr class="recording-file-row{% if recording.is_running %} recording-active-row{% endif %}">
-                  <td colspan="7" data-label="Datei">
-                    <div class="table-detail-line">
-                      <span class="recording-file">{{ recording.file_name }}</span>
-                      <span class="table-detail-value">
-                        {% if current_size is not none %}
-                          {{ current_size|filesize }}
-                        {% elif recording.file_deleted_at and recording.file_size_bytes is not none %}
-                          {{ recording.file_size_bytes|filesize }}
-                        {% else %}
-                          Nicht vorhanden
-                        {% endif %}
-                      </span>
-                    </div>
-                    {% if recording.file_deleted_at %}
-                      <small>Datei gelöscht am {{ recording.file_deleted_at|local_datetime }}</small>
+                  <td colspan="7" data-label="Dateien">
+                    {% if recording.files %}
+                      {% for file in recording.files %}
+                        <div class="recording-file-entry">
+                          <div class="table-detail-line">
+                            <span class="recording-file">{{ file.file_name }}</span>
+                            <span class="table-detail-value">{{ file.size_bytes|filesize if file.size_bytes is not none else 'Unbekannt' }}</span>
+                          </div>
+                          {% if file.deleted_at %}
+                            <small>Datei gelöscht am {{ file.deleted_at|local_datetime }}</small>
+                          {% elif not file.available %}
+                            <small>Datei nicht vorhanden</small>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                      <div class="table-detail-line"><span class="recording-file">Noch keine Datei vorhanden</span></div>
                     {% endif %}
                   </td>
                 </tr>

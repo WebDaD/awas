@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 from urllib.parse import quote
+from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import (
@@ -16,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from awas.models import Recording, Stream, User
+from awas.models import Recording, RecordingFile, Stream, User
 from awas.services.recorders import recorder_label
 from awas.services.recording import RecordingError, RecordingManager
 from awas.web.dependencies import (
@@ -136,37 +137,42 @@ def build_recording_router(templates: Jinja2Templates) -> APIRouter:
         db: Session = Depends(database),
     ) -> Response:
         recording = get_recording(db, recording_id)
-        if recording.file_deleted_at is not None:
-            raise HTTPException(status_code=404, detail="Aufnahmedatei nicht gefunden")
         manager: RecordingManager = request.app.state.recording_manager
         try:
-            path = manager.output_path(recording)
+            group = manager.recording_group(db, recording)
+            files = manager.available_group_files(db, recording)
         except RecordingError as exc:
             raise HTTPException(status_code=404, detail="Aufnahmedatei nicht gefunden") from exc
-        if not path.is_file():
+        if not files:
             raise HTTPException(status_code=404, detail="Aufnahmedatei nicht gefunden")
-        if recording.is_running:
-            try:
-                snapshot_size = path.stat().st_size
-            except OSError as exc:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Aufnahmedatei nicht gefunden",
-                ) from exc
-            file_name = path.name
+        if len(files) > 1:
+            archive_stem = Path(files[0][0].file_name).stem
+            archive_stem = archive_stem.rsplit(" (", 1)[0]
+            archive_name = f"{archive_stem}.zip"
+            return StreamingResponse(
+                _zip_snapshots(files),
+                media_type="application/zip",
+                headers={
+                    "Content-Disposition": (
+                        "attachment; filename*=utf-8''" + quote(archive_name)
+                    ),
+                },
+            )
+        recording_file, path, snapshot_size = files[0]
+        if group.is_running:
             return StreamingResponse(
                 _file_snapshot(path, snapshot_size),
                 media_type="application/octet-stream",
                 headers={
                     "Content-Length": str(snapshot_size),
                     "Content-Disposition": (
-                        "attachment; filename*=utf-8''" + quote(file_name)
+                        "attachment; filename*=utf-8''" + quote(recording_file.file_name)
                     ),
                 },
             )
         return FileResponse(
             path,
-            filename=recording.file_name,
+            filename=recording_file.file_name,
             media_type="application/octet-stream",
         )
 
@@ -225,7 +231,7 @@ def render_recordings(
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    recordings = list(
+    attempts = list(
         db.scalars(
             select(Recording)
             .options(
@@ -237,8 +243,8 @@ def render_recordings(
         )
     )
     manager: RecordingManager = request.app.state.recording_manager
+    recordings = manager.recording_groups(db, attempts)
     storage = manager.storage_snapshot(db)
-    file_sizes = {recording.id: manager.current_file_size(recording) for recording in recordings}
     return templates.TemplateResponse(
         request=request,
         name="recordings/list.html",
@@ -246,7 +252,6 @@ def render_recordings(
             request,
             recordings=recordings,
             storage=storage,
-            file_sizes=file_sizes,
             status_labels=STATUS_LABELS,
             recorder_label=recorder_label,
             notice=notice,
@@ -265,3 +270,58 @@ def _file_snapshot(path: Path, size: int) -> Iterator[bytes]:
                 break
             remaining -= len(chunk)
             yield chunk
+
+
+class _ZipStreamSink:
+    def __init__(self) -> None:
+        self.position = 0
+        self.chunks: list[bytes] = []
+
+    def write(self, data: bytes) -> int:
+        chunk = bytes(data)
+        self.chunks.append(chunk)
+        self.position += len(chunk)
+        return len(chunk)
+
+    def tell(self) -> int:
+        return self.position
+
+    def flush(self) -> None:
+        return None
+
+    def seekable(self) -> bool:
+        return False
+
+    def drain(self) -> Iterator[bytes]:
+        while self.chunks:
+            yield self.chunks.pop(0)
+
+
+def _zip_snapshots(files: list[tuple[RecordingFile, Path, int]]) -> Iterator[bytes]:
+    sink = _ZipStreamSink()
+    used_names: set[str] = set()
+    with ZipFile(sink, mode="w", compression=ZIP_STORED, allowZip64=True) as archive:
+        for recording_file, path, snapshot_size in files:
+            name = recording_file.file_name
+            if name in used_names:
+                stem = Path(name).stem
+                suffix = Path(name).suffix
+                counter = 2
+                while f"{stem} ({counter}){suffix}" in used_names:
+                    counter += 1
+                name = f"{stem} ({counter}){suffix}"
+            used_names.add(name)
+            info = ZipInfo(filename=name)
+            info.compress_type = ZIP_STORED
+            with archive.open(info, mode="w", force_zip64=True) as target:
+                remaining = snapshot_size
+                with path.open("rb") as source:
+                    while remaining > 0:
+                        chunk = source.read(min(1024 * 1024, remaining))
+                        if not chunk:
+                            break
+                        remaining -= len(chunk)
+                        target.write(chunk)
+                        yield from sink.drain()
+            yield from sink.drain()
+    yield from sink.drain()

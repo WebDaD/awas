@@ -57,7 +57,7 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
             text("SELECT COUNT(*) FROM recorder_settings")
         ).scalar_one()
 
-    assert revision == "0017"
+    assert revision == "0020"
     assert journal_mode == "wal"
     assert {
         "users",
@@ -66,6 +66,7 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
         "audit_log",
         "streams",
         "recordings",
+        "recording_files",
         "recording_schedules",
         "recurring_schedules",
         "retention_policy",
@@ -122,7 +123,81 @@ def test_stream_migration_preserves_existing_entries(tmp_path: Path, monkeypatch
         "streamripper",
         "ts",
     )
-    assert revision == "0017"
+    assert revision == "0020"
+    engine.dispose()
+    get_settings.cache_clear()
+
+
+def test_recording_group_migration_preserves_attempts_and_files(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "recording-groups.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0017")
+
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO streams (id, name, stream_url) "
+                "VALUES (1, 'Migration Stream', 'https://radio.example/migration')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO recording_schedules "
+                "(id, stream_id, title, starts_at, ends_at, file_name_base) "
+                "VALUES (7, 1, 'Migration Schedule', "
+                "'2026-09-29 10:00:00', '2026-09-29 11:00:00', 'migration')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO recordings "
+                "(id, stream_id, stream_name, file_name, status, started_at, ended_at, "
+                "file_size_bytes, schedule_id) VALUES "
+                "(1, 1, 'Migration Stream', 'part-1.ts', 'interrupted', "
+                "'2026-09-29 10:00:00', '2026-09-29 10:15:00', 11, 7), "
+                "(2, 1, 'Migration Stream', 'part-2.ts', 'completed', "
+                "'2026-09-29 10:15:15', '2026-09-29 11:00:00', 22, 7), "
+                "(3, 1, 'Migration Stream', 'manual.ts', 'completed', "
+                "'2026-09-29 12:00:00', '2026-09-29 12:30:00', 33, NULL)"
+            )
+        )
+    engine.dispose()
+
+    command.upgrade(alembic_config, "head")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        groups = connection.execute(
+            text("SELECT id, group_key FROM recordings ORDER BY id")
+        ).all()
+        files = connection.execute(
+            text(
+                "SELECT recording_id, file_name, file_size_bytes "
+                "FROM recording_files ORDER BY recording_id"
+            )
+        ).all()
+        revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
+
+    assert groups[0][1] == groups[1][1] == "schedule-7"
+    assert groups[2][1] == "recording-3"
+    assert [tuple(row) for row in files] == [
+        (1, "part-1.ts", 11),
+        (2, "part-2.ts", 22),
+        (3, "manual.ts", 33),
+    ]
+    assert revision == "0020"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -247,7 +322,7 @@ def test_recorder_cleanup_updates_defaults_and_active_yt_dlp_configuration(
             text("SELECT recorder FROM recurring_schedules")
         ).scalar_one()
 
-    assert revision == "0017"
+    assert revision == "0020"
     assert "yt-dlp" not in recorder_names
     assert "yt-dlp-ffmpeg" not in recorder_names
     assert "-map" not in ffmpeg_arguments
@@ -304,7 +379,7 @@ def test_hls_reconnect_migration_updates_unmodified_defaults(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
 
-    assert revision == "0017"
+    assert revision == "0020"
     assert new_arguments == {
         recorder: RECORDER_BY_KEY[recorder].default_arguments
         for recorder in ("ffmpeg", "ffmpeg-all")
@@ -359,6 +434,183 @@ def test_hls_reconnect_migration_preserves_custom_arguments(
     get_settings.cache_clear()
 
 
+def test_streamripper_timestamp_migration_updates_unmodified_default(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "streamripper-timestamp.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0018")
+
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        old_arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+    engine.dispose()
+
+    assert old_arguments == "{url} -a {output_base} -A --quiet -u winamp"
+
+    command.upgrade(alembic_config, "0019")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        new_arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+        revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
+
+    assert revision == "0019"
+    assert new_arguments == "{url} -a {output_base}_%D -A --quiet -u winamp"
+    engine.dispose()
+    get_settings.cache_clear()
+
+
+def test_streamripper_timestamp_migration_preserves_custom_arguments(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "custom-streamripper-timestamp.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0018")
+
+    custom_arguments = "{url} -a {output_base}_eigene-regel -A --quiet -u winamp"
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "UPDATE recorder_settings SET arguments = :arguments "
+                "WHERE recorder = 'streamripper'"
+            ),
+            {"arguments": custom_arguments},
+        )
+    engine.dispose()
+
+    command.upgrade(alembic_config, "0019")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+
+    assert arguments == custom_arguments
+    engine.dispose()
+    get_settings.cache_clear()
+
+
+def test_streamripper_leading_timestamp_migration_updates_unmodified_default(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "streamripper-leading-timestamp.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0019")
+
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        old_arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+    engine.dispose()
+
+    assert old_arguments == "{url} -a {output_base}_%D -A --quiet -u winamp"
+
+    command.upgrade(alembic_config, "head")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        new_arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+        revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
+
+    assert revision == "0020"
+    assert new_arguments == RECORDER_BY_KEY["streamripper"].default_arguments
+    assert new_arguments == "{url} -a {output_base} -A --quiet -u winamp"
+    engine.dispose()
+    get_settings.cache_clear()
+
+
+def test_streamripper_leading_timestamp_migration_preserves_custom_arguments(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "custom-streamripper-leading-timestamp.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0019")
+
+    custom_arguments = "{url} -a eigene-regel-{output_base} -A --quiet -u winamp"
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "UPDATE recorder_settings SET arguments = :arguments "
+                "WHERE recorder = 'streamripper'"
+            ),
+            {"arguments": custom_arguments},
+        )
+    engine.dispose()
+
+    command.upgrade(alembic_config, "head")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        arguments = connection.execute(
+            text(
+                "SELECT arguments FROM recorder_settings "
+                "WHERE recorder = 'streamripper'"
+            )
+        ).scalar_one()
+
+    assert arguments == custom_arguments
+    engine.dispose()
+    get_settings.cache_clear()
+
+
 def test_deleted_user_migration_preserves_existing_users(tmp_path: Path, monkeypatch) -> None:
     database_path = tmp_path / "deleted-users-upgrade.db"
     config_path = tmp_path / "awas.toml"
@@ -393,7 +645,7 @@ def test_deleted_user_migration_preserves_existing_users(tmp_path: Path, monkeyp
         }
 
     assert tuple(user) == ("existing", "Existing User", 1, None)
-    assert revision == "0017"
+    assert revision == "0020"
     assert "ix_users_deleted_at" in indexes
     engine.dispose()
     get_settings.cache_clear()
@@ -453,7 +705,7 @@ def test_discarded_schedule_migration_hides_existing_entries(
         ).scalar_one()
 
     assert visibility == {"Verworfen": 1, "Abgeschlossen": 0}
-    assert revision == "0017"
+    assert revision == "0020"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -515,7 +767,7 @@ def test_schedule_migration_preserves_existing_recordings(tmp_path: Path, monkey
         None,
         None,
     )
-    assert revision == "0017"
+    assert revision == "0020"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -584,7 +836,7 @@ def test_recurring_migration_preserves_one_time_schedules(tmp_path: Path, monkey
 
     assert tuple(row) == ("One-time Show", "scheduled", None, None, "ffmpeg", "ts", 0)
     assert recording_schedule_id == schedule_id
-    assert revision == "0017"
+    assert revision == "0020"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -791,6 +1043,6 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
     assert tuple(schedule_row) == (None, recurrence_id)
     assert tuple(recurrence_row) == (None,)
     assert foreign_key_errors == []
-    assert revision == "0017"
+    assert revision == "0020"
     engine.dispose()
     get_settings.cache_clear()
