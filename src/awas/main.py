@@ -12,6 +12,8 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
+from jinja2.runtime import Context
 from sqlalchemy import delete, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -57,7 +59,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     engine = create_database_engine(app_settings.database.url)
     session_factory = create_session_factory(engine)
-    local_timezone = ZoneInfo(app_settings.general.timezone)
     recording_manager = RecordingManager(
         session_factory,
         app_settings.recording.directory,
@@ -73,8 +74,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         sqlite_database_path(app_settings.database.url)
     )
 
-    def local_datetime(value: datetime) -> str:
-        return value.replace(tzinfo=UTC).astimezone(local_timezone).strftime("%d.%m.%Y %H:%M")
+    @pass_context
+    def local_datetime(context: Context, value: datetime) -> str:
+        request = context.get("request")
+        timezone = (
+            request.app.state.timezone
+            if isinstance(request, Request)
+            else app_settings.general.timezone
+        )
+        return (
+            value.replace(tzinfo=UTC)
+            .astimezone(ZoneInfo(timezone))
+            .strftime("%d.%m.%Y %H:%M")
+        )
 
     def duration(value: int) -> str:
         hours, remainder = divmod(max(0, value), 3600)
@@ -95,7 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     templates.env.filters["filesize"] = filesize
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(lifespan_app: FastAPI) -> AsyncIterator[None]:
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -113,10 +125,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             storage_configuration = ensure_storage_configuration(
                 db,
                 app_settings.recording.directory,
+                app_settings.general.timezone,
             )
             recording_manager.set_recording_directory(
                 Path(storage_configuration.recording_directory)
             )
+            recording_manager.set_timezone(storage_configuration.timezone)
+            recording_scheduler.set_timezone(storage_configuration.timezone)
+            lifespan_app.state.timezone = storage_configuration.timezone
         recording_manager.reconcile_staged_deletions()
         recording_manager.reconcile_interrupted()
         recording_scheduler.start()
@@ -138,6 +154,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = app_settings
+    app.state.timezone = app_settings.general.timezone
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.recording_manager = recording_manager

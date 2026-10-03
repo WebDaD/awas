@@ -155,23 +155,17 @@
                   <td data-label="Zeit">{{ rule.start_time_label }}–{{ rule.end_time_label }}</td>
                   <td data-label="Gültigkeit">ab {{ rule.valid_from.strftime('%d.%m.%Y') }}{% if rule.valid_until %}<small>bis {{ rule.valid_until.strftime('%d.%m.%Y') }}</small>{% else %}<small>unbegrenzt</small>{% endif %}</td>
                   <td data-label="Status">
-                    {% if rule.valid_until and rule.valid_until < local_today %}
-                      <span class="badge badge-muted">Beendet</span>
-                    {% else %}
-                      <span class="badge {{ '' if rule.is_active else 'badge-muted' }}">{{ 'Aktiv' if rule.is_active else 'Pausiert' }}</span>
-                    {% endif %}
+                    <span class="badge {{ '' if rule.is_active else 'badge-muted' }}">{{ 'Aktiv' if rule.is_active else 'Pausiert' }}</span>
                   </td>
                   <td class="table-action">
                     {% if current_user.is_admin or rule.created_by_id == current_user.id %}
                       <div class="action-group">
                         <a class="button button-quiet button-small" href="/schedules/recurring/{{ rule.id }}/edit">Bearbeiten</a>
-                        {% if not rule.valid_until or rule.valid_until >= local_today %}
-                          <form method="post" action="/schedules/recurring/{{ rule.id }}/status">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <input type="hidden" name="enabled" value="{{ 'false' if rule.is_active else 'true' }}">
-                            <button class="button {{ 'button-warning' if rule.is_active else 'button-success' }} button-small" type="submit">{{ 'Pausieren' if rule.is_active else 'Aktivieren' }}</button>
-                          </form>
-                        {% endif %}
+                        <form method="post" action="/schedules/recurring/{{ rule.id }}/status">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="enabled" value="{{ 'false' if rule.is_active else 'true' }}">
+                          <button class="button {{ 'button-warning' if rule.is_active else 'button-success' }} button-small" type="submit">{{ 'Pausieren' if rule.is_active else 'Aktivieren' }}</button>
+                        </form>
                         <form method="post" action="/schedules/recurring/{{ rule.id }}/delete">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                           <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>

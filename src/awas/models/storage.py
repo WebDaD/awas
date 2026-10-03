@@ -18,6 +18,7 @@ class StorageConfiguration(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     recording_directory: Mapped[str] = mapped_column(String(4096))
+    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Berlin")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now)
     updated_by_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Speicher · AWAS{% endblock %}
+{% block title %}Einstellungen · AWAS{% endblock %}
 {% block content %}
   {% set form_enabled = values.enabled if values else policy.enabled %}
   {% set form_days = values.retention_days if values else policy.retention_days %}
   <section class="page-heading compact-heading heading-with-action">
     <div>
       <p class="eyebrow">Administration</p>
-      <h1>Speicher</h1>
+      <h1>Einstellungen</h1>
     </div>
   </section>
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
@@ -20,18 +20,38 @@
     <article class="storage-card"><span>Datenträger belegt</span><strong>{{ storage.used_percent }} %</strong><small>{{ storage.used_bytes|filesize }} von {{ storage.total_bytes|filesize }}</small></article>
   </section>
 
-  <section class="panel settings-card settings-card-wide storage-directory-card">
-    <h2>Aufnahmepfad</h2>
-    <form method="post" action="/admin/storage/directory" class="form-stack">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <label>
-        <span>Verzeichnis für neue Aufnahmen</span>
-        <input name="recording_directory" value="{{ recording_directory }}" required maxlength="4096" autocomplete="off" spellcheck="false">
-        <small>Das Verzeichnis muss bereits vorhanden sein. Der Systembenutzer awas-service benötigt dort Schreib- und Ausführungsrechte sowie Ausführungsrechte auf allen übergeordneten Verzeichnissen.</small>
-      </label>
-      <div class="notice notice-info">Die Änderung gilt für neu gestartete Aufnahmen. Bereits vorhandene und laufende Aufnahmen bleiben mit ihrem bisherigen Speicherort verknüpft.</div>
-      <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
-    </form>
+  <section class="settings-grid settings-primary-grid">
+    <article class="panel settings-card">
+      <h2>Aufnahmepfad</h2>
+      <form method="post" action="/admin/storage/directory" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          <span>Verzeichnis für neue Aufnahmen</span>
+          <input name="recording_directory" value="{{ recording_directory }}" required maxlength="4096" autocomplete="off" spellcheck="false">
+          <small>Das Verzeichnis muss bereits vorhanden sein. Der Systembenutzer awas-service benötigt dort Schreib- und Ausführungsrechte sowie Ausführungsrechte auf allen übergeordneten Verzeichnissen.</small>
+        </label>
+        <div class="notice notice-info">Die Änderung gilt für neu gestartete Aufnahmen. Bereits vorhandene und laufende Aufnahmen bleiben mit ihrem bisherigen Speicherort verknüpft.</div>
+        <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
+      </form>
+    </article>
+
+    <article class="panel settings-card timezone-card">
+      <h2>Zeitzone</h2>
+      <form method="post" action="/admin/storage/timezone" class="form-stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          <span>Zeitzone für AWAS</span>
+          <select name="timezone" required>
+            {% for timezone in timezone_choices %}
+              <option value="{{ timezone }}" {% if timezone == selected_timezone %}selected{% endif %}>{{ timezone }}</option>
+            {% endfor %}
+          </select>
+          <small>Standard ist Europe/Berlin.</small>
+        </label>
+        <div class="notice notice-info">Alle Zeitangaben, Eingaben und Planungen in AWAS verwenden diese Zeitzone. Die Zeitzone des Browsers wird nicht berücksichtigt.</div>
+        <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
+      </form>
+    </article>
   </section>
 
   <section class="panel settings-card settings-card-wide database-backup-card">

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from sqlalchemy.engine import make_url
 
-CURRENT_DATABASE_REVISION = "0020"
+CURRENT_DATABASE_REVISION = "0021"
 MAX_DATABASE_IMPORT_BYTES = 256 * 1024 * 1024
 SQLITE_HEADER = b"SQLite format 3\x00"
 REQUIRED_TABLES = frozenset(

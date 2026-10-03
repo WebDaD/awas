@@ -26,7 +26,10 @@ from awas.services.recorders import (
     validate_recorder_url,
 )
 from awas.services.recording import RecordingError, RecordingManager
-from awas.services.recurrence import refresh_recurring_occurrences
+from awas.services.recurrence import (
+    rebuild_pending_recurring_occurrences,
+    refresh_recurring_occurrences,
+)
 
 logger = logging.getLogger(__name__)
 MAX_SCHEDULE_DURATION = timedelta(days=7)
@@ -295,6 +298,24 @@ class RecordingScheduler:
     def wake(self, *, refresh_recurring: bool = False) -> None:
         if refresh_recurring:
             self._recurrence_refresh_requested.set()
+        self._wake_event.set()
+
+    def set_timezone(self, timezone: str, *, rebuild_pending: bool = False) -> None:
+        ZoneInfo(timezone)
+        current_time = utc_now()
+        with self._run_lock:
+            self._timezone = timezone
+            if rebuild_pending:
+                with self._session_factory() as db:
+                    rebuild_pending_recurring_occurrences(
+                        db,
+                        timezone=timezone,
+                        now=current_time,
+                    )
+                self._last_recurrence_refresh = current_time
+                self._recurrence_refresh_requested.clear()
+            else:
+                self._recurrence_refresh_requested.set()
         self._wake_event.set()
 
     def stop_schedule(

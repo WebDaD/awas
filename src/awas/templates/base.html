@@ -31,7 +31,7 @@
             <a href="/streams" {% if request.url.path == '/streams' or request.url.path.startswith('/admin/streams') %}aria-current="page"{% endif %}>Streams</a>
             <a href="/recordings" {% if request.url.path.startswith('/recordings') %}aria-current="page"{% endif %}>Aufnahmen</a>
             {% if current_user.is_admin %}
-              <a href="/admin/storage" {% if request.url.path.startswith('/admin/storage') %}aria-current="page"{% endif %}>Speicher</a>
+              <a href="/admin/storage" {% if request.url.path.startswith('/admin/storage') %}aria-current="page"{% endif %}>Einstellungen</a>
               <a href="/admin/recorders" {% if request.url.path.startswith('/admin/recorders') %}aria-current="page"{% endif %}>Rekorder</a>
               <a href="/admin/users" {% if request.url.path.startswith('/admin/users') %}aria-current="page"{% endif %}>Benutzer</a>
             {% endif %}

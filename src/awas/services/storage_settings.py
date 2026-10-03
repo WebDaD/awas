@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import tempfile
+from functools import lru_cache
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from sqlalchemy.orm import Session
 
@@ -14,19 +16,49 @@ class StorageInputError(ValueError):
     pass
 
 
+DEFAULT_TIMEZONE = "Europe/Berlin"
+
+
+@lru_cache(maxsize=1)
+def timezone_choices() -> tuple[str, ...]:
+    zones = available_timezones() - {"localtime"}
+    zones.add(DEFAULT_TIMEZONE)
+    return tuple(
+        sorted(
+            zones,
+            key=lambda zone: (zone != DEFAULT_TIMEZONE, zone.casefold(), zone),
+        )
+    )
+
+
 def ensure_storage_configuration(
     db: Session,
     default_directory: Path,
+    default_timezone: str = DEFAULT_TIMEZONE,
 ) -> StorageConfiguration:
     configuration = db.get(StorageConfiguration, 1)
     if configuration is None:
         configuration = StorageConfiguration(
             id=1,
             recording_directory=str(default_directory.resolve()),
+            timezone=validate_timezone(default_timezone),
         )
         db.add(configuration)
         db.commit()
     return configuration
+
+
+def validate_timezone(value: str) -> str:
+    normalized = value.strip()
+    if not normalized or len(normalized) > 64 or normalized == "localtime":
+        raise StorageInputError("Die ausgewählte Zeitzone ist ungültig.")
+    try:
+        ZoneInfo(normalized)
+    except (ValueError, ZoneInfoNotFoundError) as exc:
+        raise StorageInputError("Die ausgewählte Zeitzone ist ungültig.") from exc
+    if normalized not in timezone_choices():
+        raise StorageInputError("Die ausgewählte Zeitzone ist ungültig.")
+    return normalized
 
 
 def validate_recording_directory(value: str) -> Path:
@@ -88,3 +120,29 @@ def update_recording_directory(
     )
     db.commit()
     return normalized_directory
+
+
+def update_timezone(
+    db: Session,
+    configuration: StorageConfiguration,
+    *,
+    timezone: str,
+    actor: User,
+    ip_address: str,
+) -> str:
+    normalized_timezone = validate_timezone(timezone)
+    previous = configuration.timezone
+    configuration.timezone = normalized_timezone
+    configuration.updated_at = utc_now()
+    configuration.updated_by_id = actor.id
+    add_audit_entry(
+        db,
+        "settings.timezone.updated",
+        actor=actor,
+        target_type="storage_configuration",
+        target_id=configuration.id,
+        ip_address=ip_address,
+        details={"previous": previous, "current": normalized_timezone},
+    )
+    db.commit()
+    return normalized_timezone

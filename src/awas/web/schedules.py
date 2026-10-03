@@ -134,7 +134,7 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
             selected_file_type = file_type or stream.preferred_file_type
             values["recorder"] = selected_recorder
             values["file_type"] = selected_file_type
-            timezone = request.app.state.settings.general.timezone
+            timezone = request.app.state.timezone
             create_schedule(
                 db,
                 stream=stream,
@@ -171,7 +171,7 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
         ensure_can_manage(schedule, user)
         if not schedule.is_editable:
             raise HTTPException(status_code=409, detail="Zeitplan ist nicht mehr bearbeitbar")
-        timezone = request.app.state.settings.general.timezone
+        timezone = request.app.state.timezone
         return render_schedule_form(
             templates,
             request,
@@ -221,7 +221,7 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
             selected_file_type = file_type or stream.preferred_file_type
             values["recorder"] = selected_recorder
             values["file_type"] = selected_file_type
-            timezone = request.app.state.settings.general.timezone
+            timezone = request.app.state.timezone
             update_schedule(
                 db,
                 schedule,
@@ -333,6 +333,8 @@ def render_planning(
     request: Request,
     db: Session,
 ) -> HTMLResponse:
+    timezone = request.app.state.timezone
+    local_today = utc_now().replace(tzinfo=UTC).astimezone(ZoneInfo(timezone)).date()
     schedule_options = (
         joinedload(RecordingSchedule.stream),
         joinedload(RecordingSchedule.created_by),
@@ -367,7 +369,11 @@ def render_planning(
                 joinedload(RecurringSchedule.stream),
                 joinedload(RecurringSchedule.created_by),
             )
-            .where(RecurringSchedule.is_hidden.is_(False))
+            .where(
+                RecurringSchedule.is_hidden.is_(False),
+                (RecurringSchedule.valid_until.is_(None))
+                | (RecurringSchedule.valid_until >= local_today),
+            )
             .order_by(RecurringSchedule.is_active.desc(), RecurringSchedule.title)
         )
     )
@@ -425,8 +431,6 @@ def render_planning(
         ),
         reverse=True,
     )
-    timezone = request.app.state.settings.general.timezone
-    local_today = utc_now().replace(tzinfo=UTC).astimezone(ZoneInfo(timezone)).date()
     return templates.TemplateResponse(
         request=request,
         name="schedules/list.html",
@@ -519,7 +523,7 @@ def render_schedule_form(
             values=values,
             recorder_choices=RECORDER_CHOICES,
             file_type_choices=FILE_TYPE_CHOICES,
-            timezone=request.app.state.settings.general.timezone,
+            timezone=request.app.state.timezone,
             error=error,
         ),
         status_code=status_code,

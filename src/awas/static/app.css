@@ -219,7 +219,7 @@ td small { margin-top: .15rem; color: var(--muted); }
 .action-group form { margin: 0; }
 .compact-empty { padding: 1.2rem; }
 .storage-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
-.storage-directory-card { margin-bottom: 1rem; }
+.settings-primary-grid { margin-bottom: 1rem; }
 .database-backup-card { margin-bottom: 1rem; }
 .database-backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .database-backup-action { min-width: 0; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
@@ -301,6 +301,13 @@ td small { margin-top: .15rem; color: var(--muted); }
   tr:first-child { border-top: 0; }
   .recording-file-row, .stream-url-row { border-top: 0; padding-top: 0; }
   .recording-data-row-with-file.recording-active-row { padding-bottom: 0; }
+  .recording-file-row td > .recording-file-entry,
+  .recording-file-row td > .table-detail-line { grid-column: 2; }
+  .stream-data-row.recording-active-row,
+  .stream-url-row.recording-active-row { background: var(--recording-active); }
+  .stream-data-row.recording-active-row { padding-bottom: 0; }
+  .stream-data-row.recording-active-row > td,
+  .stream-url-row.recording-active-row > td { background: transparent; }
   td { display: grid; grid-template-columns: 8.5rem 1fr; gap: .75rem; padding: .48rem 0; border: 0; }
   td::before { content: attr(data-label); color: #666; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
   td.table-action { display: block; padding-top: .8rem; text-align: left; }

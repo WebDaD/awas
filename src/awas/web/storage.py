@@ -33,7 +33,9 @@ from awas.services.scheduling import RecordingScheduler
 from awas.services.storage_settings import (
     StorageInputError,
     ensure_storage_configuration,
+    timezone_choices,
     update_recording_directory,
+    update_timezone,
 )
 from awas.web.dependencies import (
     client_ip,
@@ -47,6 +49,7 @@ from awas.web.dependencies import (
 STATUS_MESSAGES = {
     "saved": "Die Aufbewahrungseinstellungen wurden gespeichert.",
     "directory-saved": "Der Aufnahmepfad wurde gespeichert.",
+    "timezone-saved": "Die Zeitzone wurde gespeichert.",
     "cleaned": "Die Speicherbereinigung wurde abgeschlossen.",
     "partial": "Die Speicherbereinigung wurde mit Fehlern abgeschlossen.",
     "database-imported": "Die Datenbank wurde vollständig importiert.",
@@ -117,6 +120,7 @@ def build_storage_router(templates: Jinja2Templates) -> APIRouter:
         configuration = ensure_storage_configuration(
             db,
             request.app.state.settings.recording.directory,
+            request.app.state.settings.general.timezone,
         )
         try:
             normalized_directory = update_recording_directory(
@@ -139,6 +143,47 @@ def build_storage_router(templates: Jinja2Templates) -> APIRouter:
         recording_manager.set_recording_directory(normalized_directory)
         return RedirectResponse(
             url="/admin/storage?status=directory-saved",
+            status_code=303,
+        )
+
+    @router.post("/timezone", response_class=HTMLResponse, include_in_schema=False)
+    async def save_timezone(
+        request: Request,
+        timezone: str = Form(..., max_length=64),
+        csrf_token: str = Form(..., max_length=128),
+        admin: User = Depends(require_admin),
+        db: Session = Depends(database),
+    ) -> Response:
+        validate_csrf(request, csrf_token)
+        configuration = ensure_storage_configuration(
+            db,
+            request.app.state.settings.recording.directory,
+            request.app.state.settings.general.timezone,
+        )
+        try:
+            normalized_timezone = update_timezone(
+                db,
+                configuration,
+                timezone=timezone,
+                actor=admin,
+                ip_address=client_ip(request),
+            )
+        except StorageInputError as exc:
+            return render_storage_page(
+                templates,
+                request,
+                db,
+                error=str(exc),
+                timezone_value=timezone,
+                status_code=400,
+            )
+        recording_manager: RecordingManager = request.app.state.recording_manager
+        scheduler: RecordingScheduler = request.app.state.recording_scheduler
+        recording_manager.set_timezone(normalized_timezone)
+        scheduler.set_timezone(normalized_timezone, rebuild_pending=True)
+        request.app.state.timezone = normalized_timezone
+        return RedirectResponse(
+            url="/admin/storage?status=timezone-saved",
             status_code=303,
         )
 
@@ -186,7 +231,7 @@ def build_storage_router(templates: Jinja2Templates) -> APIRouter:
             ip_address=client_ip(request),
         )
         db.commit()
-        timezone = ZoneInfo(request.app.state.settings.general.timezone)
+        timezone = ZoneInfo(request.app.state.timezone)
         timestamp = utc_now().replace(tzinfo=UTC).astimezone(timezone).strftime("%Y%m%d-%H%M%S")
         return FileResponse(
             export_path,
@@ -254,9 +299,15 @@ def render_storage_page(
     error: str | None = None,
     values: dict[str, object] | None = None,
     directory_value: str | None = None,
+    timezone_value: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     policy = ensure_retention_policy(db)
+    configuration = ensure_storage_configuration(
+        db,
+        request.app.state.settings.recording.directory,
+        request.app.state.settings.general.timezone,
+    )
     recording_manager: RecordingManager = request.app.state.recording_manager
     retention_manager: RetentionManager = request.app.state.retention_manager
     return templates.TemplateResponse(
@@ -272,6 +323,10 @@ def render_storage_page(
                 if directory_value is not None
                 else str(recording_manager.recording_directory)
             ),
+            selected_timezone=(
+                timezone_value if timezone_value is not None else configuration.timezone
+            ),
+            timezone_choices=timezone_choices(),
             batch_limit=MAX_DELETIONS_PER_RUN,
             max_database_import_mib=MAX_DATABASE_IMPORT_BYTES // (1024 * 1024),
             notice=notice,
@@ -369,6 +424,7 @@ def _install_database(
                 storage_configuration = ensure_storage_configuration(
                     imported_db,
                     request.app.state.settings.recording.directory,
+                    request.app.state.settings.general.timezone,
                 )
                 imported_db.execute(delete(WebSession))
                 imported_db.add(
@@ -390,7 +446,11 @@ def _install_database(
                 )
                 imported_db.commit()
                 recording_directory = Path(storage_configuration.recording_directory)
+                recording_timezone = storage_configuration.timezone
             recording_manager.set_recording_directory(recording_directory)
+            recording_manager.set_timezone(recording_timezone)
+            scheduler.set_timezone(recording_timezone)
+            request.app.state.timezone = recording_timezone
             recording_manager.reconcile_staged_deletions()
             recording_manager.reconcile_interrupted()
         except Exception:
@@ -412,10 +472,14 @@ def _install_database(
             storage_configuration = ensure_storage_configuration(
                 runtime_db,
                 request.app.state.settings.recording.directory,
+                request.app.state.settings.general.timezone,
             )
             recording_manager.set_recording_directory(
                 Path(storage_configuration.recording_directory)
             )
+            recording_manager.set_timezone(storage_configuration.timezone)
+            scheduler.set_timezone(storage_configuration.timezone)
+            request.app.state.timezone = storage_configuration.timezone
         scheduler.start()
         scheduler.wake(refresh_recurring=True)
         retention_manager.start()

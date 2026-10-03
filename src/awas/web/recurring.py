@@ -161,7 +161,7 @@ def build_recurring_router(templates: Jinja2Templates) -> APIRouter:
                 duration_minutes=calculate_duration(start_minute, end_minute),
                 valid_from=require_date(parse_date(valid_from, "Das Startdatum")),
                 valid_until=parse_date(valid_until, "Das Enddatum", optional=True),
-                timezone=request.app.state.settings.general.timezone,
+                timezone=request.app.state.timezone,
                 actor=user,
                 ip_address=client_ip(request),
             )
@@ -272,7 +272,7 @@ def build_recurring_router(templates: Jinja2Templates) -> APIRouter:
                 duration_minutes=calculate_duration(start_minute, end_minute),
                 valid_from=require_date(parse_date(valid_from, "Das Startdatum")),
                 valid_until=parse_date(valid_until, "Das Enddatum", optional=True),
-                timezone=request.app.state.settings.general.timezone,
+                timezone=request.app.state.timezone,
                 actor=user,
                 ip_address=client_ip(request),
             )
@@ -309,7 +309,7 @@ def build_recurring_router(templates: Jinja2Templates) -> APIRouter:
                 db,
                 rule,
                 enabled=activate,
-                timezone=request.app.state.settings.general.timezone,
+                timezone=request.app.state.timezone,
                 actor=user,
                 ip_address=client_ip(request),
             )
@@ -524,7 +524,7 @@ def render_recurring_form(
             month_week_options=MONTH_WEEK_OPTIONS,
             recorder_choices=RECORDER_CHOICES,
             file_type_choices=FILE_TYPE_CHOICES,
-            timezone=request.app.state.settings.general.timezone,
+            timezone=request.app.state.timezone,
             error=error,
         ),
         status_code=status_code,

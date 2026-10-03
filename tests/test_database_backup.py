@@ -24,7 +24,7 @@ def set_database_revision(app: FastAPI) -> None:
         )
         connection.execute(text("DELETE FROM alembic_version"))
         connection.execute(
-            text("INSERT INTO alembic_version (version_num) VALUES ('0020')")
+            text("INSERT INTO alembic_version (version_num) VALUES ('0021')")
         )
 
 
@@ -57,7 +57,7 @@ def test_admin_exports_complete_database(
     with sqlite3.connect(export_path) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("0020",)
+        ).fetchone() == ("0021",)
         assert connection.execute(
             "SELECT name FROM streams WHERE name = 'Export Stream'"
         ).fetchone() == ("Export Stream",)

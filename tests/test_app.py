@@ -20,7 +20,7 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.7", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.8", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
@@ -48,6 +48,13 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     )
     assert (
         ".recording-data-row-with-file.recording-active-row { padding-bottom: 0; }"
+        in stylesheet.text
+    )
+    assert ".recording-file-row td > .recording-file-entry," in stylesheet.text
+    assert ".recording-file-row td > .table-detail-line { grid-column: 2; }" in stylesheet.text
+    assert ".stream-data-row.recording-active-row," in stylesheet.text
+    assert (
+        ".stream-url-row.recording-active-row { background: var(--recording-active); }"
         in stylesheet.text
     )
     assert "tr[hidden] { display: none; }" in stylesheet.text
@@ -86,7 +93,7 @@ def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
     nav_labels = [">Planung</a>", ">Historie</a>", ">Streams</a>", ">Aufnahmen</a>"]
     nav_positions = [planning.text.index(label) for label in nav_labels]
     assert nav_positions == sorted(nav_positions)
-    admin_labels = [">Speicher</a>", ">Rekorder</a>", ">Benutzer</a>"]
+    admin_labels = [">Einstellungen</a>", ">Rekorder</a>", ">Benutzer</a>"]
     admin_positions = [planning.text.index(label) for label in admin_labels]
     assert nav_positions[-1] < admin_positions[0]
     assert admin_positions == sorted(admin_positions)

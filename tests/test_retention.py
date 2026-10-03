@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -10,6 +10,7 @@ from sqlalchemy import select
 from awas.models import (
     AuditLog,
     Recording,
+    RecordingSchedule,
     RetentionPolicy,
     StorageConfiguration,
     Stream,
@@ -95,6 +96,74 @@ def test_storage_settings_are_admin_only(
     assert '<p class="eyebrow">Administration</p>' in page.text
     assert "Aufnahmepfad" in page.text
     assert "awas-service" in page.text
+    assert "<h1>Einstellungen</h1>" in page.text
+    assert "Zeitzone für AWAS" in page.text
+    assert '<option value="Europe/Berlin" selected>' in page.text
+    assert '<option value="UTC"' in page.text
+    assert "Die Zeitzone des Browsers wird nicht berücksichtigt." in page.text
+
+
+def test_admin_changes_application_timezone(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Timezone Stream",
+            stream_url="https://radio.example/timezone",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        db.add(
+            RecordingSchedule(
+                stream_id=stream.id,
+                title="Timezone Test",
+                starts_at=datetime(2030, 1, 1, 12, 0),
+                ends_at=datetime(2030, 1, 1, 13, 0),
+                status="scheduled",
+                created_by_id=admin.id,
+            )
+        )
+        db.commit()
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    planning = client.get("/")
+    assert "01.01.2030 13:00" in planning.text
+    settings_page = client.get("/admin/storage")
+
+    invalid = client.post(
+        "/admin/storage/timezone",
+        data={
+            "timezone": "Mars/Olympus",
+            "csrf_token": form_token(settings_page.text),
+        },
+    )
+    assert invalid.status_code == 400
+    assert "Zeitzone ist ungültig" in invalid.text
+    assert app.state.timezone == "Europe/Berlin"
+
+    saved = client.post(
+        "/admin/storage/timezone",
+        data={
+            "timezone": "UTC",
+            "csrf_token": form_token(invalid.text),
+        },
+        follow_redirects=False,
+    )
+    assert saved.status_code == 303
+    assert saved.headers["location"] == "/admin/storage?status=timezone-saved"
+    assert app.state.timezone == "UTC"
+    assert client.get("/").text.find("01.01.2030 12:00") >= 0
+
+    with app.state.session_factory() as db:
+        configuration = db.get(StorageConfiguration, 1)
+        assert configuration.timezone == "UTC"
+        assert configuration.updated_by_id == admin.id
+        assert db.scalar(
+            select(AuditLog).where(AuditLog.action == "settings.timezone.updated")
+        )
 
 
 def test_admin_changes_recording_directory_only_for_new_recordings(

@@ -371,6 +371,33 @@ def refresh_recurring_occurrences(
     return generated
 
 
+def rebuild_pending_recurring_occurrences(
+    db: Session,
+    *,
+    timezone: str,
+    now: datetime | None = None,
+) -> int:
+    """Rebuild future occurrences after the application timezone changes."""
+    current_time = now or utc_now()
+    rules = list(
+        db.scalars(
+            select(RecurringSchedule).where(
+                RecurringSchedule.is_hidden.is_(False),
+            )
+        )
+    )
+    for rule in rules:
+        _delete_pending_occurrences(db, rule.id, current_time)
+    db.flush()
+    generated = refresh_recurring_occurrences(
+        db,
+        timezone=timezone,
+        now=current_time,
+    )
+    db.commit()
+    return generated
+
+
 def generate_rule_occurrences(
     db: Session,
     rule: RecurringSchedule,

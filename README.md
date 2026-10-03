@@ -1,9 +1,8 @@
 # AWAS 3
 
-AWAS 3 is a from-scratch rewrite of the AWAS stream recorder. The `v3` branch is
-independent of the legacy Node.js application on `master`.
+AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.7 provides the production foundation, authentication, stream
+Version 3.0.8 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -48,6 +47,8 @@ management and recording:
 - recurring schedules with configurable hourly, daily, weekly and monthly
   intervals, including fixed monthly dates and positions such as the first Monday
 - pausable series with optional validity ranges and DST-safe occurrence generation
+- expired recurrence rules disappear automatically from planning, which contains
+  only upcoming, running, active and paused entries
 - future recurring occurrences represented only by their recurrence rule until they run
 - automatic continuation of every time-limited recording after restarts and recorder
   failures, with retry delays of 15, 30, 60, 120 and at most 300 seconds
@@ -55,6 +56,9 @@ management and recording:
 - planning section headings with the total number of listed entries
 - recording storage overview with free-space and usage information
 - administrator-configurable recording directory with a write-access check
+- administrator-configurable application timezone, defaulting to `Europe/Berlin`;
+  every displayed or entered time and every schedule uses this timezone without
+  consulting the browser timezone
 - all physical files and restarted segments belonging to one logical recording are
   displayed together; multi-file downloads are provided as an uncompressed ZIP archive
 - owner-or-administrator deletion of a recording entry and all its associated files
@@ -72,6 +76,8 @@ management and recording:
 - automatic removal of streamripper cue files when a recording ends
 - consistent attribution of planning and recording entries to their initiating users
 - stream URLs and recording files grouped visually with their respective entries
+- mobile multi-file entries are stacked vertically, and active stream details and
+  their URL form one uninterrupted highlighted unit
 - desktop content using 90 percent of the available page width
 - pale-orange highlighting for every row that represents a running recording
 - interface with the digiandi logo, violet navigation, pale-violet page background
@@ -200,7 +206,7 @@ The installer creates the non-login system user `awas-service` and uses these pa
 On upgrades, the installer preserves existing AWAS nginx site files so locally
 configured host names and certificate integration are not overwritten.
 
-The recording directory can be changed under **Speicher**. The directory must
+The recording directory can be changed under **Einstellungen**. The directory must
 already exist; AWAS does not change ownership or permissions. The system user
 `awas-service` needs read, write and execute permissions on the recording
 directory and execute permission on every parent directory. For a dedicated new
@@ -214,7 +220,13 @@ The changed directory is used only for newly started recordings. Existing and
 currently running recordings remain linked to the directory in which they were
 started.
 
-The complete SQLite database can be downloaded and restored under **Speicher**.
+The AWAS timezone can also be selected under **Einstellungen**. The default is
+`Europe/Berlin`; all available IANA timezones can be selected. AWAS deliberately
+ignores the browser timezone and interprets every schedule input in the selected
+application timezone. Changing it keeps one-time schedules at their existing absolute
+instant and regenerates future occurrences of recurring schedules for the new timezone.
+
+The complete SQLite database can be downloaded and restored under **Einstellungen**.
 The backup includes users, password hashes, streams, schedules, recording history
 and application settings. It does not include recording files or
 `/etc/awas/awas.toml`; those must be backed up separately. Imports accept only a

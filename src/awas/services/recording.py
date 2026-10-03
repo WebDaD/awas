@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from glob import escape as glob_escape
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -241,6 +242,11 @@ class RecordingManager:
     def set_recording_directory(self, recording_directory: Path) -> None:
         with self._lock:
             self._recording_directory = recording_directory.resolve()
+
+    def set_timezone(self, timezone: str) -> None:
+        ZoneInfo(timezone)
+        with self._lock:
+            self._timezone = timezone
 
     def recording_groups(
         self,

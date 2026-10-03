@@ -469,7 +469,11 @@ def test_recurring_horizon_is_replenished(app: FastAPI, admin) -> None:
     assert second_max == first_max + timedelta(days=10)
 
 
-def test_expired_recurring_rule_is_closed(app: FastAPI, admin) -> None:
+def test_expired_recurring_rule_is_closed(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
     now = utc_now().replace(microsecond=0)
     timezone = app.state.settings.general.timezone
     today = now.replace(tzinfo=UTC).astimezone(ZoneInfo(timezone)).date()
@@ -500,6 +504,74 @@ def test_expired_recurring_rule_is_closed(app: FastAPI, admin) -> None:
         assert refresh_recurring_occurrences(db, timezone=timezone, now=now) == 0
         assert db.get(RecurringSchedule, rule_id).is_active is False
         assert db.scalar(select(AuditLog).where(AuditLog.action == "recurrence.expired"))
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    planning = client.get("/")
+    assert "Abgelaufen" not in planning.text
+    assert "Beendet" not in planning.text
+    assert "<h2>Wiederholungen (0)</h2>" in planning.text
+
+
+def test_timezone_change_rebuilds_pending_recurring_occurrences(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    now = utc_now().replace(microsecond=0)
+    timezone = app.state.timezone
+    target_date = (
+        now.replace(tzinfo=UTC).astimezone(ZoneInfo(timezone)).date()
+        + timedelta(days=2)
+    )
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Timezone Series",
+            stream_url="https://radio.example/timezone-series",
+            preferred_recorder="ffmpeg",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        rule = create_recurring_schedule(
+            db,
+            stream=stream,
+            title="Timezone Series",
+            weekday_mask=1 << target_date.weekday(),
+            start_minute=12 * 60,
+            duration_minutes=60,
+            valid_from=target_date,
+            valid_until=target_date,
+            timezone=timezone,
+            actor=admin,
+            ip_address="127.0.0.1",
+            now=now,
+        )
+        rule_id = rule.id
+        previous_start = db.scalar(
+            select(RecordingSchedule.starts_at).where(
+                RecordingSchedule.recurrence_id == rule_id
+            )
+        )
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    settings_page = client.get("/admin/storage")
+    changed = client.post(
+        "/admin/storage/timezone",
+        data={"timezone": "UTC", "csrf_token": form_token(settings_page.text)},
+        follow_redirects=False,
+    )
+    assert changed.status_code == 303
+
+    with app.state.session_factory() as db:
+        starts = list(
+            db.scalars(
+                select(RecordingSchedule.starts_at).where(
+                    RecordingSchedule.recurrence_id == rule_id
+                )
+            )
+        )
+    assert starts == [datetime.combine(target_date, datetime.min.time()).replace(hour=12)]
+    assert starts[0] != previous_start
 
 
 def test_monthly_first_monday_and_fixed_day_are_generated(app: FastAPI, admin) -> None:
