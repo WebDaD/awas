@@ -28,6 +28,8 @@ def add_schedule(
     stream_id: int,
     title: str = "Morgensendung",
     file_name_base: str | None = None,
+    recorder: str | None = None,
+    file_type: str | None = None,
     start_offset: timedelta = timedelta(hours=1),
     duration: timedelta = timedelta(minutes=30),
 ):
@@ -44,6 +46,10 @@ def add_schedule(
     }
     if file_name_base is not None:
         data["file_name_base"] = file_name_base
+    if recorder is not None:
+        data["recorder"] = recorder
+    if file_type is not None:
+        data["file_type"] = file_type
     return client.post(
         "/schedules",
         data=data,
@@ -82,6 +88,7 @@ def test_user_creates_edits_and_cancels_schedule(
     assert listing.text.index("<small>Einmalig</small>") < listing.text.index(
         "<small>von AWAS Admin</small>"
     )
+    assert f'href="/schedules/{schedule_id}/copy"' in listing.text
     edit_page = client.get(f"/schedules/{schedule_id}/edit")
     assert 'data-preferred-recorder="ffmpeg"' in edit_page.text
     assert 'data-preferred-file-type="mp3"' in edit_page.text
@@ -110,7 +117,9 @@ def test_user_creates_edits_and_cancels_schedule(
         assert stream.preferred_file_type == "mp3"
 
     listing = client.get("/")
-    assert "Wirklich verwerfen?" in listing.text
+    assert "Verwerfen" not in listing.text
+    assert "Wirklich löschen?" in listing.text
+    assert 'name="delete_confirmed"' in listing.text
     unconfirmed = client.post(
         f"/schedules/{schedule_id}/cancel",
         data={"csrf_token": form_token(listing.text)},
@@ -123,7 +132,7 @@ def test_user_creates_edits_and_cancels_schedule(
         f"/schedules/{schedule_id}/cancel",
         data={
             "csrf_token": form_token(listing.text),
-            "discard_confirmed": "true",
+            "delete_confirmed": "true",
         },
         follow_redirects=False,
     )
@@ -161,6 +170,155 @@ def test_new_schedule_form_has_empty_times_and_save_button(
     assert "data-file-name-base" in page.text
     assert "Zeitplan anlegen" not in page.text
     assert ">Speichern</button>" in page.text
+
+
+def test_upcoming_schedule_can_be_copied_without_changing_the_source(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    assert add_stream(client).status_code == 303
+    with app.state.session_factory() as db:
+        stream_id = db.scalar(select(Stream.id))
+
+    created = add_schedule(
+        client,
+        stream_id=stream_id,
+        title="Vorlage Abendmagazin",
+        file_name_base="abendmagazin_vorlage",
+        recorder="mpv",
+        file_type="ogg",
+        start_offset=timedelta(hours=2),
+        duration=timedelta(hours=1),
+    )
+    assert created.status_code == 303
+    with app.state.session_factory() as db:
+        source = db.scalar(select(RecordingSchedule))
+        source_id = source.id
+        source_start = source.starts_at
+        source_end = source.ends_at
+
+    copied_form = client.get(f"/schedules/{source_id}/copy")
+
+    assert copied_form.status_code == 200
+    assert "<h1>Aufnahme planen</h1>" in copied_form.text
+    assert 'form method="post" action="/schedules"' in copied_form.text
+    assert 'name="title" value="Vorlage Abendmagazin"' in copied_form.text
+    assert 'name="file_name_base" value="abendmagazin_vorlage"' in copied_form.text
+    assert f'<option value="{stream_id}"' in copied_form.text
+    selected_stream_option = (
+        f'<option value="{stream_id}" data-preferred-recorder="ffmpeg" '
+        'data-preferred-file-type="mp3" selected>'
+    )
+    assert selected_stream_option in copied_form.text
+    assert '<option value="mpv" selected>mpv</option>' in copied_form.text
+    assert '<option value="ogg" selected>ogg</option>' in copied_form.text
+    with app.state.session_factory() as db:
+        assert len(list(db.scalars(select(RecordingSchedule)))) == 1
+
+    timezone = app.state.settings.general.timezone
+    new_start = source_start + timedelta(days=1)
+    saved_copy = client.post(
+        "/schedules",
+        data={
+            "title": "Kopie Abendmagazin",
+            "file_name_base": "abendmagazin_kopie",
+            "stream_id": str(stream_id),
+            "recorder": "vlc",
+            "file_type": "ts",
+            "starts_at": datetime_local_value(new_start, timezone),
+            "ends_at": datetime_local_value(source_end + timedelta(days=1), timezone),
+            "csrf_token": form_token(copied_form.text),
+        },
+        follow_redirects=False,
+    )
+
+    assert saved_copy.status_code == 303
+    assert saved_copy.headers["location"] == "/?status=created"
+    with app.state.session_factory() as db:
+        schedules = list(db.scalars(select(RecordingSchedule).order_by(RecordingSchedule.id)))
+        stream = db.get(Stream, stream_id)
+        assert len(schedules) == 2
+        assert schedules[0].id == source_id
+        assert schedules[0].title == "Vorlage Abendmagazin"
+        assert schedules[0].recorder == "mpv"
+        assert schedules[0].file_type == "ogg"
+        assert schedules[1].title == "Kopie Abendmagazin"
+        assert schedules[1].recorder == "vlc"
+        assert schedules[1].file_type == "ts"
+        assert stream.preferred_recorder == "ffmpeg"
+        assert stream.preferred_file_type == "mp3"
+
+
+def test_completed_schedule_can_be_edited_from_history(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    assert add_stream(client).status_code == 303
+    now = utc_now().replace(second=0, microsecond=0)
+    with app.state.session_factory() as db:
+        stream = db.scalar(select(Stream))
+        schedule = RecordingSchedule(
+            stream_id=stream.id,
+            title="Historischer Titel",
+            file_name_base="historischer_titel",
+            recorder="ffmpeg",
+            file_type="mp3",
+            starts_at=now - timedelta(hours=2),
+            ends_at=now - timedelta(hours=1),
+            status="failed",
+            error_message="Bestehender Fehlertext",
+            created_by_id=admin.id,
+        )
+        db.add(schedule)
+        db.commit()
+        schedule_id = schedule.id
+        stream_id = stream.id
+
+    history = client.get("/history")
+    assert history.status_code == 200
+    assert f'href="/schedules/{schedule_id}/edit"' in history.text
+    assert f'action="/schedules/{schedule_id}/delete"' in history.text
+    assert "Eintrag löschen" not in history.text
+
+    edit_page = client.get(f"/schedules/{schedule_id}/edit")
+    assert edit_page.status_code == 200
+    assert "<h1>Zeitplan bearbeiten</h1>" in edit_page.text
+    assert 'href="/history">Abbrechen</a>' in edit_page.text
+    timezone = app.state.settings.general.timezone
+    changed_start = now - timedelta(hours=3)
+    changed = client.post(
+        f"/schedules/{schedule_id}",
+        data={
+            "title": "Korrigierter historischer Titel",
+            "file_name_base": "korrigierte_historie",
+            "stream_id": str(stream_id),
+            "recorder": "mpv",
+            "file_type": "ogg",
+            "starts_at": datetime_local_value(changed_start, timezone),
+            "ends_at": datetime_local_value(changed_start + timedelta(minutes=45), timezone),
+            "csrf_token": form_token(edit_page.text),
+        },
+        follow_redirects=False,
+    )
+
+    assert changed.status_code == 303
+    assert changed.headers["location"] == "/history?status=updated"
+    with app.state.session_factory() as db:
+        schedule = db.get(RecordingSchedule, schedule_id)
+        stream = db.get(Stream, stream_id)
+        assert schedule.title == "Korrigierter historischer Titel"
+        assert schedule.file_name_base == "korrigierte_historie"
+        assert schedule.recorder == "mpv"
+        assert schedule.file_type == "ogg"
+        assert schedule.starts_at == changed_start
+        assert schedule.status == "failed"
+        assert schedule.error_message == "Bestehender Fehlertext"
+        assert stream.preferred_recorder == "ffmpeg"
+        assert stream.preferred_file_type == "mp3"
 
 
 def test_schedule_stores_custom_file_name_base(
@@ -230,6 +388,7 @@ def test_normal_user_can_plan_but_not_edit_another_users_schedule(
     assert login(client, "listener", "listener").status_code == 303
     assert client.get("/").status_code == 200
     assert client.get(f"/schedules/{schedule_id}/edit").status_code == 403
+    assert client.get(f"/schedules/{schedule_id}/copy").status_code == 403
 
     own = add_schedule(
         client,
@@ -251,7 +410,7 @@ def test_normal_user_can_plan_but_not_edit_another_users_schedule(
         f"/schedules/{own_schedule_id}/cancel",
         data={
             "csrf_token": form_token(planning.text),
-            "discard_confirmed": "true",
+            "delete_confirmed": "true",
         },
         follow_redirects=False,
     )

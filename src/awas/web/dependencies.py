@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
-from awas import __version__
+from awas import __release_date__, __version__
 from awas.auth.tokens import csrf_from_session_token, session_cookie_name, tokens_match
 from awas.models import User, WebSession
 
@@ -86,15 +86,11 @@ def validate_stop_confirmation(confirmed: str | None) -> None:
         raise HTTPException(status_code=400, detail="Das Stoppen muss bestätigt werden.")
 
 
-def validate_discard_confirmation(confirmed: str | None) -> None:
-    if confirmed != "true":
-        raise HTTPException(status_code=400, detail="Das Verwerfen muss bestätigt werden.")
-
-
 def template_context(request: Request, **extra: object) -> dict[str, object]:
     context: dict[str, object] = {
         "request": request,
         "version": __version__,
+        "release_date": __release_date__,
         "current_user": current_user(request),
         "csrf_token": csrf_token(request),
     }

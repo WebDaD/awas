@@ -48,13 +48,12 @@
             </form>
           </div>
         </div>
-      {% else %}
-        <span class="version">Version {{ version }}</span>
       {% endif %}
     </header>
 
     <main class="page">
       {% block content %}{% endblock %}
     </main>
+    <footer class="site-footer">AWAS {{ version }} · Release {{ release_date }}</footer>
   </body>
 </html>

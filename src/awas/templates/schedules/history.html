@@ -30,14 +30,17 @@
                   </td>
                   <td class="table-action">
                     {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
-                      <form method="post" action="/schedules/{{ schedule.id }}/delete">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
-                        <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
-                          <span class="action-initial-label">Eintrag löschen</span>
-                          <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
-                        </button>
-                      </form>
+                      <div class="action-group">
+                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/edit">Bearbeiten</a>
+                        <form method="post" action="/schedules/{{ schedule.id }}/delete">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                            <span class="action-initial-label">Löschen</span>
+                            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                          </button>
+                        </form>
+                      </div>
                     {% endif %}
                   </td>
                 </tr>

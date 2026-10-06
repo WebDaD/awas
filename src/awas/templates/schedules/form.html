@@ -53,7 +53,7 @@
           <label><span>Ende</span><input type="datetime-local" name="ends_at" value="{{ values.ends_at }}" required></label>
         </div>
         <div class="form-actions">
-        <a class="button button-quiet" href="/">Abbrechen</a>
+          <a class="button button-quiet" href="{{ return_to if editing else '/' }}">Abbrechen</a>
           <button class="button button-primary" type="submit">{{ 'Änderungen speichern' if editing else 'Speichern' }}</button>
         </div>
       </form>

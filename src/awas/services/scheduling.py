@@ -94,6 +94,7 @@ def create_schedule(
         starts_at=starts_at,
         ends_at=ends_at,
         now=now or utc_now(),
+        require_future_start=True,
     )
     try:
         normalized_recorder = validate_recorder(recorder or stream.preferred_recorder)
@@ -156,6 +157,7 @@ def update_schedule(
         starts_at=starts_at,
         ends_at=ends_at,
         now=now or utc_now(),
+        require_future_start=schedule.status == "scheduled",
     )
     try:
         normalized_recorder = validate_recorder(recorder or stream.preferred_recorder)
@@ -171,7 +173,8 @@ def update_schedule(
     schedule.file_type = normalized_file_type
     schedule.starts_at = starts_at
     schedule.ends_at = ends_at
-    schedule.error_message = None
+    if schedule.status == "scheduled":
+        schedule.error_message = None
     schedule.updated_at = utc_now()
     add_audit_entry(
         db,
@@ -186,6 +189,7 @@ def update_schedule(
             "recorder": normalized_recorder,
             "file_type": normalized_file_type,
             "file_name_base": normalized_file_name,
+            "status": schedule.status,
         },
     )
     db.commit()
@@ -248,11 +252,12 @@ def _validate_schedule(
     starts_at: datetime,
     ends_at: datetime,
     now: datetime,
+    require_future_start: bool,
 ) -> str:
     normalized_title = " ".join(title.strip().split())
     if not 1 <= len(normalized_title) <= 128:
         raise ScheduleInputError("Die Bezeichnung muss 1 bis 128 Zeichen lang sein.")
-    if starts_at <= now:
+    if require_future_start and starts_at <= now:
         raise ScheduleInputError("Die Startzeit muss in der Zukunft liegen.")
     if ends_at <= starts_at:
         raise ScheduleInputError("Die Endzeit muss nach der Startzeit liegen.")

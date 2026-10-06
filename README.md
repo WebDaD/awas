@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.8 provides the production foundation, authentication, stream
+Version 3.0.9 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -41,6 +41,7 @@ management and recording:
 - running planned and spontaneous recordings expose the same file name, live file size,
   download and permitted stop controls on the planning and recordings pages
 - one-time recording schedules with local-time input
+- editable historical schedules and prefilled copying of upcoming one-time schedules
 - discarded schedules disappear immediately and are not retained in the visible
   schedule history
 - automatic start and stop with restart-aware continuation
@@ -62,7 +63,7 @@ management and recording:
 - all physical files and restarted segments belonging to one logical recording are
   displayed together; multi-file downloads are provided as an uncompressed ZIP archive
 - owner-or-administrator deletion of a recording entry and all its associated files
-- inline two-click confirmation for deleting, stopping and discarding with a
+- inline two-click confirmation for deleting and stopping with a
   five-second deadline; the blinking button reserves its full width and uses no popup
   or separate page
 - stream deletion that retains recordings and detached recording history
@@ -78,8 +79,12 @@ management and recording:
 - stream URLs and recording files grouped visually with their respective entries
 - mobile multi-file entries are stacked vertically, and active stream details and
   their URL form one uninterrupted highlighted unit
+- mobile running entries use the pale-orange background across their complete width,
+  including the space around their data and file rows
 - desktop content using 90 percent of the available page width
 - pale-orange highlighting for every row that represents a running recording
+- publicly accessible, cacheable favicon files for persistent browser bookmarks
+- a small footer on every HTML page with the AWAS version and release date
 - interface with the digiandi logo, violet navigation, pale-violet page background
   and orange `#f87f40` action accents
 

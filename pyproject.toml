@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "awas"
-version = "3.0.8"
+version = "3.0.9"
 description = "A modern, self-hosted stream recorder for Debian, Raspberry Pi OS and Ubuntu"
 readme = "README.md"
 requires-python = ">=3.12"

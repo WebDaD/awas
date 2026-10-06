@@ -39,14 +39,13 @@ from awas.web.dependencies import (
     template_context,
     validate_csrf,
     validate_delete_confirmation,
-    validate_discard_confirmation,
     validate_stop_confirmation,
 )
 
 STATUS_MESSAGES = {
     "created": "Der Zeitplan wurde angelegt.",
     "updated": "Der Zeitplan wurde gespeichert.",
-    "discarded": "Der Zeitplan wurde verworfen.",
+    "discarded": "Der Zeitplan wurde gelöscht.",
     "stopped": "Die Aufnahme wurde beendet. Weitere Versuche finden nicht statt.",
     "deleted": "Der Zeitplaneintrag wurde ausgeblendet.",
     "recurrence-created": "Die Wiederholung wurde angelegt.",
@@ -102,6 +101,24 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
                 "recorder": "",
                 "file_type": "",
             },
+        )
+
+    @router.get("/{schedule_id}/copy", response_class=HTMLResponse, include_in_schema=False)
+    async def copy_schedule_page(
+        schedule_id: int,
+        request: Request,
+        user: User = Depends(require_user),
+        db: Session = Depends(database),
+    ) -> HTMLResponse:
+        schedule = get_schedule(db, schedule_id)
+        ensure_can_manage(schedule, user)
+        if schedule.status != "scheduled" or schedule.recurrence_id is not None:
+            raise HTTPException(status_code=409, detail="Zeitplan kann nicht kopiert werden")
+        return render_schedule_form(
+            templates,
+            request,
+            db,
+            values=schedule_form_values(schedule, request.app.state.timezone),
         )
 
     @router.post("", response_class=HTMLResponse, include_in_schema=False)
@@ -172,20 +189,14 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
         if not schedule.is_editable:
             raise HTTPException(status_code=409, detail="Zeitplan ist nicht mehr bearbeitbar")
         timezone = request.app.state.timezone
+        return_to = schedule_edit_return_path(schedule)
         return render_schedule_form(
             templates,
             request,
             db,
             schedule=schedule,
-            values={
-                "title": schedule.title,
-                "file_name_base": schedule.file_name_base,
-                "stream_id": str(schedule.stream_id),
-                "starts_at": datetime_local_value(schedule.starts_at, timezone),
-                "ends_at": datetime_local_value(schedule.ends_at, timezone),
-                "recorder": schedule.recorder,
-                "file_type": schedule.file_type,
-            },
+            values=schedule_form_values(schedule, timezone),
+            return_to=return_to,
         )
 
     @router.post("/{schedule_id}", response_class=HTMLResponse, include_in_schema=False)
@@ -236,30 +247,33 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
                 ip_address=client_ip(request),
             )
         except ScheduleInputError as exc:
+            return_to = schedule_edit_return_path(schedule)
             return render_schedule_form(
                 templates,
                 request,
                 db,
                 schedule=schedule,
                 values=values,
+                return_to=return_to,
                 error=str(exc),
                 status_code=400,
             )
         scheduler: RecordingScheduler = request.app.state.recording_scheduler
         scheduler.wake()
-        return RedirectResponse(url="/?status=updated", status_code=303)
+        destination = schedule_edit_return_path(schedule)
+        return RedirectResponse(url=f"{destination}?status=updated", status_code=303)
 
     @router.post("/{schedule_id}/cancel", include_in_schema=False)
     async def remove_schedule(
         schedule_id: int,
         request: Request,
-        discard_confirmed: str = Form("", max_length=5),
+        delete_confirmed: str = Form("", max_length=5),
         csrf_token: str = Form(..., max_length=128),
         user: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> Response:
         validate_csrf(request, csrf_token)
-        validate_discard_confirmation(discard_confirmed)
+        validate_delete_confirmation(delete_confirmed)
         schedule = get_schedule(db, schedule_id)
         ensure_can_manage(schedule, user)
         try:
@@ -499,6 +513,27 @@ def ensure_can_manage(schedule: RecordingSchedule, user: User) -> None:
         raise AuthorizationDenied
 
 
+def schedule_form_values(
+    schedule: RecordingSchedule,
+    timezone: str,
+) -> dict[str, str]:
+    return {
+        "title": schedule.title,
+        "file_name_base": schedule.file_name_base,
+        "stream_id": str(schedule.stream_id or ""),
+        "starts_at": datetime_local_value(schedule.starts_at, timezone),
+        "ends_at": datetime_local_value(schedule.ends_at, timezone),
+        "recorder": schedule.recorder,
+        "file_type": schedule.file_type,
+    }
+
+
+def schedule_edit_return_path(
+    schedule: RecordingSchedule,
+) -> str:
+    return "/" if schedule.status == "scheduled" else "/history"
+
+
 def render_schedule_form(
     templates: Jinja2Templates,
     request: Request,
@@ -506,6 +541,7 @@ def render_schedule_form(
     *,
     values: dict[str, str],
     schedule: RecordingSchedule | None = None,
+    return_to: str = "/",
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
@@ -519,6 +555,7 @@ def render_schedule_form(
         context=template_context(
             request,
             schedule=schedule,
+            return_to=return_to,
             streams=streams,
             values=values,
             recorder_choices=RECORDER_CHOICES,

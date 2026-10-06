@@ -51,6 +51,8 @@ from awas.web.streams import build_stream_router
 from awas.web.users import build_user_router
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+FAVICON_PATHS = frozenset(("/favicon.ico", "/static/favicon.ico", "/static/favicon.png"))
+FAVICON_CACHE_CONTROL = "public, max-age=604800"
 templates = Jinja2Templates(directory=PACKAGE_DIR / "templates")
 logger = logging.getLogger(__name__)
 
@@ -201,7 +203,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "default-src 'self'; img-src 'self' data:; style-src 'self'; "
             "script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'"
         )
-        if not request.url.path.startswith("/static/"):
+        if request.url.path in FAVICON_PATHS:
+            response.headers["Cache-Control"] = FAVICON_CACHE_CONTROL
+        elif not request.url.path.startswith("/static/"):
             response.headers["Cache-Control"] = "no-store"
         return response
 

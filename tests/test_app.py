@@ -20,16 +20,24 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.8", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.9", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
+    assert "AWAS 3.0.9 · Release 06.10.2026" in login_page.text
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
     assert favicon.headers["content-type"] == "image/x-icon"
+    assert favicon.headers["cache-control"] == "public, max-age=604800"
+    favicon_png = client.get("/static/favicon.png")
+    assert favicon_png.status_code == 200
+    assert favicon_png.headers["cache-control"] == "public, max-age=604800"
+    static_favicon = client.get("/static/favicon.ico")
+    assert static_favicon.status_code == 200
+    assert static_favicon.headers["cache-control"] == "public, max-age=604800"
     stylesheet = client.get("/static/app.css")
     assert "--bg: #d8d7f5" in stylesheet.text
     assert "background: #3B35CE" in stylesheet.text
@@ -52,11 +60,8 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     )
     assert ".recording-file-row td > .recording-file-entry," in stylesheet.text
     assert ".recording-file-row td > .table-detail-line { grid-column: 2; }" in stylesheet.text
-    assert ".stream-data-row.recording-active-row," in stylesheet.text
-    assert (
-        ".stream-url-row.recording-active-row { background: var(--recording-active); }"
-        in stylesheet.text
-    )
+    assert ".recording-active-row { background: var(--recording-active); }" in stylesheet.text
+    assert ".recording-active-row > td { background: transparent; }" in stylesheet.text
     assert "tr[hidden] { display: none; }" in stylesheet.text
     script = client.get("/static/app.js")
     assert "initializeMobileMenu" in script.text
