@@ -251,7 +251,7 @@ def test_upcoming_schedule_can_be_copied_without_changing_the_source(
         assert stream.preferred_file_type == "mp3"
 
 
-def test_completed_schedule_can_be_edited_from_history(
+def test_history_schedule_can_be_copied_without_changing_the_source(
     app: FastAPI,
     client: TestClient,
     admin,
@@ -280,43 +280,64 @@ def test_completed_schedule_can_be_edited_from_history(
 
     history = client.get("/history")
     assert history.status_code == 200
-    assert f'href="/schedules/{schedule_id}/edit"' in history.text
+    assert f'href="/schedules/{schedule_id}/copy"' in history.text
+    assert f'href="/schedules/{schedule_id}/edit"' not in history.text
     assert f'action="/schedules/{schedule_id}/delete"' in history.text
     assert "Eintrag löschen" not in history.text
 
-    edit_page = client.get(f"/schedules/{schedule_id}/edit")
-    assert edit_page.status_code == 200
-    assert "<h1>Zeitplan bearbeiten</h1>" in edit_page.text
-    assert 'href="/history">Abbrechen</a>' in edit_page.text
+    copied_form = client.get(f"/schedules/{schedule_id}/copy")
+    assert copied_form.status_code == 200
+    assert "<h1>Aufnahme planen</h1>" in copied_form.text
+    assert 'form method="post" action="/schedules"' in copied_form.text
+    assert 'name="title" value="Historischer Titel"' in copied_form.text
+    assert 'name="file_name_base" value="historischer_titel"' in copied_form.text
+    assert '<option value="ffmpeg" selected>ffmpeg</option>' in copied_form.text
+    assert '<option value="mp3" selected>mp3</option>' in copied_form.text
+    assert client.get(f"/schedules/{schedule_id}/edit").status_code == 409
+    with app.state.session_factory() as db:
+        assert len(list(db.scalars(select(RecordingSchedule)))) == 1
+
     timezone = app.state.settings.general.timezone
-    changed_start = now - timedelta(hours=3)
-    changed = client.post(
-        f"/schedules/{schedule_id}",
+    copied_start = now + timedelta(hours=3)
+    saved_copy = client.post(
+        "/schedules",
         data={
-            "title": "Korrigierter historischer Titel",
-            "file_name_base": "korrigierte_historie",
+            "title": "Kopie des historischen Titels",
+            "file_name_base": "kopierte_historie",
             "stream_id": str(stream_id),
             "recorder": "mpv",
             "file_type": "ogg",
-            "starts_at": datetime_local_value(changed_start, timezone),
-            "ends_at": datetime_local_value(changed_start + timedelta(minutes=45), timezone),
-            "csrf_token": form_token(edit_page.text),
+            "starts_at": datetime_local_value(copied_start, timezone),
+            "ends_at": datetime_local_value(
+                copied_start + timedelta(minutes=45), timezone
+            ),
+            "csrf_token": form_token(copied_form.text),
         },
         follow_redirects=False,
     )
 
-    assert changed.status_code == 303
-    assert changed.headers["location"] == "/history?status=updated"
+    assert saved_copy.status_code == 303
+    assert saved_copy.headers["location"] == "/?status=created"
     with app.state.session_factory() as db:
-        schedule = db.get(RecordingSchedule, schedule_id)
+        schedules = list(db.scalars(select(RecordingSchedule).order_by(RecordingSchedule.id)))
+        source = schedules[0]
+        copied = schedules[1]
         stream = db.get(Stream, stream_id)
-        assert schedule.title == "Korrigierter historischer Titel"
-        assert schedule.file_name_base == "korrigierte_historie"
-        assert schedule.recorder == "mpv"
-        assert schedule.file_type == "ogg"
-        assert schedule.starts_at == changed_start
-        assert schedule.status == "failed"
-        assert schedule.error_message == "Bestehender Fehlertext"
+        assert len(schedules) == 2
+        assert source.id == schedule_id
+        assert source.title == "Historischer Titel"
+        assert source.file_name_base == "historischer_titel"
+        assert source.recorder == "ffmpeg"
+        assert source.file_type == "mp3"
+        assert source.status == "failed"
+        assert source.error_message == "Bestehender Fehlertext"
+        assert copied.title == "Kopie des historischen Titels"
+        assert copied.file_name_base == "kopierte_historie"
+        assert copied.recorder == "mpv"
+        assert copied.file_type == "ogg"
+        assert copied.starts_at == copied_start
+        assert copied.status == "scheduled"
+        assert copied.error_message is None
         assert stream.preferred_recorder == "ffmpeg"
         assert stream.preferred_file_type == "mp3"
 

@@ -31,7 +31,7 @@
                   <td class="table-action">
                     {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
                       <div class="action-group">
-                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/edit">Bearbeiten</a>
+                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>
                         <form method="post" action="/schedules/{{ schedule.id }}/delete">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                           <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>

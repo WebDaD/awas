@@ -112,7 +112,11 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
     ) -> HTMLResponse:
         schedule = get_schedule(db, schedule_id)
         ensure_can_manage(schedule, user)
-        if schedule.status != "scheduled" or schedule.recurrence_id is not None:
+        is_upcoming_one_time = (
+            schedule.status == "scheduled" and schedule.recurrence_id is None
+        )
+        is_history_entry = schedule.status in HISTORY_SCHEDULE_STATUSES
+        if schedule.is_hidden or not (is_upcoming_one_time or is_history_entry):
             raise HTTPException(status_code=409, detail="Zeitplan kann nicht kopiert werden")
         return render_schedule_form(
             templates,
@@ -189,14 +193,12 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
         if not schedule.is_editable:
             raise HTTPException(status_code=409, detail="Zeitplan ist nicht mehr bearbeitbar")
         timezone = request.app.state.timezone
-        return_to = schedule_edit_return_path(schedule)
         return render_schedule_form(
             templates,
             request,
             db,
             schedule=schedule,
             values=schedule_form_values(schedule, timezone),
-            return_to=return_to,
         )
 
     @router.post("/{schedule_id}", response_class=HTMLResponse, include_in_schema=False)
@@ -247,21 +249,18 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
                 ip_address=client_ip(request),
             )
         except ScheduleInputError as exc:
-            return_to = schedule_edit_return_path(schedule)
             return render_schedule_form(
                 templates,
                 request,
                 db,
                 schedule=schedule,
                 values=values,
-                return_to=return_to,
                 error=str(exc),
                 status_code=400,
             )
         scheduler: RecordingScheduler = request.app.state.recording_scheduler
         scheduler.wake()
-        destination = schedule_edit_return_path(schedule)
-        return RedirectResponse(url=f"{destination}?status=updated", status_code=303)
+        return RedirectResponse(url="/?status=updated", status_code=303)
 
     @router.post("/{schedule_id}/cancel", include_in_schema=False)
     async def remove_schedule(
@@ -528,12 +527,6 @@ def schedule_form_values(
     }
 
 
-def schedule_edit_return_path(
-    schedule: RecordingSchedule,
-) -> str:
-    return "/" if schedule.status == "scheduled" else "/history"
-
-
 def render_schedule_form(
     templates: Jinja2Templates,
     request: Request,
@@ -541,7 +534,6 @@ def render_schedule_form(
     *,
     values: dict[str, str],
     schedule: RecordingSchedule | None = None,
-    return_to: str = "/",
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
@@ -555,7 +547,6 @@ def render_schedule_form(
         context=template_context(
             request,
             schedule=schedule,
-            return_to=return_to,
             streams=streams,
             values=values,
             recorder_choices=RECORDER_CHOICES,

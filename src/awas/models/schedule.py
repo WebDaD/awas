@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
 
 ACTIVE_SCHEDULE_STATUSES = ("scheduled", "running")
-EDITABLE_SCHEDULE_STATUSES = ("scheduled", "completed", "missed", "failed")
 
 
 class RecordingSchedule(Base):
@@ -92,7 +91,7 @@ class RecordingSchedule(Base):
 
     @property
     def is_editable(self) -> bool:
-        return self.status in EDITABLE_SCHEDULE_STATUSES
+        return self.status == "scheduled"
 
     @property
     def duration_seconds(self) -> int:
