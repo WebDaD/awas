@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.11 provides the production foundation, authentication, stream
+Version 3.0.12 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2

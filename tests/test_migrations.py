@@ -132,6 +132,67 @@ def test_timezone_migration_defaults_existing_settings(tmp_path: Path, monkeypat
     get_settings.cache_clear()
 
 
+def test_stream_history_migration_recovers_partially_applied_sqlite_upgrade(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "partial-stream-history-upgrade.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(
+        f'[database]\nurl = "sqlite:///{database_path}"\n[general]\ntimezone = "UTC"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0021")
+
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO recording_schedules "
+                "(stream_id, title, starts_at, ends_at, status) VALUES "
+                "(NULL, 'Historie ohne Stream', '2026-09-21 08:00:00', "
+                "'2026-09-21 09:00:00', 'completed')"
+            )
+        )
+        # This is the exact persistent state left by the original 0022
+        # migration after SQLite committed both ALTER TABLE statements but a
+        # later data update failed. The Alembic revision remains at 0021.
+        connection.execute(
+            text(
+                "ALTER TABLE recording_schedules ADD COLUMN stream_name "
+                "VARCHAR(128) DEFAULT '' NOT NULL"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE recording_schedules ADD COLUMN stream_url "
+                "VARCHAR(2048) DEFAULT '' NOT NULL"
+            )
+        )
+    engine.dispose()
+
+    command.upgrade(alembic_config, "head")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        snapshot = connection.execute(
+            text(
+                "SELECT stream_name, stream_url FROM recording_schedules "
+                "WHERE title = 'Historie ohne Stream'"
+            )
+        ).one()
+        revision = connection.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar_one()
+
+    assert tuple(snapshot) == ("Gelöschter Stream", "")
+    assert revision == "0022"
+    engine.dispose()
+    get_settings.cache_clear()
+
+
 def test_stream_migration_preserves_existing_entries(tmp_path: Path, monkeypatch) -> None:
     database_path = tmp_path / "upgrade.db"
     config_path = tmp_path / "awas.toml"

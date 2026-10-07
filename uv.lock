@@ -108,7 +108,7 @@ wheels = [
 
 [[package]]
 name = "awas"
-version = "3.0.11"
+version = "3.0.12"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },

@@ -14,35 +14,46 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "recording_schedules",
-        sa.Column(
-            "stream_name",
-            sa.String(length=128),
-            nullable=False,
-            server_default="",
-        ),
-    )
-    op.add_column(
-        "recording_schedules",
-        sa.Column(
-            "stream_url",
-            sa.String(length=2048),
-            nullable=False,
-            server_default="",
-        ),
-    )
+    # SQLite commits ALTER TABLE independently from the remaining migration.
+    # Therefore a failed upgrade can leave these columns behind while the
+    # Alembic revision still points to 0021. Make the migration restartable so
+    # a corrected package can safely finish such an installation.
+    columns = {
+        column["name"]
+        for column in sa.inspect(op.get_bind()).get_columns("recording_schedules")
+    }
+    if "stream_name" not in columns:
+        op.add_column(
+            "recording_schedules",
+            sa.Column(
+                "stream_name",
+                sa.String(length=128),
+                nullable=False,
+                server_default="",
+            ),
+        )
+    if "stream_url" not in columns:
+        op.add_column(
+            "recording_schedules",
+            sa.Column(
+                "stream_url",
+                sa.String(length=2048),
+                nullable=False,
+                server_default="",
+            ),
+        )
     op.execute(
         "UPDATE recording_schedules SET stream_name = "
-        "(SELECT streams.name FROM streams "
-        "WHERE streams.id = recording_schedules.stream_id) "
+        "COALESCE((SELECT streams.name FROM streams "
+        "WHERE streams.id = recording_schedules.stream_id), stream_name, '') "
         "WHERE stream_id IS NOT NULL"
     )
     op.execute(
         "UPDATE recording_schedules SET stream_name = "
-        "(SELECT recordings.stream_name FROM recordings "
+        "COALESCE((SELECT recordings.stream_name FROM recordings "
         "WHERE recordings.schedule_id = recording_schedules.id "
-        "ORDER BY recordings.started_at, recordings.id LIMIT 1) "
+        "ORDER BY recordings.started_at, recordings.id LIMIT 1), "
+        "'Gelöschter Stream') "
         "WHERE stream_name = ''"
     )
     op.execute(
@@ -51,8 +62,8 @@ def upgrade() -> None:
     )
     op.execute(
         "UPDATE recording_schedules SET stream_url = "
-        "(SELECT streams.stream_url FROM streams "
-        "WHERE streams.id = recording_schedules.stream_id) "
+        "COALESCE((SELECT streams.stream_url FROM streams "
+        "WHERE streams.id = recording_schedules.stream_id), stream_url, '') "
         "WHERE stream_id IS NOT NULL"
     )
 
