@@ -92,6 +92,17 @@ def test_recurring_route_create_edit_pause_and_resume(
         assert rule.duration_minutes == 30
         assert rule.is_active is True
         assert db.scalar(select(func.count(RecordingSchedule.id))) == 7
+        occurrences = list(
+            db.scalars(
+                select(RecordingSchedule).where(
+                    RecordingSchedule.recurrence_id == rule.id
+                )
+            )
+        )
+        assert {occurrence.stream_name for occurrence in occurrences} == {"Radio Eins"}
+        assert {occurrence.stream_url for occurrence in occurrences} == {
+            "https://radio.example/stream"
+        }
 
     listing = client.get("/")
     assert "Tägliche Sendung" in listing.text

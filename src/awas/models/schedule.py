@@ -53,6 +53,8 @@ class RecordingSchedule(Base):
         nullable=True,
         index=True,
     )
+    stream_name: Mapped[str] = mapped_column(String(128), default="")
+    stream_url: Mapped[str] = mapped_column(String(2048), default="")
     title: Mapped[str] = mapped_column(String(128))
     file_name_base: Mapped[str] = mapped_column(String(128), default="")
     recorder: Mapped[str] = mapped_column(String(32), default="streamripper")

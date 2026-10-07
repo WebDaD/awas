@@ -116,7 +116,11 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
             schedule.status == "scheduled" and schedule.recurrence_id is None
         )
         is_history_entry = schedule.status in HISTORY_SCHEDULE_STATUSES
-        if schedule.is_hidden or not (is_upcoming_one_time or is_history_entry):
+        if (
+            schedule.is_hidden
+            or schedule.stream is None
+            or not (is_upcoming_one_time or is_history_entry)
+        ):
             raise HTTPException(status_code=409, detail="Zeitplan kann nicht kopiert werden")
         return render_schedule_form(
             templates,

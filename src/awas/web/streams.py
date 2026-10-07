@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from awas.models import (
+    ACTIVE_SCHEDULE_STATUSES,
     Recording,
     RecordingSchedule,
     RecurringSchedule,
@@ -228,6 +229,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
             select(RecordingSchedule.id)
             .where(
                 RecordingSchedule.stream_id == stream.id,
+                RecordingSchedule.status.in_(ACTIVE_SCHEDULE_STATUSES),
                 RecordingSchedule.is_hidden.is_(False),
             )
             .limit(1)

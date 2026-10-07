@@ -108,7 +108,7 @@ def test_admin_manages_stream_lifecycle(
         } <= actions
 
 
-def test_stream_delete_preserves_recordings_and_hidden_planning_history(
+def test_stream_delete_preserves_visible_history_snapshot_and_recordings(
     app: FastAPI,
     client: TestClient,
     admin,
@@ -134,13 +134,15 @@ def test_stream_delete_preserves_recordings_and_hidden_planning_history(
             duration_minutes=60,
             valid_from=date(2026, 9, 1),
             is_active=False,
-            is_hidden=False,
+            is_hidden=True,
             created_by_id=admin.id,
         )
         db.add(rule)
         db.flush()
         schedule = RecordingSchedule(
             stream_id=stream.id,
+            stream_name="Antenne Münster",
+            stream_url="https://radio.example/antenne-muenster",
             title="Morgensendung am Montag",
             recorder="ffmpeg",
             file_type="mp3",
@@ -175,35 +177,11 @@ def test_stream_delete_preserves_recordings_and_hidden_planning_history(
 
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
 
-    confirmation = client.get("/streams")
-    blocked_by_schedule = client.post(
-        f"/admin/streams/{stream_id}/delete",
-        data={
-            "csrf_token": form_token(confirmation.text),
-            "delete_confirmed": "true",
-        },
-    )
-    assert blocked_by_schedule.status_code == 400
-    assert "besitzt Zeitpläne" in blocked_by_schedule.text
-
-    with app.state.session_factory() as db:
-        db.get(RecordingSchedule, schedule_id).is_hidden = True
-        db.commit()
-
-    confirmation = client.get("/streams")
-    blocked_by_recurrence = client.post(
-        f"/admin/streams/{stream_id}/delete",
-        data={
-            "csrf_token": form_token(confirmation.text),
-            "delete_confirmed": "true",
-        },
-    )
-    assert blocked_by_recurrence.status_code == 400
-    assert "besitzt Wiederholungen" in blocked_by_recurrence.text
-
-    with app.state.session_factory() as db:
-        db.get(RecurringSchedule, rule_id).is_hidden = True
-        db.commit()
+    history_before = client.get("/history")
+    assert "Morgensendung am Montag" in history_before.text
+    assert "Antenne Münster" in history_before.text
+    assert "https://radio.example/antenne-muenster" in history_before.text
+    assert f'href="/schedules/{schedule_id}/copy"' in history_before.text
 
     confirmation = client.get("/streams")
     deleted = client.post(
@@ -226,15 +204,97 @@ def test_stream_delete_preserves_recordings_and_hidden_planning_history(
         assert retained_schedule is not None
         assert retained_schedule.stream_id is None
         assert retained_schedule.recurrence_id == rule_id
+        assert retained_schedule.is_hidden is False
+        assert retained_schedule.stream_name == "Antenne Münster"
+        assert retained_schedule.stream_url == "https://radio.example/antenne-muenster"
         assert retained_recording is not None
         assert retained_recording.stream_id is None
         assert retained_recording.schedule_id == schedule_id
         assert retained_recording.stream_name == "Antenne Münster"
         assert db.execute(text("PRAGMA foreign_key_check")).all() == []
 
-    history = client.get("/recordings")
-    assert "Morgensendung am Montag" in history.text
-    assert "Antenne Münster" in history.text
+    schedule_history = client.get("/history")
+    assert "Morgensendung am Montag" in schedule_history.text
+    assert "Antenne Münster" in schedule_history.text
+    assert "https://radio.example/antenne-muenster" in schedule_history.text
+    assert f'href="/schedules/{schedule_id}/copy"' not in schedule_history.text
+    assert f'action="/schedules/{schedule_id}/delete"' in schedule_history.text
+    assert client.get(f"/schedules/{schedule_id}/copy").status_code == 409
+
+    recordings = client.get("/recordings")
+    assert "Morgensendung am Montag" in recordings.text
+    assert "Antenne Münster" in recordings.text
+
+
+def test_stream_delete_is_blocked_by_active_schedule_and_recurrence(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    now = utc_now()
+    with app.state.session_factory() as db:
+        stream = Stream(
+            name="Belegter Stream",
+            stream_url="https://radio.example/belegt",
+            created_by_id=admin.id,
+        )
+        db.add(stream)
+        db.flush()
+        schedule = RecordingSchedule(
+            stream_id=stream.id,
+            stream_name=stream.name,
+            stream_url=stream.stream_url,
+            title="Anstehende Aufnahme",
+            starts_at=now + timedelta(hours=1),
+            ends_at=now + timedelta(hours=2),
+            status="scheduled",
+            created_by_id=admin.id,
+        )
+        db.add(schedule)
+        db.commit()
+        stream_id = stream.id
+        schedule_id = schedule.id
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    confirmation = client.get("/streams")
+    blocked_by_schedule = client.post(
+        f"/admin/streams/{stream_id}/delete",
+        data={
+            "csrf_token": form_token(confirmation.text),
+            "delete_confirmed": "true",
+        },
+    )
+    assert blocked_by_schedule.status_code == 400
+    assert "besitzt Zeitpläne" in blocked_by_schedule.text
+
+    with app.state.session_factory() as db:
+        db.get(RecordingSchedule, schedule_id).is_hidden = True
+        rule = RecurringSchedule(
+            stream_id=stream_id,
+            title="Aktive Wiederholung",
+            recurrence_type="weekly",
+            interval_count=1,
+            weekday_mask=1,
+            start_minute=480,
+            duration_minutes=60,
+            valid_from=date(2026, 9, 1),
+            is_active=False,
+            is_hidden=False,
+            created_by_id=admin.id,
+        )
+        db.add(rule)
+        db.commit()
+
+    confirmation = client.get("/streams")
+    blocked_by_recurrence = client.post(
+        f"/admin/streams/{stream_id}/delete",
+        data={
+            "csrf_token": form_token(confirmation.text),
+            "delete_confirmed": "true",
+        },
+    )
+    assert blocked_by_recurrence.status_code == 400
+    assert "besitzt Wiederholungen" in blocked_by_recurrence.text
 
 
 def test_stream_name_is_unique_and_url_must_be_http(

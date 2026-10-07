@@ -104,6 +104,8 @@ def create_schedule(
         raise ScheduleInputError(str(exc)) from exc
     schedule = RecordingSchedule(
         stream_id=stream.id,
+        stream_name=stream.name,
+        stream_url=stream.stream_url,
         title=normalized_title,
         file_name_base=normalized_file_name,
         recorder=normalized_recorder,
@@ -165,6 +167,8 @@ def update_schedule(
     except (FileNameInputError, RecorderInputError) as exc:
         raise ScheduleInputError(str(exc)) from exc
     schedule.stream_id = stream.id
+    schedule.stream_name = stream.name
+    schedule.stream_url = stream.stream_url
     schedule.title = normalized_title
     schedule.file_name_base = normalized_file_name
     schedule.recorder = normalized_recorder
@@ -525,6 +529,8 @@ class RecordingScheduler:
                 "Der ausgewählte Stream wurde gelöscht.",
             )
             return
+        schedule.stream_name = stream.name
+        schedule.stream_url = stream.stream_url
         actor = db.get(User, schedule.created_by_id) if schedule.created_by_id else None
         try:
             recording = self._recording_manager.start_recording(

@@ -14,13 +14,13 @@
             <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Zeitraum</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for schedule in schedules %}
-                <tr>
+                <tr class="stream-data-row">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
                     <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
                     {% if schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% endif %}
                   </td>
-                  <td data-label="Stream">{{ schedule.stream.name }}</td>
+                  <td data-label="Stream">{{ schedule.stream_name }}</td>
                   <td data-label="Rekorder">{{ recorder_label(schedule.recorder) }}<small>Dateityp: {{ schedule.file_type }}</small></td>
                   <td data-label="Zeitraum">{{ schedule.starts_at|local_datetime }}<small>bis {{ schedule.ends_at|local_datetime }}</small></td>
                   <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
@@ -31,7 +31,7 @@
                   <td class="table-action">
                     {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
                       <div class="action-group">
-                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>
+                        {% if schedule.stream %}<a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>{% endif %}
                         <form method="post" action="/schedules/{{ schedule.id }}/delete">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                           <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
@@ -42,6 +42,13 @@
                         </form>
                       </div>
                     {% endif %}
+                  </td>
+                </tr>
+                <tr class="stream-url-row">
+                  <td colspan="7" data-label="Stream-URL">
+                    <div class="table-detail-line">
+                      <span class="stream-url">{{ schedule.stream_url or 'Nicht gespeichert' }}</span>
+                    </div>
                   </td>
                 </tr>
               {% endfor %}

@@ -263,6 +263,8 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
         stream = db.scalar(select(Stream))
         schedule = RecordingSchedule(
             stream_id=stream.id,
+            stream_name="Historischer Streamname",
+            stream_url="https://radio.example/tatsaechlich-verwendet",
             title="Historischer Titel",
             file_name_base="historischer_titel",
             recorder="ffmpeg",
@@ -277,6 +279,9 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
         db.commit()
         schedule_id = schedule.id
         stream_id = stream.id
+        stream.name = "Aktueller Streamname"
+        stream.stream_url = "https://radio.example/aktuell"
+        db.commit()
 
     history = client.get("/history")
     assert history.status_code == 200
@@ -284,6 +289,10 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
     assert f'href="/schedules/{schedule_id}/edit"' not in history.text
     assert f'action="/schedules/{schedule_id}/delete"' in history.text
     assert "Eintrag löschen" not in history.text
+    assert "Historischer Streamname" in history.text
+    assert "https://radio.example/tatsaechlich-verwendet" in history.text
+    assert "https://radio.example/aktuell" not in history.text
+    assert 'class="stream-url-row"' in history.text
 
     copied_form = client.get(f"/schedules/{schedule_id}/copy")
     assert copied_form.status_code == 200
@@ -293,6 +302,7 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
     assert 'name="file_name_base" value="historischer_titel"' in copied_form.text
     assert '<option value="ffmpeg" selected>ffmpeg</option>' in copied_form.text
     assert '<option value="mp3" selected>mp3</option>' in copied_form.text
+    assert "Aktueller Streamname" in copied_form.text
     assert client.get(f"/schedules/{schedule_id}/edit").status_code == 409
     with app.state.session_factory() as db:
         assert len(list(db.scalars(select(RecordingSchedule)))) == 1
@@ -326,12 +336,16 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
         assert len(schedules) == 2
         assert source.id == schedule_id
         assert source.title == "Historischer Titel"
+        assert source.stream_name == "Historischer Streamname"
+        assert source.stream_url == "https://radio.example/tatsaechlich-verwendet"
         assert source.file_name_base == "historischer_titel"
         assert source.recorder == "ffmpeg"
         assert source.file_type == "mp3"
         assert source.status == "failed"
         assert source.error_message == "Bestehender Fehlertext"
         assert copied.title == "Kopie des historischen Titels"
+        assert copied.stream_name == "Aktueller Streamname"
+        assert copied.stream_url == "https://radio.example/aktuell"
         assert copied.file_name_base == "kopierte_historie"
         assert copied.recorder == "mpv"
         assert copied.file_type == "ogg"
@@ -463,6 +477,8 @@ def test_scheduler_starts_and_stops_recording(
         db.flush()
         schedule = RecordingSchedule(
             stream_id=stream.id,
+            stream_name="Scheduled Stream",
+            stream_url="https://radio.example/originally-planned",
             title="Geplante Sendung",
             recorder="ffmpeg",
             starts_at=now - timedelta(minutes=1),
@@ -473,12 +489,16 @@ def test_scheduler_starts_and_stops_recording(
         db.add(schedule)
         db.commit()
         schedule_id = schedule.id
+        stream.stream_url = "https://radio.example/actually-recorded"
+        db.commit()
 
     app.state.recording_scheduler.run_due(now)
     with app.state.session_factory() as db:
         schedule = db.get(RecordingSchedule, schedule_id)
         recording = db.scalar(select(Recording).where(Recording.schedule_id == schedule_id))
         assert schedule.status == "running"
+        assert schedule.stream_name == "Scheduled Stream"
+        assert schedule.stream_url == "https://radio.example/actually-recorded"
         assert recording is not None
         assert recording.status == "recording"
         assert "geplante-sendung" in recording.file_name

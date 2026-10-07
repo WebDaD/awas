@@ -427,6 +427,7 @@ def generate_rule_occurrences(
             )
         )
     )
+    stream = db.get(Stream, rule.stream_id) if rule.stream_id is not None else None
     generated = 0
     zone = ZoneInfo(timezone)
     for local_start in _iter_local_starts(rule, first_date, last_date):
@@ -435,6 +436,8 @@ def generate_rule_occurrences(
         if starts_at not in existing_starts and ends_at > now:
             schedule = RecordingSchedule(
                 stream_id=rule.stream_id,
+                stream_name=stream.name if stream is not None else "Gelöschter Stream",
+                stream_url=stream.stream_url if stream is not None else "",
                 title=rule.title,
                 file_name_base=rule.file_name_base,
                 recorder=rule.recorder,

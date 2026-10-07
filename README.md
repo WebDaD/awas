@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.10 provides the production foundation, authentication, stream
+Version 3.0.11 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -10,7 +10,8 @@ management and recording:
 - SQLite in WAL mode
 - planning as the factual start page, with all running recordings plus upcoming and
   recurring entries
-- a separate schedule history page
+- a separate schedule history page whose entries retain independent snapshots of
+  the stream name and the URL actually used for the recording
 - mobile-only collapsible main navigation
 - JSON health endpoint
 - native systemd service and nginx reverse proxy with parallel HTTP and optional HTTPS
@@ -41,7 +42,9 @@ management and recording:
 - running planned and spontaneous recordings expose the same file name, live file size,
   download and permitted stop controls on the planning and recordings pages
 - one-time recording schedules with local-time input
-- prefilled copying of upcoming one-time schedules and retained history entries
+- prefilled copying of upcoming one-time schedules and retained history entries;
+  history can be copied only while its referenced stream still exists, and a copy
+  uses that stream's current name and URL
 - discarded schedules disappear immediately and are not retained in the visible
   schedule history
 - automatic start and stop with restart-aware continuation
@@ -66,7 +69,8 @@ management and recording:
 - inline two-click confirmation for deleting and stopping with a
   five-second deadline; the blinking button reserves its full width and uses no popup
   or separate page
-- stream deletion that retains recordings and detached recording history
+- stream deletion that retains recordings and independent history entries; only
+  active schedules and retained recurrence rules block deletion
 - optional age-based automatic retention, disabled by default
 - retention that deletes files while preserving recording history
 - cleanup preview, inline two-click confirmation and a 100-recording limit per run

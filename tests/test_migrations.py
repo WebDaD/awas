@@ -53,6 +53,10 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
         recording_columns = {
             row[1] for row in connection.execute(text("PRAGMA table_info('recordings')"))
         }
+        schedule_columns = {
+            row[1]
+            for row in connection.execute(text("PRAGMA table_info('recording_schedules')"))
+        }
         storage_columns = {
             row[1]
             for row in connection.execute(text("PRAGMA table_info('storage_configuration')"))
@@ -61,7 +65,7 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
             text("SELECT COUNT(*) FROM recorder_settings")
         ).scalar_one()
 
-    assert revision == "0021"
+    assert revision == "0022"
     assert journal_mode == "wal"
     assert {
         "users",
@@ -83,6 +87,7 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
     assert "ix_recordings_status_ended_at" in recording_indexes
     assert "is_active" not in stream_columns
     assert "storage_directory" in recording_columns
+    assert {"stream_name", "stream_url"} <= schedule_columns
     assert "timezone" in storage_columns
     assert "deleted_at" in user_columns
     assert "ix_users_deleted_at" in user_indexes
@@ -122,7 +127,7 @@ def test_timezone_migration_defaults_existing_settings(tmp_path: Path, monkeypat
         ).scalar_one()
 
     assert timezone == "Europe/Berlin"
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -166,7 +171,7 @@ def test_stream_migration_preserves_existing_entries(tmp_path: Path, monkeypatch
         "streamripper",
         "ts",
     )
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -240,7 +245,7 @@ def test_recording_group_migration_preserves_attempts_and_files(
         (2, "part-2.ts", 22),
         (3, "manual.ts", 33),
     ]
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -365,7 +370,7 @@ def test_recorder_cleanup_updates_defaults_and_active_yt_dlp_configuration(
             text("SELECT recorder FROM recurring_schedules")
         ).scalar_one()
 
-    assert revision == "0021"
+    assert revision == "0022"
     assert "yt-dlp" not in recorder_names
     assert "yt-dlp-ffmpeg" not in recorder_names
     assert "-map" not in ffmpeg_arguments
@@ -422,7 +427,7 @@ def test_hls_reconnect_migration_updates_unmodified_defaults(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
 
-    assert revision == "0021"
+    assert revision == "0022"
     assert new_arguments == {
         recorder: RECORDER_BY_KEY[recorder].default_arguments
         for recorder in ("ffmpeg", "ffmpeg-all")
@@ -605,7 +610,7 @@ def test_streamripper_leading_timestamp_migration_updates_unmodified_default(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
 
-    assert revision == "0021"
+    assert revision == "0022"
     assert new_arguments == RECORDER_BY_KEY["streamripper"].default_arguments
     assert new_arguments == "{url} -a {output_base} -A --quiet -u winamp"
     engine.dispose()
@@ -688,7 +693,7 @@ def test_deleted_user_migration_preserves_existing_users(tmp_path: Path, monkeyp
         }
 
     assert tuple(user) == ("existing", "Existing User", 1, None)
-    assert revision == "0021"
+    assert revision == "0022"
     assert "ix_users_deleted_at" in indexes
     engine.dispose()
     get_settings.cache_clear()
@@ -748,7 +753,7 @@ def test_discarded_schedule_migration_hides_existing_entries(
         ).scalar_one()
 
     assert visibility == {"Verworfen": 1, "Abgeschlossen": 0}
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -810,7 +815,7 @@ def test_schedule_migration_preserves_existing_recordings(tmp_path: Path, monkey
         None,
         None,
     )
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -879,7 +884,7 @@ def test_recurring_migration_preserves_one_time_schedules(tmp_path: Path, monkey
 
     assert tuple(row) == ("One-time Show", "scheduled", None, None, "ffmpeg", "ts", 0)
     assert recording_schedule_id == schedule_id
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -984,14 +989,14 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
     monkeypatch.setenv("AWAS_CONFIG", str(config_path))
     get_settings.cache_clear()
     alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
-    command.upgrade(alembic_config, "0009")
+    command.upgrade(alembic_config, "0021")
 
     engine = create_engine(f"sqlite:///{database_path}")
     with engine.begin() as connection:
         connection.execute(
             text(
-                "INSERT INTO streams (name, stream_url, is_active) "
-                "VALUES ('Antenne Münster', 'https://radio.example/live', 1)"
+                "INSERT INTO streams (name, stream_url) "
+                "VALUES ('Antenne Münster', 'https://radio.example/live')"
             )
         )
         stream_id = connection.execute(
@@ -1029,9 +1034,10 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
             text(
                 "INSERT INTO recordings "
                 "(stream_id, stream_name, file_name, status, started_at, ended_at, "
-                "schedule_id) VALUES "
+                "schedule_id, group_key) VALUES "
                 "(:stream_id, 'Antenne Münster', 'antenne-history.mp3', 'completed', "
-                "'2026-09-21 08:00:00', '2026-09-21 09:00:00', :schedule_id)"
+                "'2026-09-21 08:00:00', '2026-09-21 09:00:00', :schedule_id, "
+                "'schedule-1')"
             ),
             {"stream_id": stream_id, "schedule_id": schedule_id},
         )
@@ -1062,7 +1068,10 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
             text("SELECT stream_id, schedule_id FROM recordings")
         ).one()
         schedule_row = connection.execute(
-            text("SELECT stream_id, recurrence_id FROM recording_schedules")
+            text(
+                "SELECT stream_id, recurrence_id, stream_name, stream_url "
+                "FROM recording_schedules"
+            )
         ).one()
         recurrence_row = connection.execute(
             text("SELECT stream_id FROM recurring_schedules")
@@ -1083,9 +1092,14 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
         "recurring_schedules": "SET NULL",
     }
     assert tuple(recording_row) == (None, schedule_id)
-    assert tuple(schedule_row) == (None, recurrence_id)
+    assert tuple(schedule_row) == (
+        None,
+        recurrence_id,
+        "Antenne Münster",
+        "https://radio.example/live",
+    )
     assert tuple(recurrence_row) == (None,)
     assert foreign_key_errors == []
-    assert revision == "0021"
+    assert revision == "0022"
     engine.dispose()
     get_settings.cache_clear()
