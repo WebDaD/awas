@@ -3,7 +3,18 @@
 {% block content %}
   <section class="page-heading compact-heading heading-with-action">
     <div><h1>Planung</h1></div>
-    <div class="heading-actions">
+    <div class="heading-actions page-list-controls">
+      <label class="user-filter-control">
+        <span>Benutzer</span>
+        <select data-filter-user="planning-list">
+          <option value="">Alle</option>
+          {% for user in filter_users %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="list-filter-control">
+        <span class="visually-hidden">Liste filtern</span>
+        <input type="search" placeholder="Liste filtern" autocomplete="off" data-filter-input="planning-list">
+      </label>
       <a class="button button-primary" href="/schedules/new">Einmalig planen</a>
       <a class="button button-primary" href="/schedules/recurring/new">Wiederkehrend planen</a>
     </div>
@@ -21,7 +32,7 @@
               {% for entry in running_entries %}
                 {% set schedule = entry.schedule %}
                 {% set recording = entry.recording %}
-                <tr class="recording-data-row recording-data-row-with-file recording-active-row">
+                <tr class="recording-data-row recording-data-row-with-file recording-active-row" data-filter-row="planning-list" data-filter-user-id="{{ schedule.created_by_id if schedule else recording.started_by_id if recording else '' }}" data-filter-group="planning-running-{{ schedule.id if schedule else recording.group_key }}">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title if schedule else 'Spontanaufnahme' }}</strong>
                     <small>{{ ('Wiederkehrend' if schedule.recurrence_id else 'Einmalig') if schedule else 'Spontan' }}</small>
@@ -64,7 +75,7 @@
                     {% endif %}
                   </td>
                 </tr>
-                <tr class="recording-file-row recording-active-row">
+                <tr class="recording-file-row recording-active-row" data-filter-companion="planning-running-{{ schedule.id if schedule else recording.group_key }}">
                   <td colspan="7" data-label="Dateien">
                     {% if recording and recording.files %}
                       {% for file in recording.files %}
@@ -98,7 +109,7 @@
             <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for schedule in upcoming_schedules %}
-                <tr>
+                <tr data-filter-row="planning-list" data-filter-user-id="{{ schedule.created_by_id or '' }}">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
                     <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
@@ -144,7 +155,7 @@
             <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholung</th><th>Zeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for rule in recurring_schedules %}
-                <tr>
+                <tr data-filter-row="planning-list" data-filter-user-id="{{ rule.created_by_id or '' }}">
                   <td data-label="Aufnahme">
                     <strong>{{ rule.title }}</strong>
                     <small>Wiederholung</small>

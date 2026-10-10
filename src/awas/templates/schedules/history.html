@@ -1,8 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Historie · AWAS{% endblock %}
 {% block content %}
-  <section class="page-heading compact-heading">
+  <section class="page-heading compact-heading heading-with-action">
     <div><h1>Historie</h1></div>
+    <div class="heading-actions page-list-controls">
+      <label class="user-filter-control">
+        <span>Benutzer</span>
+        <select data-filter-user="history-list">
+          <option value="">Alle</option>
+          {% for user in filter_users %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="list-filter-control">
+        <span class="visually-hidden">Liste filtern</span>
+        <input type="search" placeholder="Liste filtern" autocomplete="off" data-filter-input="history-list">
+      </label>
+    </div>
   </section>
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
 
@@ -14,7 +27,7 @@
             <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Zeitraum</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for schedule in schedules %}
-                <tr class="stream-data-row">
+                <tr class="stream-data-row" data-filter-row="history-list" data-filter-user-id="{{ schedule.created_by_id or '' }}" data-filter-group="history-{{ schedule.id }}">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
                     <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
@@ -44,10 +57,14 @@
                     {% endif %}
                   </td>
                 </tr>
-                <tr class="stream-url-row">
+                <tr class="stream-url-row" data-filter-companion="history-{{ schedule.id }}">
                   <td colspan="7" data-label="Stream-URL">
                     <div class="table-detail-line">
-                      <span class="stream-url">{{ schedule.stream_url or 'Nicht gespeichert' }}</span>
+                      {% if schedule.stream_url %}
+                        <button class="stream-url stream-url-copy" type="button" data-copy-stream-url="{{ schedule.stream_url }}" aria-label="Stream-URL kopieren" title="Stream-URL kopieren">{{ schedule.stream_url }}</button>
+                      {% else %}
+                        <span class="stream-url">Nicht gespeichert</span>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>

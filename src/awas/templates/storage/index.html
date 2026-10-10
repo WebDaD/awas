@@ -13,13 +13,6 @@
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
 
   <div data-live-page data-live-interval="5000">
-  <section class="storage-grid" aria-label="Speicherübersicht" data-live-region="storage-summary">
-    <article class="storage-card"><span>Verlauf</span><strong>{{ storage.recording_count }}</strong><small>Aufnahmeeinträge</small></article>
-    <article class="storage-card"><span>Dateien</span><strong>{{ storage.file_count }}</strong><small>{{ storage.recording_bytes|filesize }} erfasst</small></article>
-    <article class="storage-card"><span>Freier Speicher</span><strong>{{ storage.free_bytes|filesize }}</strong><small>Auf dem Aufnahmedatenträger</small></article>
-    <article class="storage-card"><span>Datenträger belegt</span><strong>{{ storage.used_percent }} %</strong><small>{{ storage.used_bytes|filesize }} von {{ storage.total_bytes|filesize }}</small></article>
-  </section>
-
   <section class="settings-grid settings-primary-grid">
     <article class="panel settings-card">
       <h2>Aufnahmepfad</h2>

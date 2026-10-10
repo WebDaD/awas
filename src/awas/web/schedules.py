@@ -37,6 +37,7 @@ from awas.web.dependencies import (
     database,
     require_user,
     template_context,
+    user_filter_choices,
     validate_csrf,
     validate_delete_confirmation,
     validate_stop_confirmation,
@@ -456,6 +457,7 @@ def render_planning(
             running_entries=running_entries,
             upcoming_schedules=upcoming_schedules,
             recurring_schedules=recurring_schedules,
+            filter_users=user_filter_choices(db),
             local_today=local_today,
             status_labels=STATUS_LABELS,
             recorder_label=recorder_label,
@@ -490,6 +492,7 @@ def render_history(
         context=template_context(
             request,
             schedules=schedules,
+            filter_users=user_filter_choices(db),
             status_labels=STATUS_LABELS,
             recorder_label=recorder_label,
             notice=STATUS_MESSAGES.get(request.query_params.get("status", "")),

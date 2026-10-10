@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from awas import __release_date__, __version__
@@ -84,6 +85,12 @@ def validate_delete_confirmation(confirmed: str | None) -> None:
 def validate_stop_confirmation(confirmed: str | None) -> None:
     if confirmed != "true":
         raise HTTPException(status_code=400, detail="Das Stoppen muss bestätigt werden.")
+
+
+def user_filter_choices(db: Session) -> list[User]:
+    """Return the users shown by list filters in a stable display-name order."""
+    users = list(db.scalars(select(User).where(User.deleted_at.is_(None))))
+    return sorted(users, key=lambda user: (user.display_name.casefold(), user.id))
 
 
 def template_context(request: Request, **extra: object) -> dict[str, object]:

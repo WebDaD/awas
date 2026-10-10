@@ -101,6 +101,10 @@ def test_storage_settings_are_admin_only(
     assert '<option value="Europe/Berlin" selected>' in page.text
     assert '<option value="UTC"' in page.text
     assert "Die Zeitzone des Browsers wird nicht berücksichtigt." in page.text
+    assert 'aria-label="Speicherübersicht"' not in page.text
+    assert 'data-live-region="storage-summary"' not in page.text
+    assert "Aufnahmeeinträge" not in page.text
+    assert "Datenträger belegt" not in page.text
 
 
 def test_admin_changes_application_timezone(

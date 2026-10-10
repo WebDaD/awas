@@ -317,7 +317,6 @@ def render_storage_page(
             request,
             policy=policy,
             preview=retention_manager.preview(db, policy, limit=20),
-            storage=recording_manager.storage_snapshot(db),
             recording_directory=(
                 directory_value
                 if directory_value is not None

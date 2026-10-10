@@ -85,6 +85,9 @@ def test_user_creates_edits_and_cancels_schedule(
     assert "<h2>Anstehend (1)</h2>" in listing.text
     assert listing.text.count('class="button button-primary"') >= 2
     assert 'data-live-interval="5000"' in listing.text
+    assert 'data-filter-input="planning-list"' in listing.text
+    assert 'data-filter-user="planning-list"' in listing.text
+    assert f'data-filter-user-id="{admin.id}"' in listing.text
     assert listing.text.index("<small>Einmalig</small>") < listing.text.index(
         "<small>von AWAS Admin</small>"
     )
@@ -293,6 +296,13 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
     assert "https://radio.example/tatsaechlich-verwendet" in history.text
     assert "https://radio.example/aktuell" not in history.text
     assert 'class="stream-url-row"' in history.text
+    assert 'data-filter-input="history-list"' in history.text
+    assert 'data-filter-user="history-list"' in history.text
+    assert f'data-filter-user-id="{admin.id}"' in history.text
+    assert (
+        'data-copy-stream-url="https://radio.example/tatsaechlich-verwendet"'
+        in history.text
+    )
 
     copied_form = client.get(f"/schedules/{schedule_id}/copy")
     assert copied_form.status_code == 200
@@ -507,7 +517,8 @@ def test_scheduler_starts_and_stops_recording(
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
     planning = client.get("/")
     assert (
-        '<tr class="recording-data-row recording-data-row-with-file recording-active-row">'
+        '<tr class="recording-data-row recording-data-row-with-file '
+        'recording-active-row" data-filter-row="planning-list"'
         in planning.text
     )
     assert recording.file_name in planning.text

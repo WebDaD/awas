@@ -67,6 +67,8 @@ def test_empty_recording_list_has_no_stream_prompt(client: TestClient, admin) ->
     assert "Laufende Aufnahmen und Aufnahmeverlauf." not in page.text
     assert "Spontanaufnahmen können unter Streams gestartet werden." not in page.text
     assert "Streams öffnen" not in page.text
+    assert 'data-filter-input="recording-list"' in page.text
+    assert 'data-filter-user="recording-list"' in page.text
 
 
 def test_manual_recording_start_stop_and_download(
@@ -568,8 +570,15 @@ def test_admin_deletes_recording_and_file_but_keeps_schedule(
 
     listing = client.get("/recordings")
     assert "Speicherübersicht" in listing.text
-    assert "Aufnahmeeinträge" in listing.text
+    assert "Aufnahmeeinträge" not in listing.text
+    assert "<span>Aufnahmen</span>" in listing.text
+    assert f"Aufnahmepfad {app.state.recording_manager.recording_directory}" in listing.text
+    assert "Auf dem Aufnahmedatenträger" not in listing.text
     assert f'/recordings/{recording_id}/delete"' in listing.text
+    assert f'data-filter-user-id="{admin.id}"' in listing.text
+    assert 'data-filter-row="recording-list"' in listing.text
+    assert 'data-filter-companion="recording-' in listing.text
+    assert "data-copy-stream-url" not in listing.text
     assert "Datei löschen" not in listing.text
     assert "Eintrag löschen" not in listing.text
     assert listing.text.index("<small>Zeitplan</small>") < listing.text.index(

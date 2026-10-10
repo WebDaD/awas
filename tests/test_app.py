@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from awas.auth.tokens import HTTPS_LOGIN_CSRF_COOKIE, HTTPS_SESSION_COOKIE, SESSION_COOKIE
 from awas.models import AuditLog, LoginAttempt, WebSession
 from awas.models.auth import utc_now
+from awas.services.auth import create_user
 from tests.conftest import form_token, login
 
 
@@ -20,14 +21,14 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.12", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.13", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
-    assert "AWAS 3.0.12 · Release 07.10.2026" in login_page.text
+    assert "AWAS 3.0.13 · Release 10.10.2026" in login_page.text
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
     assert favicon.headers["content-type"] == "image/x-icon"
@@ -69,10 +70,17 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert '[data-action-confirm]' in script.text
     assert "danger-confirm-blink" in stylesheet.text
     assert "resetActionConfirmation(button), 5000" in script.text
+    assert 'event.target.closest("[data-copy-stream-url]")' in script.text
+    assert "navigator.clipboard.writeText(value)" in script.text
+    assert 'document.execCommand("copy")' in script.text
+    assert "const matches = matchesText && matchesUser" in script.text
     assert (
         ".action-confirm-button > span { grid-area: 1 / 1; white-space: nowrap; }"
         in stylesheet.text
     )
+    assert ".list-filter-control { display: block; width: 15rem;" in stylesheet.text
+    assert ".user-filter-control select { width: 15rem; }" in stylesheet.text
+    assert ".stream-url-copy.is-copied" in stylesheet.text
 
 
 def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
@@ -106,10 +114,26 @@ def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
     assert "Willkommen" not in planning.text
     assert "Grundsystem" not in planning.text
     assert "Bereit zur Aufnahme" not in planning.text
+    assert 'data-filter-user="planning-list"' in planning.text
+    assert 'data-filter-input="planning-list"' in planning.text
+    assert 'placeholder="Liste filtern"' in planning.text
+    assert '<span>Benutzer</span>' in planning.text
+    assert '<option value="">Alle</option>' in planning.text
+    assert f'<option value="{admin.id}">AWAS Admin</option>' in planning.text
 
     history = client.get("/history")
     assert history.status_code == 200
     assert "<h1>Historie</h1>" in history.text
+    assert 'data-filter-user="history-list"' in history.text
+    assert 'data-filter-input="history-list"' in history.text
+
+    recordings = client.get("/recordings")
+    assert 'data-filter-user="recording-list"' in recordings.text
+    assert 'data-filter-input="recording-list"' in recordings.text
+
+    streams = client.get("/streams")
+    assert 'data-filter-input="stream-list"' in streams.text
+    assert 'data-filter-user="stream-list"' not in streams.text
 
     logout = client.post(
         "/logout",
@@ -118,6 +142,40 @@ def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
     )
     assert logout.status_code == 303
     assert client.get("/", follow_redirects=False).status_code == 303
+
+
+def test_list_user_filters_show_all_existing_users(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+) -> None:
+    with app.state.session_factory() as db:
+        second_user = create_user(
+            db,
+            username="second.user",
+            display_name="Zweite Person",
+            password="password",
+            password_confirmation="password",
+            role="user",
+            must_change_password=False,
+        )
+        second_user_id = second_user.id
+
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    expected_options = (
+        f'<option value="{admin.id}">AWAS Admin</option>',
+        f'<option value="{second_user_id}">Zweite Person</option>',
+    )
+    for path, filter_name in (
+        ("/", "planning-list"),
+        ("/history", "history-list"),
+        ("/recordings", "recording-list"),
+    ):
+        page = client.get(path)
+        assert f'data-filter-user="{filter_name}"' in page.text
+        assert '<option value="">Alle</option>' in page.text
+        for option in expected_options:
+            assert option in page.text
 
 
 def test_login_rejects_external_redirect(client: TestClient, admin) -> None:

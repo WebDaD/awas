@@ -46,13 +46,17 @@ def test_admin_manages_stream_lifecycle(
 
     stream_page = client.get("/streams")
     assert "Radio Eins" in stream_page.text
-    assert 'data-filter-input="stream-table"' in stream_page.text
+    assert 'data-filter-input="stream-list"' in stream_page.text
+    assert 'placeholder="Liste filtern"' in stream_page.text
+    assert "Streams filtern" not in stream_page.text
     assert 'data-live-interval="5000"' in stream_page.text
     assert "Letzte Aufnahme" in stream_page.text
     assert "<th>Stream-URL</th>" not in stream_page.text
     assert 'class="stream-url-row"' in stream_page.text
     assert 'data-filter-text="https://radio.example/stream"' in stream_page.text
     assert 'data-filter-companion="stream-' in stream_page.text
+    assert 'data-copy-stream-url="https://radio.example/stream"' in stream_page.text
+    assert 'aria-label="Stream-URL kopieren"' in stream_page.text
     assert "Aufnahme jetzt starten" in stream_page.text
     assert 'class="record-dot"' in stream_page.text
     assert "Stream hinzufügen" in stream_page.text

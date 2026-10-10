@@ -31,35 +31,117 @@
     });
   }
 
-  function applyFilter(input) {
-    const name = input.dataset.filterInput;
-    const query = normalize(input.value);
+  function filterCompanion(row) {
+    const companion = row.nextElementSibling;
+    if (
+      companion &&
+      row.dataset.filterGroup &&
+      companion.dataset.filterCompanion === row.dataset.filterGroup
+    ) {
+      return companion;
+    }
+    return null;
+  }
+
+  function applyFilter(name) {
+    const input = document.querySelector(`[data-filter-input="${name}"]`);
+    const userSelect = document.querySelector(`[data-filter-user="${name}"]`);
+    const query = normalize(input?.value || "");
+    const userId = userSelect?.value || "";
     const rows = [...document.querySelectorAll(`[data-filter-row="${name}"]`)];
     let visible = 0;
     for (const row of rows) {
-      const searchable = `${row.textContent} ${row.dataset.filterText || ""}`;
-      const matches = !query || normalize(searchable).includes(query);
+      const companion = filterCompanion(row);
+      const searchable = `${row.textContent} ${companion?.textContent || ""} ${
+        row.dataset.filterText || ""
+      }`;
+      const matchesText = !query || normalize(searchable).includes(query);
+      const matchesUser = !userId || row.dataset.filterUserId === userId;
+      const matches = matchesText && matchesUser;
       row.hidden = !matches;
-      const companion = row.nextElementSibling;
-      if (
-        companion &&
-        row.dataset.filterGroup &&
-        companion.dataset.filterCompanion === row.dataset.filterGroup
-      ) {
-        companion.hidden = !matches;
-      }
+      if (companion) companion.hidden = !matches;
       if (matches) visible += 1;
     }
-    const empty = document.querySelector(`[data-filter-empty="${name}"]`);
-    if (empty) empty.hidden = visible !== 0;
+    document.querySelectorAll(`[data-filter-empty="${name}"]`).forEach((empty) => {
+      empty.hidden = visible !== 0;
+    });
   }
 
   function applyFilters() {
-    document.querySelectorAll("[data-filter-input]").forEach(applyFilter);
+    const names = new Set();
+    document.querySelectorAll("[data-filter-input]").forEach((input) => {
+      names.add(input.dataset.filterInput);
+    });
+    document.querySelectorAll("[data-filter-user]").forEach((select) => {
+      names.add(select.dataset.filterUser);
+    });
+    names.forEach(applyFilter);
   }
 
   document.addEventListener("input", (event) => {
-    if (event.target.matches("[data-filter-input]")) applyFilter(event.target);
+    if (event.target.matches("[data-filter-input]")) {
+      applyFilter(event.target.dataset.filterInput);
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    if (event.target.matches("[data-filter-user]")) {
+      applyFilter(event.target.dataset.filterUser);
+    }
+  });
+
+  async function copyText(value) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return;
+      } catch (_error) {
+        // The synchronous fallback also works on local HTTP pages.
+      }
+    }
+    const field = document.createElement("textarea");
+    field.value = value;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+    field.setSelectionRange(0, field.value.length);
+    const copied = document.execCommand("copy");
+    field.remove();
+    if (!copied) throw new Error("copy failed");
+  }
+
+  const copyFeedbackTimers = new WeakMap();
+
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-copy-stream-url]");
+    if (!button) return;
+    const initialLabel = button.dataset.copyInitialLabel || button.getAttribute("aria-label");
+    button.dataset.copyInitialLabel = initialLabel || "Stream-URL kopieren";
+    const previousTimer = copyFeedbackTimers.get(button);
+    if (previousTimer) window.clearTimeout(previousTimer);
+    try {
+      await copyText(button.dataset.copyStreamUrl);
+      button.classList.remove("is-copy-error");
+      button.classList.add("is-copied");
+      button.setAttribute("aria-label", "Stream-URL kopiert");
+      button.title = "Kopiert";
+    } catch (_error) {
+      button.classList.remove("is-copied");
+      button.classList.add("is-copy-error");
+      button.setAttribute("aria-label", "Stream-URL konnte nicht kopiert werden");
+      button.title = "Kopieren fehlgeschlagen";
+    }
+    copyFeedbackTimers.set(
+      button,
+      window.setTimeout(() => {
+        button.classList.remove("is-copied", "is-copy-error");
+        button.setAttribute("aria-label", button.dataset.copyInitialLabel);
+        button.title = "Stream-URL kopieren";
+        copyFeedbackTimers.delete(button);
+      }, 1600)
+    );
   });
 
   const actionConfirmationTimers = new WeakMap();

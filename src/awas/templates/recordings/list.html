@@ -5,15 +5,28 @@
     <div>
       <h1>Aufnahmen</h1>
     </div>
+    <div class="heading-actions page-list-controls">
+      <label class="user-filter-control">
+        <span>Benutzer</span>
+        <select data-filter-user="recording-list">
+          <option value="">Alle</option>
+          {% for user in filter_users %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="list-filter-control">
+        <span class="visually-hidden">Liste filtern</span>
+        <input type="search" placeholder="Liste filtern" autocomplete="off" data-filter-input="recording-list">
+      </label>
+    </div>
   </section>
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
 
   <div data-live-page data-live-interval="5000">
     <section class="storage-grid" aria-label="Speicherübersicht" data-live-region="recording-storage">
-      <article class="storage-card"><span>Verlauf</span><strong>{{ storage.recording_count }}</strong><small>Aufnahmeeinträge</small></article>
+      <article class="storage-card"><span>Aufnahmen</span><strong>{{ storage.recording_count }}</strong></article>
       <article class="storage-card"><span>Dateien</span><strong>{{ storage.file_count }}</strong><small>{{ storage.recording_bytes|filesize }} erfasst</small></article>
-      <article class="storage-card"><span>Freier Speicher</span><strong>{{ storage.free_bytes|filesize }}</strong><small>Auf dem Aufnahmedatenträger</small></article>
+      <article class="storage-card"><span>Freier Speicher</span><strong>{{ storage.free_bytes|filesize }}</strong><small>Aufnahmepfad {{ recording_directory }}</small></article>
       <article class="storage-card"><span>Datenträger belegt</span><strong>{{ storage.used_percent }} %</strong><small>{{ storage.used_bytes|filesize }} von {{ storage.total_bytes|filesize }}</small></article>
     </section>
 
@@ -26,7 +39,7 @@
             </thead>
             <tbody>
               {% for recording in recordings %}
-                <tr class="recording-data-row recording-data-row-with-file{% if recording.is_running %} recording-active-row{% endif %}">
+                <tr class="recording-data-row recording-data-row-with-file{% if recording.is_running %} recording-active-row{% endif %}" data-filter-row="recording-list" data-filter-user-id="{{ recording.started_by_id or '' }}" data-filter-group="recording-{{ recording.group_key }}">
                   <td data-label="Aufnahme">
                     <strong>{{ recording.schedule.title if recording.schedule else 'Spontanaufnahme' }}</strong>
                     <small>{{ 'Zeitplan' if recording.schedule else 'Spontan' }}</small>
@@ -81,7 +94,7 @@
                     </div>
                   </td>
                 </tr>
-                <tr class="recording-file-row{% if recording.is_running %} recording-active-row{% endif %}">
+                <tr class="recording-file-row{% if recording.is_running %} recording-active-row{% endif %}" data-filter-companion="recording-{{ recording.group_key }}">
                   <td colspan="7" data-label="Dateien">
                     {% if recording.files %}
                       {% for file in recording.files %}
