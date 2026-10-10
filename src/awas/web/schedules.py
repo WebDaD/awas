@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from awas.models import (
@@ -66,6 +67,7 @@ STATUS_LABELS = {
 }
 
 HISTORY_SCHEDULE_STATUSES = ("completed", "missed", "failed")
+HISTORY_PAGE_SIZE = 500
 
 
 def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
@@ -469,22 +471,87 @@ def render_history(
     templates: Jinja2Templates,
     request: Request,
     db: Session,
+    *,
+    page: int = 1,
+    filter_query: str = "",
+    filter_user_id: int | None = None,
 ) -> HTMLResponse:
+    query = " ".join(filter_query.split())
+    conditions = [
+        RecordingSchedule.status.in_(HISTORY_SCHEDULE_STATUSES),
+        RecordingSchedule.is_hidden.is_(False),
+    ]
+    if filter_user_id is not None:
+        conditions.append(RecordingSchedule.created_by_id == filter_user_id)
+    if query:
+        escaped_query = (
+            query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        )
+        pattern = f"%{escaped_query}%"
+        search_conditions = [
+            RecordingSchedule.title.ilike(pattern, escape="\\"),
+            RecordingSchedule.stream_name.ilike(pattern, escape="\\"),
+            RecordingSchedule.stream_url.ilike(pattern, escape="\\"),
+            RecordingSchedule.recorder.ilike(pattern, escape="\\"),
+            RecordingSchedule.file_type.ilike(pattern, escape="\\"),
+            RecordingSchedule.error_message.ilike(pattern, escape="\\"),
+            User.display_name.ilike(pattern, escape="\\"),
+            User.username.ilike(pattern, escape="\\"),
+        ]
+        normalized_query = query.casefold()
+        matching_statuses = [
+            status
+            for status, label in STATUS_LABELS.items()
+            if status in HISTORY_SCHEDULE_STATUSES
+            and normalized_query in label.casefold()
+        ]
+        if matching_statuses:
+            search_conditions.append(RecordingSchedule.status.in_(matching_statuses))
+        if normalized_query in "einmalig":
+            search_conditions.append(RecordingSchedule.recurrence_id.is_(None))
+        if normalized_query in "wiederkehrend":
+            search_conditions.append(RecordingSchedule.recurrence_id.is_not(None))
+        conditions.append(or_(*search_conditions))
+
+    history_rows = (
+        select(RecordingSchedule)
+        .outerjoin(User, RecordingSchedule.created_by_id == User.id)
+        .where(*conditions)
+    )
+    total_count = int(
+        db.scalar(
+            select(func.count(RecordingSchedule.id))
+            .outerjoin(User, RecordingSchedule.created_by_id == User.id)
+            .where(*conditions)
+        )
+        or 0
+    )
+    page_count = max(1, (total_count + HISTORY_PAGE_SIZE - 1) // HISTORY_PAGE_SIZE)
+    current_page = min(page, page_count)
+    offset = (current_page - 1) * HISTORY_PAGE_SIZE
     schedules = list(
         db.scalars(
-            select(RecordingSchedule)
+            history_rows
             .options(
                 joinedload(RecordingSchedule.stream),
                 joinedload(RecordingSchedule.created_by),
             )
-            .where(
-                RecordingSchedule.status.in_(HISTORY_SCHEDULE_STATUSES),
-                RecordingSchedule.is_hidden.is_(False),
-            )
             .order_by(RecordingSchedule.starts_at.desc(), RecordingSchedule.id.desc())
-            .limit(500)
+            .offset(offset)
+            .limit(HISTORY_PAGE_SIZE)
         )
     )
+
+    def page_url(target_page: int) -> str:
+        parameters: dict[str, str | int] = {}
+        if query:
+            parameters["q"] = query
+        if filter_user_id is not None:
+            parameters["user_id"] = filter_user_id
+        if target_page > 1:
+            parameters["page"] = target_page
+        return f"/history?{urlencode(parameters)}" if parameters else "/history"
+
     return templates.TemplateResponse(
         request=request,
         name="schedules/history.html",
@@ -492,6 +559,21 @@ def render_history(
             request,
             schedules=schedules,
             filter_users=user_filter_choices(db),
+            filter_query=query,
+            filter_user_id=filter_user_id,
+            pagination={
+                "page": current_page,
+                "page_count": page_count,
+                "total_count": total_count,
+                "first_item": offset + 1 if schedules else 0,
+                "last_item": offset + len(schedules),
+                "has_previous": current_page > 1,
+                "has_next": current_page < page_count,
+                "first_url": page_url(1),
+                "previous_url": page_url(max(1, current_page - 1)),
+                "next_url": page_url(min(page_count, current_page + 1)),
+                "last_url": page_url(page_count),
+            },
             status_labels=STATUS_LABELS,
             recorder_label=recorder_label,
             notice=STATUS_MESSAGES.get(request.query_params.get("status", "")),

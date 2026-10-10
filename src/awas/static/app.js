@@ -90,6 +90,89 @@
     }
   });
 
+  const serverFilterTimers = new WeakMap();
+  const serverFilterRequests = new WeakMap();
+
+  function serverFilterUrl(form) {
+    const url = new URL(form.action, window.location.origin);
+    for (const [name, value] of new FormData(form)) {
+      const normalizedValue = String(value).trim();
+      if (normalizedValue) url.searchParams.set(name, normalizedValue);
+    }
+    return url;
+  }
+
+  async function applyServerFilter(form) {
+    const activeTimer = serverFilterTimers.get(form);
+    if (activeTimer) window.clearTimeout(activeTimer);
+    serverFilterTimers.delete(form);
+
+    const previousRequest = serverFilterRequests.get(form);
+    if (previousRequest) previousRequest.abort();
+    const request = new AbortController();
+    serverFilterRequests.set(form, request);
+    const url = serverFilterUrl(form);
+    form.setAttribute("aria-busy", "true");
+    try {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: { "X-AWAS-Filter": "1" },
+        signal: request.signal,
+      });
+      if (response.redirected) {
+        window.location.assign(response.url);
+        return;
+      }
+      if (!response.ok) throw new Error("filter request failed");
+      const html = await response.text();
+      const nextDocument = new DOMParser().parseFromString(html, "text/html");
+      const region = document.querySelector('[data-live-region="schedule-history"]');
+      const replacement = nextDocument.querySelector(
+        '[data-live-region="schedule-history"]'
+      );
+      if (!region || !replacement) throw new Error("filter response incomplete");
+      region.replaceWith(replacement);
+      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    } catch (error) {
+      if (error.name !== "AbortError") window.location.assign(url);
+    } finally {
+      if (serverFilterRequests.get(form) === request) {
+        serverFilterRequests.delete(form);
+        form.removeAttribute("aria-busy");
+      }
+    }
+  }
+
+  function scheduleServerFilter(form) {
+    const activeTimer = serverFilterTimers.get(form);
+    if (activeTimer) window.clearTimeout(activeTimer);
+    serverFilterTimers.set(
+      form,
+      window.setTimeout(() => applyServerFilter(form), 350)
+    );
+  }
+
+  document.addEventListener("input", (event) => {
+    const input = event.target.closest("[data-server-filter-input]");
+    if (!input || event.isComposing) return;
+    const form = input.closest("[data-server-filter-form]");
+    if (form) scheduleServerFilter(form);
+  });
+
+  document.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-server-filter-user]");
+    if (!select) return;
+    const form = select.closest("[data-server-filter-form]");
+    if (form) applyServerFilter(form);
+  });
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest("[data-server-filter-form]");
+    if (!form) return;
+    event.preventDefault();
+    applyServerFilter(form);
+  });
+
   async function copyText(value) {
     if (navigator.clipboard && window.isSecureContext) {
       try {
@@ -288,14 +371,17 @@
   async function refreshLiveRegions() {
     if (document.hidden) return;
     if (document.querySelector("[data-action-confirm].is-confirming")) return;
+    if (document.querySelector('[data-server-filter-form][aria-busy="true"]')) return;
     const regions = [...document.querySelectorAll("[data-live-region]")];
     if (!regions.length) return;
-    const response = await fetch(window.location.href, {
+    const requestedUrl = window.location.href;
+    const response = await fetch(requestedUrl, {
       credentials: "same-origin",
       headers: { "X-AWAS-Live": "1" },
     });
     if (!response.ok || response.redirected) return;
     const html = await response.text();
+    if (requestedUrl !== window.location.href) return;
     const nextDocument = new DOMParser().parseFromString(html, "text/html");
     for (const region of regions) {
       const name = region.dataset.liveRegion;

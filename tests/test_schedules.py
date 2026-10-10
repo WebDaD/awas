@@ -17,6 +17,7 @@ from awas.services.scheduling import (
     datetime_local_value,
     parse_local_datetime,
 )
+from awas.web import schedules as schedules_web
 from tests.conftest import form_token, login
 from tests.test_recordings import install_fake_ffmpeg, wait_for_status
 from tests.test_streams import add_stream
@@ -296,9 +297,9 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
     assert "https://radio.example/tatsaechlich-verwendet" in history.text
     assert "https://radio.example/aktuell" not in history.text
     assert 'class="stream-url-row"' in history.text
-    assert 'data-filter-input="history-list"' in history.text
-    assert 'data-filter-user="history-list"' in history.text
-    assert f'data-filter-user-id="{admin.id}"' in history.text
+    assert "data-server-filter-input" in history.text
+    assert "data-server-filter-user" in history.text
+    assert "data-history-entry" in history.text
     assert (
         'data-copy-stream-url="https://radio.example/tatsaechlich-verwendet"'
         in history.text
@@ -383,6 +384,103 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
     assert f'href="/schedules/{schedule_id}/copy"' in history.text
     assert f'action="/schedules/{schedule_id}/delete"' not in history.text
     assert client.get(f"/schedules/{schedule_id}/copy").status_code == 200
+
+
+def test_history_paginates_and_filters_all_entries(
+    app: FastAPI,
+    client: TestClient,
+    admin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert schedules_web.HISTORY_PAGE_SIZE == 500
+    monkeypatch.setattr(schedules_web, "HISTORY_PAGE_SIZE", 2)
+    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    assert add_stream(client).status_code == 303
+
+    with app.state.session_factory() as db:
+        second_user = create_user(
+            db,
+            username="history.user",
+            display_name="Historiennutzer",
+            password="password",
+            password_confirmation="password",
+            role="user",
+            must_change_password=False,
+        )
+        second_user_id = second_user.id
+        stream = db.scalar(select(Stream))
+        now = utc_now().replace(second=0, microsecond=0)
+        for index in range(5):
+            starts_at = now - timedelta(hours=index + 2)
+            db.add(
+                RecordingSchedule(
+                    stream_id=stream.id,
+                    stream_name=stream.name,
+                    stream_url=stream.stream_url,
+                    title=(
+                        "Historie Archivziel"
+                        if index == 4
+                        else f"Historie Nummer {index}"
+                    ),
+                    file_name_base=f"historie-{index}",
+                    recorder="ffmpeg",
+                    file_type="mp3",
+                    starts_at=starts_at,
+                    ends_at=starts_at + timedelta(minutes=30),
+                    status="completed",
+                    created_by_id=second_user_id if index == 4 else admin.id,
+                )
+            )
+        db.commit()
+
+    first_page = client.get("/history")
+    assert first_page.status_code == 200
+    assert first_page.text.count("data-history-entry") == 2
+    assert "Historie Nummer 0" in first_page.text
+    assert "Historie Nummer 1" in first_page.text
+    assert "Historie Nummer 2" not in first_page.text
+    assert "Seite 1 von 3 · Einträge 1–2 von 5" in first_page.text
+    assert 'aria-disabled="true">Erste</span>' in first_page.text
+    assert 'href="/history?page=2" aria-label="Nächste Seite">Weiter</a>' in first_page.text
+    assert 'href="/history?page=3" aria-label="Letzte Seite">Letzte</a>' in first_page.text
+
+    second_page = client.get("/history?page=2")
+    assert second_page.text.count("data-history-entry") == 2
+    assert "Historie Nummer 2" in second_page.text
+    assert "Historie Nummer 3" in second_page.text
+    assert "Seite 2 von 3 · Einträge 3–4 von 5" in second_page.text
+    assert 'href="/history" aria-label="Erste Seite">Erste</a>' in second_page.text
+    assert 'href="/history" aria-label="Vorherige Seite">Zurück</a>' in second_page.text
+
+    last_page = client.get("/history?page=3")
+    assert last_page.text.count("data-history-entry") == 1
+    assert "Historie Archivziel" in last_page.text
+    assert "Seite 3 von 3 · Einträge 5–5 von 5" in last_page.text
+    assert 'aria-disabled="true">Letzte</span>' in last_page.text
+
+    filtered = client.get("/history?q=Archivziel")
+    assert filtered.status_code == 200
+    assert filtered.text.count("data-history-entry") == 1
+    assert "Historie Archivziel" in filtered.text
+    assert "Historie Nummer 0" not in filtered.text
+    assert 'name="q" value="Archivziel"' in filtered.text
+    assert "Seite 1 von 1 · Einträge 1–1 von 1" in filtered.text
+
+    filtered_pages = client.get("/history?q=Historie")
+    assert filtered_pages.text.count("data-history-entry") == 2
+    assert "Seite 1 von 3 · Einträge 1–2 von 5" in filtered_pages.text
+    assert (
+        'href="/history?q=Historie&amp;page=2" aria-label="Nächste Seite">Weiter</a>'
+        in filtered_pages.text
+    )
+
+    user_filtered = client.get(f"/history?user_id={second_user_id}")
+    assert user_filtered.text.count("data-history-entry") == 1
+    assert "Historie Archivziel" in user_filtered.text
+    assert (
+        f'<option value="{second_user_id}" selected>Historiennutzer</option>'
+        in user_filtered.text
+    )
 
 
 def test_schedule_stores_custom_file_name_base(

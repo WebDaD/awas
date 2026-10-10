@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -16,9 +16,20 @@ def build_history_router(templates: Jinja2Templates) -> APIRouter:
     @router.get("/history", response_class=HTMLResponse, include_in_schema=False)
     async def history_page(
         request: Request,
+        page: int = Query(1, ge=1),
+        q: str = Query("", max_length=256),
+        user_id: str = Query("", max_length=20),
         _: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> HTMLResponse:
-        return render_history(templates, request, db)
+        selected_user_id = int(user_id) if user_id.isdigit() and int(user_id) > 0 else None
+        return render_history(
+            templates,
+            request,
+            db,
+            page=page,
+            filter_query=q,
+            filter_user_id=selected_user_id,
+        )
 
     return router

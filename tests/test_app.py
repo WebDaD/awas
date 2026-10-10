@@ -21,14 +21,14 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.15", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.16", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
-    assert "AWAS 3.0.15 · Release 10.10.2026" in login_page.text
+    assert "AWAS 3.0.16 · Release 10.10.2026" in login_page.text
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
     assert favicon.headers["content-type"] == "image/x-icon"
@@ -88,6 +88,9 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert "button.dataset.copyInitialScrollLeft" in script.text
     assert "button.scrollLeft = Number(button.dataset.copyInitialScrollLeft || 0)" in script.text
     assert "}, 2000)" in script.text
+    assert "applyServerFilter" in script.text
+    assert "data-server-filter-input" in script.text
+    assert ".pagination { display: flex;" in stylesheet.text
 
 
 def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
@@ -131,8 +134,11 @@ def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
     history = client.get("/history")
     assert history.status_code == 200
     assert "<h1>Historie</h1>" in history.text
-    assert 'data-filter-user="history-list"' in history.text
-    assert 'data-filter-input="history-list"' in history.text
+    assert "data-server-filter-form" in history.text
+    assert "data-server-filter-user" in history.text
+    assert "data-server-filter-input" in history.text
+    assert 'name="user_id"' in history.text
+    assert 'name="q"' in history.text
 
     recordings = client.get("/recordings")
     assert 'data-filter-user="recording-list"' in recordings.text
@@ -175,7 +181,6 @@ def test_list_user_filters_show_all_existing_users(
     )
     for path, filter_name in (
         ("/", "planning-list"),
-        ("/history", "history-list"),
         ("/recordings", "recording-list"),
     ):
         page = client.get(path)
@@ -183,6 +188,12 @@ def test_list_user_filters_show_all_existing_users(
         assert '<option value="">Alle</option>' in page.text
         for option in expected_options:
             assert option in page.text
+
+    history = client.get("/history")
+    assert "data-server-filter-user" in history.text
+    assert '<option value="" selected>Alle</option>' in history.text
+    for option in expected_options:
+        assert option in history.text
 
 
 def test_login_rejects_external_redirect(client: TestClient, admin) -> None:

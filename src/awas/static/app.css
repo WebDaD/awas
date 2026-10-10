@@ -93,7 +93,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .compact-heading h1 { font-size: clamp(1.7rem, 3vw, 2.15rem); }
 .heading-with-action > .button { flex: 0 0 auto; }
 .heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; }
-.page-list-controls { min-width: 0; }
+.page-list-controls { min-width: 0; margin: 0; }
 .list-filter-control { display: block; width: 15rem; flex: 0 0 15rem; }
 .list-filter-control input, .user-filter-control select { min-height: 43px; }
 .user-filter-control { display: flex; align-items: center; gap: .55rem; color: #333; font-size: .87rem; }
@@ -257,6 +257,9 @@ td small { margin-top: .15rem; color: var(--muted); }
 .weekday-option span { overflow: hidden; text-overflow: ellipsis; }
 .button:disabled { cursor: wait; opacity: .62; transform: none; }
 .button.is-disabled { cursor: default; opacity: .58; transform: none; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; padding: 1rem; border-top: 1px solid var(--border); }
+.pagination-summary { margin-right: auto; color: var(--muted); font-size: .78rem; }
+.pagination .button { min-width: 5rem; }
 .muted-text { color: var(--muted); }
 .recorder-placeholder-info { overflow-wrap: anywhere; }
 .recorder-placeholder-info code, .recorder-card code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -328,6 +331,9 @@ td small { margin-top: .15rem; color: var(--muted); }
   td.table-action .button { width: 100%; }
   .action-group { align-items: stretch; flex-direction: column; }
   .action-group form, .action-group .button { width: 100%; }
+  .pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pagination-summary { grid-column: 1 / -1; margin: 0 0 .35rem; text-align: center; }
+  .pagination .button { width: 100%; }
   .weekday-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .interval-control input { width: 6rem; flex-basis: 6rem; }
 }

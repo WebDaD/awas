@@ -3,19 +3,20 @@
 {% block content %}
   <section class="page-heading compact-heading heading-with-action">
     <div><h1>Historie</h1></div>
-    <div class="heading-actions page-list-controls">
+    <form class="heading-actions page-list-controls" method="get" action="/history" data-server-filter-form>
       <label class="user-filter-control">
         <span>Benutzer</span>
-        <select data-filter-user="history-list">
-          <option value="">Alle</option>
-          {% for user in filter_users %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}
+        <select name="user_id" data-server-filter-user>
+          <option value=""{% if filter_user_id is none %} selected{% endif %}>Alle</option>
+          {% for user in filter_users %}<option value="{{ user.id }}"{% if filter_user_id == user.id %} selected{% endif %}>{{ user.display_name }}</option>{% endfor %}
         </select>
       </label>
       <label class="list-filter-control">
         <span class="visually-hidden">Liste filtern</span>
-        <input type="search" placeholder="Liste filtern" autocomplete="off" data-filter-input="history-list">
+        <input type="search" name="q" value="{{ filter_query }}" placeholder="Liste filtern" autocomplete="off" data-server-filter-input>
       </label>
-    </div>
+      <noscript><button class="button button-quiet" type="submit">Filtern</button></noscript>
+    </form>
   </section>
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
 
@@ -27,7 +28,7 @@
             <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Zeitraum</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for schedule in schedules %}
-                <tr class="stream-data-row" data-filter-row="history-list" data-filter-user-id="{{ schedule.created_by_id or '' }}" data-filter-group="history-{{ schedule.id }}">
+                <tr class="stream-data-row" data-history-entry>
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
                     <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
@@ -60,7 +61,7 @@
                     {% endif %}
                   </td>
                 </tr>
-                <tr class="stream-url-row" data-filter-companion="history-{{ schedule.id }}">
+                <tr class="stream-url-row">
                   <td colspan="7" data-label="Stream-URL">
                     <div class="table-detail-line">
                       {% if schedule.stream_url %}
@@ -75,8 +76,25 @@
             </tbody>
           </table>
         </div>
+        <nav class="pagination" aria-label="Historienseiten">
+          <span class="pagination-summary">Seite {{ pagination.page }} von {{ pagination.page_count }} · Einträge {{ pagination.first_item }}–{{ pagination.last_item }} von {{ pagination.total_count }}</span>
+          {% if pagination.has_previous %}
+            <a class="button button-quiet button-small" href="{{ pagination.first_url }}" aria-label="Erste Seite">Erste</a>
+            <a class="button button-quiet button-small" href="{{ pagination.previous_url }}" aria-label="Vorherige Seite">Zurück</a>
+          {% else %}
+            <span class="button button-quiet button-small is-disabled" aria-disabled="true">Erste</span>
+            <span class="button button-quiet button-small is-disabled" aria-disabled="true">Zurück</span>
+          {% endif %}
+          {% if pagination.has_next %}
+            <a class="button button-quiet button-small" href="{{ pagination.next_url }}" aria-label="Nächste Seite">Weiter</a>
+            <a class="button button-quiet button-small" href="{{ pagination.last_url }}" aria-label="Letzte Seite">Letzte</a>
+          {% else %}
+            <span class="button button-quiet button-small is-disabled" aria-disabled="true">Weiter</span>
+            <span class="button button-quiet button-small is-disabled" aria-disabled="true">Letzte</span>
+          {% endif %}
+        </nav>
       {% else %}
-        <div class="empty-state compact-empty"><p>Keine abgeschlossenen Zeitpläne.</p></div>
+        <div class="empty-state compact-empty"><p>{% if filter_query or filter_user_id %}Keine passenden Einträge.{% else %}Keine abgeschlossenen Zeitpläne.{% endif %}</p></div>
       {% endif %}
     </section>
   </div>
