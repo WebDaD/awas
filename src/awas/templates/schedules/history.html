@@ -42,17 +42,20 @@
                     {% if schedule.error_message %}<small>{{ schedule.error_message }}</small>{% endif %}
                   </td>
                   <td class="table-action">
-                    {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
+                    {% set can_manage_schedule = current_user.is_admin or schedule.created_by_id == current_user.id %}
+                    {% if schedule.stream or can_manage_schedule %}
                       <div class="action-group">
                         {% if schedule.stream %}<a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>{% endif %}
-                        <form method="post" action="/schedules/{{ schedule.id }}/delete">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
-                          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
-                            <span class="action-initial-label">Löschen</span>
-                            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
-                          </button>
-                        </form>
+                        {% if can_manage_schedule %}
+                          <form method="post" action="/schedules/{{ schedule.id }}/delete">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                            <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                              <span class="action-initial-label">Löschen</span>
+                              <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                            </button>
+                          </form>
+                        {% endif %}
                       </div>
                     {% endif %}
                   </td>

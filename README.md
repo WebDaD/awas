@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.13 provides the production foundation, authentication, stream
+Version 3.0.14 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -46,9 +46,9 @@ management and recording:
 - running planned and spontaneous recordings expose the same file name, live file size,
   download and permitted stop controls on the planning and recordings pages
 - one-time recording schedules with local-time input
-- prefilled copying of upcoming one-time schedules and retained history entries;
-  history can be copied only while its referenced stream still exists, and a copy
-  uses that stream's current name and URL
+- prefilled copying of upcoming one-time schedules and retained history entries is
+  available to every signed-in user; history can be copied only while its referenced
+  stream still exists, and a copy uses that stream's current name and URL
 - discarded schedules disappear immediately and are not retained in the visible
   schedule history
 - automatic start and stop with restart-aware continuation

@@ -572,6 +572,8 @@ def test_admin_deletes_recording_and_file_but_keeps_schedule(
     assert "Speicherübersicht" in listing.text
     assert "Aufnahmeeinträge" not in listing.text
     assert "<span>Aufnahmen</span>" in listing.text
+    assert "<small>18 B</small>" in listing.text
+    assert "<small>18 B erfasst</small>" not in listing.text
     assert f"Aufnahmepfad {app.state.recording_manager.recording_directory}" in listing.text
     assert "Auf dem Aufnahmedatenträger" not in listing.text
     assert f'/recordings/{recording_id}/delete"' in listing.text

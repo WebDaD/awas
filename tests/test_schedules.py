@@ -365,6 +365,25 @@ def test_history_schedule_can_be_copied_without_changing_the_source(
         assert stream.preferred_recorder == "ffmpeg"
         assert stream.preferred_file_type == "mp3"
 
+    with app.state.session_factory() as db:
+        create_user(
+            db,
+            username="historyreader",
+            display_name="History Reader",
+            password="historyreader",
+            password_confirmation="historyreader",
+            role="user",
+            must_change_password=False,
+        )
+    page = client.get("/")
+    client.post("/logout", data={"csrf_token": form_token(page.text)})
+    assert login(client, "historyreader", "historyreader").status_code == 303
+
+    history = client.get("/history")
+    assert f'href="/schedules/{schedule_id}/copy"' in history.text
+    assert f'action="/schedules/{schedule_id}/delete"' not in history.text
+    assert client.get(f"/schedules/{schedule_id}/copy").status_code == 200
+
 
 def test_schedule_stores_custom_file_name_base(
     app: FastAPI,
@@ -406,7 +425,7 @@ def test_overlapping_schedules_for_same_stream_are_accepted(
         assert len(list(db.scalars(select(RecordingSchedule.id)))) == 2
 
 
-def test_normal_user_can_plan_but_not_edit_another_users_schedule(
+def test_normal_user_can_copy_but_not_edit_another_users_schedule(
     app: FastAPI,
     client: TestClient,
     admin,
@@ -431,9 +450,13 @@ def test_normal_user_can_plan_but_not_edit_another_users_schedule(
     page = client.get("/")
     client.post("/logout", data={"csrf_token": form_token(page.text)})
     assert login(client, "listener", "listener").status_code == 303
-    assert client.get("/").status_code == 200
+    planning = client.get("/")
+    assert planning.status_code == 200
+    assert f'href="/schedules/{schedule_id}/copy"' in planning.text
+    assert f'href="/schedules/{schedule_id}/edit"' not in planning.text
+    assert f'action="/schedules/{schedule_id}/cancel"' not in planning.text
     assert client.get(f"/schedules/{schedule_id}/edit").status_code == 403
-    assert client.get(f"/schedules/{schedule_id}/copy").status_code == 403
+    assert client.get(f"/schedules/{schedule_id}/copy").status_code == 200
 
     own = add_schedule(
         client,

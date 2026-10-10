@@ -122,10 +122,12 @@
                   <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
                   <td data-label="Status"><span class="badge">{{ status_labels[schedule.status] }}</span></td>
                   <td class="table-action">
-                    {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
-                      <div class="action-group">
+                    <div class="action-group">
+                      {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
                         <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/edit">Bearbeiten</a>
-                        <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>
+                      {% endif %}
+                      <a class="button button-quiet button-small" href="/schedules/{{ schedule.id }}/copy">Kopieren</a>
+                      {% if current_user.is_admin or schedule.created_by_id == current_user.id %}
                         <form method="post" action="/schedules/{{ schedule.id }}/cancel">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                           <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
@@ -134,8 +136,8 @@
                             <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
                           </button>
                         </form>
-                      </div>
-                    {% endif %}
+                      {% endif %}
+                    </div>
                   </td>
                 </tr>
               {% endfor %}

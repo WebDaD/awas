@@ -108,11 +108,10 @@ def build_schedule_router(templates: Jinja2Templates) -> APIRouter:
     async def copy_schedule_page(
         schedule_id: int,
         request: Request,
-        user: User = Depends(require_user),
+        _: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> HTMLResponse:
         schedule = get_schedule(db, schedule_id)
-        ensure_can_manage(schedule, user)
         is_upcoming_one_time = (
             schedule.status == "scheduled" and schedule.recurrence_id is None
         )
