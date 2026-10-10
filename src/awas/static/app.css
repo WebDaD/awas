@@ -216,11 +216,12 @@ td small { margin-top: .15rem; color: var(--muted); }
 .table-detail-value { flex: 0 0 auto; color: var(--muted); text-align: right; white-space: nowrap; }
 .recording-file { min-width: 0; overflow-wrap: anywhere; color: #333; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .76rem; }
 .stream-url { min-width: 0; overflow-x: auto; color: #333; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; white-space: nowrap; scrollbar-width: thin; }
-.stream-url-copy { display: block; width: 100%; padding: .15rem 0; border: 0; border-radius: 4px; background: transparent; cursor: copy; text-align: left; }
+.stream-url-copy { position: relative; display: block; width: 100%; padding: .15rem 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; text-align: left; }
 .stream-url-copy:hover { color: var(--blue); text-decoration: underline; }
 .stream-url-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.stream-url-copy.is-copied { color: var(--success); background: var(--success-dark); }
-.stream-url-copy.is-copy-error { color: var(--danger); background: var(--danger-dark); }
+.stream-url-copy.is-copied, .stream-url-copy.is-copy-error { color: transparent; text-decoration: none; }
+.stream-url-copy.is-copied::after, .stream-url-copy.is-copy-error::after { position: absolute; top: .15rem; left: 0; color: #333; content: attr(data-copy-feedback); white-space: nowrap; }
+.stream-url-copy.is-copy-error::after { color: var(--danger); }
 .recording-data-row td, .stream-data-row td { padding-bottom: .65rem; }
 .recording-file-entry + .recording-file-entry { margin-top: .45rem; padding-top: .45rem; border-top: 1px solid rgba(0, 0, 0, .08); }
 .recording-file-row td, .stream-url-row td { padding-top: .65rem; border-top: 0; background: transparent; }

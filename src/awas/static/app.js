@@ -119,17 +119,27 @@
     if (!button) return;
     const initialLabel = button.dataset.copyInitialLabel || button.getAttribute("aria-label");
     button.dataset.copyInitialLabel = initialLabel || "Stream-URL kopieren";
+    if (
+      !button.classList.contains("is-copied") &&
+      !button.classList.contains("is-copy-error")
+    ) {
+      button.dataset.copyInitialScrollLeft = String(button.scrollLeft);
+    }
     const previousTimer = copyFeedbackTimers.get(button);
     if (previousTimer) window.clearTimeout(previousTimer);
     try {
       await copyText(button.dataset.copyStreamUrl);
       button.classList.remove("is-copy-error");
       button.classList.add("is-copied");
+      button.dataset.copyFeedback = "✓ In Zwischenablage kopiert";
+      button.scrollLeft = 0;
       button.setAttribute("aria-label", "Stream-URL kopiert");
       button.title = "Kopiert";
     } catch (_error) {
       button.classList.remove("is-copied");
       button.classList.add("is-copy-error");
+      button.dataset.copyFeedback = "Kopieren fehlgeschlagen";
+      button.scrollLeft = 0;
       button.setAttribute("aria-label", "Stream-URL konnte nicht kopiert werden");
       button.title = "Kopieren fehlgeschlagen";
     }
@@ -137,10 +147,12 @@
       button,
       window.setTimeout(() => {
         button.classList.remove("is-copied", "is-copy-error");
+        delete button.dataset.copyFeedback;
+        button.scrollLeft = Number(button.dataset.copyInitialScrollLeft || 0);
         button.setAttribute("aria-label", button.dataset.copyInitialLabel);
         button.title = "Stream-URL kopieren";
         copyFeedbackTimers.delete(button);
-      }, 1600)
+      }, 2000)
     );
   });
 

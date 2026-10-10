@@ -21,14 +21,14 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.14", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.15", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
-    assert "AWAS 3.0.14 · Release 10.10.2026" in login_page.text
+    assert "AWAS 3.0.15 · Release 10.10.2026" in login_page.text
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
     assert favicon.headers["content-type"] == "image/x-icon"
@@ -80,7 +80,14 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     )
     assert ".list-filter-control { display: block; width: 15rem;" in stylesheet.text
     assert ".user-filter-control select { width: 15rem; }" in stylesheet.text
-    assert ".stream-url-copy.is-copied" in stylesheet.text
+    assert ".stream-url { min-width: 0; overflow-x: auto;" in stylesheet.text
+    assert "cursor: pointer" in stylesheet.text
+    assert "color: transparent; text-decoration: none" in stylesheet.text
+    assert "content: attr(data-copy-feedback)" in stylesheet.text
+    assert 'button.dataset.copyFeedback = "✓ In Zwischenablage kopiert"' in script.text
+    assert "button.dataset.copyInitialScrollLeft" in script.text
+    assert "button.scrollLeft = Number(button.dataset.copyInitialScrollLeft || 0)" in script.text
+    assert "}, 2000)" in script.text
 
 
 def test_admin_can_login_and_logout(client: TestClient, admin) -> None:
