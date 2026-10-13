@@ -96,6 +96,7 @@ def test_user_creates_edits_and_cancels_schedule(
     edit_page = client.get(f"/schedules/{schedule_id}/edit")
     assert 'data-preferred-recorder="ffmpeg"' in edit_page.text
     assert 'data-preferred-file-type="mp3"' in edit_page.text
+    assert ">Zur Planung</a>" not in edit_page.text
     timezone = app.state.settings.general.timezone
     new_start = (utc_now() + timedelta(hours=2)).replace(second=0, microsecond=0)
     changed = client.post(
@@ -173,6 +174,7 @@ def test_new_schedule_form_has_empty_times_and_save_button(
     assert 'name="file_name_base" value=""' in page.text
     assert "data-file-name-base" in page.text
     assert "Zeitplan anlegen" not in page.text
+    assert ">Zur Planung</a>" not in page.text
     assert ">Speichern</button>" in page.text
 
 

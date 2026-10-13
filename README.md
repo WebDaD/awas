@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.16 provides the production foundation, authentication, stream
+Version 3.0.17 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -42,6 +42,7 @@ management and recording:
 - a preferred recorder and file type per stream, with overrides that apply only to
   the individual schedule
 - editable file-name bases for one-time and recurring schedules
+- streamlined schedule forms without a redundant return-to-planning button
 - file-name bases retain underscores in addition to letters, numbers and hyphens
 - administrator-managed argument templates for every recorder
 - streamripper, ffmpeg, streamlink, vlc, mpv and mplayer recorder profiles

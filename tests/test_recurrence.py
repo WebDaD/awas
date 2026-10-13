@@ -109,6 +109,7 @@ def test_recurring_route_create_edit_pause_and_resume(
     assert "Täglich" in listing.text
     edit_page = client.get(f"/schedules/recurring/{rule_id}/edit")
     assert 'data-preferred-recorder="ffmpeg"' in edit_page.text
+    assert ">Zur Planung</a>" not in edit_page.text
     changed = client.post(
         f"/schedules/recurring/{rule_id}",
         data={
@@ -784,6 +785,7 @@ def test_new_recurring_form_starts_empty_and_offers_monthly_patterns(
     assert "Täglich" in page.text
     assert "Erster" in page.text
     assert "Wiederholung anlegen" not in page.text
+    assert ">Zur Planung</a>" not in page.text
     assert ">Speichern</button>" in page.text
 
 
