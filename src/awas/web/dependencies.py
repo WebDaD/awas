@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from time import monotonic
+
 from fastapi import HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -93,11 +95,21 @@ def user_filter_choices(db: Session) -> list[User]:
     return sorted(users, key=lambda user: (user.display_name.casefold(), user.id))
 
 
+def format_uptime(total_seconds: float) -> str:
+    seconds = max(0, int(total_seconds))
+    days, remainder = divmod(seconds, 86_400)
+    hours, remainder = divmod(remainder, 3_600)
+    minutes = remainder // 60
+    return f"{days:02d} Tage, {hours:02d}:{minutes:02d}"
+
+
 def template_context(request: Request, **extra: object) -> dict[str, object]:
+    started_monotonic = getattr(request.app.state, "started_monotonic", monotonic())
     context: dict[str, object] = {
         "request": request,
         "version": __version__,
         "release_date": __release_date__,
+        "uptime": format_uptime(monotonic() - started_monotonic),
         "current_user": current_user(request),
         "csrf_token": csrf_token(request),
     }

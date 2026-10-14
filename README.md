@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.17 provides the production foundation, authentication, stream
+Version 3.0.18 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -96,7 +96,8 @@ management and recording:
 - desktop content using 90 percent of the available page width
 - pale-orange highlighting for every row that represents a running recording
 - publicly accessible, cacheable favicon files for persistent browser bookmarks
-- a small footer on every HTML page with the AWAS version and release date
+- a small footer on every HTML page with the AWAS version, release date and
+  service uptime
 - interface with the digiandi logo, violet navigation, pale-violet page background
   and orange `#f87f40` action accents
 

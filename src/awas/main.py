@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from time import monotonic
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
@@ -110,6 +111,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(lifespan_app: FastAPI) -> AsyncIterator[None]:
+        lifespan_app.state.started_monotonic = monotonic()
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -156,6 +158,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = app_settings
+    app.state.started_monotonic = monotonic()
     app.state.timezone = app_settings.general.timezone
     app.state.engine = engine
     app.state.session_factory = session_factory

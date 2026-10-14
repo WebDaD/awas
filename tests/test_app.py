@@ -1,4 +1,5 @@
 from datetime import timedelta
+from time import monotonic
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -21,14 +22,18 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.17", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.18", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
+    client.app.state.started_monotonic = monotonic() - (2 * 86_400 + 3 * 3_600 + 4 * 60)
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
-    assert "AWAS 3.0.17 · Release 13.10.2026" in login_page.text
+    assert (
+        "AWAS 3.0.18 · Release 14.10.2026 · Uptime: 02 Tage, 03:04"
+        in login_page.text
+    )
     favicon = client.get("/favicon.ico")
     assert favicon.status_code == 200
     assert favicon.headers["content-type"] == "image/x-icon"
