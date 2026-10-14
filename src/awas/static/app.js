@@ -31,6 +31,32 @@
     });
   }
 
+  function formatUptime(totalSeconds) {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    const twoDigits = (value) => String(value).padStart(2, "0");
+    return `${days} Tage, ${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(
+      remainingSeconds
+    )}`;
+  }
+
+  function initializeUptime() {
+    const uptime = document.querySelector("[data-uptime]");
+    if (!uptime) return;
+    const initialSeconds = Number.parseInt(uptime.dataset.uptimeSeconds || "", 10);
+    if (!Number.isFinite(initialSeconds) || initialSeconds < 0) return;
+    const initializedAt = performance.now();
+    const update = () => {
+      const pageElapsedSeconds = Math.floor((performance.now() - initializedAt) / 1000);
+      uptime.textContent = formatUptime(initialSeconds + pageElapsedSeconds);
+    };
+    update();
+    window.setInterval(update, 1000);
+  }
+
   function filterCompanion(row) {
     const companion = row.nextElementSibling;
     if (
@@ -410,6 +436,7 @@
   }
 
   initializeMobileMenu();
+  initializeUptime();
   applyFilters();
   initializeStreamDefaults();
   initializeFileNames();

@@ -99,17 +99,19 @@ def format_uptime(total_seconds: float) -> str:
     seconds = max(0, int(total_seconds))
     days, remainder = divmod(seconds, 86_400)
     hours, remainder = divmod(remainder, 3_600)
-    minutes = remainder // 60
-    return f"{days:02d} Tage, {hours:02d}:{minutes:02d}"
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days} Tage, {hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 def template_context(request: Request, **extra: object) -> dict[str, object]:
     started_monotonic = getattr(request.app.state, "started_monotonic", monotonic())
+    uptime_seconds = max(0, int(monotonic() - started_monotonic))
     context: dict[str, object] = {
         "request": request,
         "version": __version__,
         "release_date": __release_date__,
-        "uptime": format_uptime(monotonic() - started_monotonic),
+        "uptime": format_uptime(uptime_seconds),
+        "uptime_seconds": uptime_seconds,
         "current_user": current_user(request),
         "csrf_token": csrf_token(request),
     }

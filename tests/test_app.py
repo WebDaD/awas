@@ -1,6 +1,4 @@
 from datetime import timedelta
-from time import monotonic
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -9,10 +7,11 @@ from awas.auth.tokens import HTTPS_LOGIN_CSRF_COOKIE, HTTPS_SESSION_COOKIE, SESS
 from awas.models import AuditLog, LoginAttempt, WebSession
 from awas.models.auth import utc_now
 from awas.services.auth import create_user
+from awas.web import dependencies
 from tests.conftest import form_token, login
 
 
-def test_health_and_protected_pages(client: TestClient) -> None:
+def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     planning = client.get("/", follow_redirects=False)
     history = client.get("/history", follow_redirects=False)
     health = client.get("/health")
@@ -22,16 +21,22 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.18", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.19", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
-    client.app.state.started_monotonic = monotonic() - (2 * 86_400 + 3 * 3_600 + 4 * 60)
+    client.app.state.started_monotonic = 100.0
+    monkeypatch.setattr(
+        dependencies,
+        "monotonic",
+        lambda: 100.0 + 2 * 86_400 + 3 * 3_600 + 4 * 60 + 5,
+    )
     login_page = client.get("/login")
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
     assert (
-        "AWAS 3.0.18 · Release 14.10.2026 · Uptime: 02 Tage, 03:04"
+        "AWAS 3.0.19 · Release 14.10.2026 · AWAS-Uptime: "
+        '<span data-uptime data-uptime-seconds="183845">2 Tage, 03:04:05</span>'
         in login_page.text
     )
     favicon = client.get("/favicon.ico")
@@ -71,6 +76,9 @@ def test_health_and_protected_pages(client: TestClient) -> None:
     assert "tr[hidden] { display: none; }" in stylesheet.text
     script = client.get("/static/app.js")
     assert "initializeMobileMenu" in script.text
+    assert "initializeUptime" in script.text
+    assert "performance.now()" in script.text
+    assert "window.setInterval(update, 1000)" in script.text
     assert "window.confirm" not in script.text
     assert '[data-action-confirm]' in script.text
     assert "danger-confirm-blink" in stylesheet.text

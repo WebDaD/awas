@@ -54,6 +54,6 @@
     <main class="page">
       {% block content %}{% endblock %}
     </main>
-    <footer class="site-footer">AWAS {{ version }} · Release {{ release_date }} · Uptime: {{ uptime }}</footer>
+    <footer class="site-footer">AWAS {{ version }} · Release {{ release_date }} · AWAS-Uptime: <span data-uptime data-uptime-seconds="{{ uptime_seconds }}">{{ uptime }}</span></footer>
   </body>
 </html>
