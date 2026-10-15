@@ -7,8 +7,8 @@
     <title>{% block title %}AWAS{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', path='/favicon.png') }}">
     <link rel="shortcut icon" href="{{ url_for('static', path='/favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ version }}">
-    <script defer src="{{ url_for('static', path='/app.js') }}?v={{ version }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ version }}&amp;r={{ asset_revision }}">
+    <script defer src="{{ url_for('static', path='/app.js') }}?v={{ version }}&amp;r={{ asset_revision }}"></script>
   </head>
   <body class="{% block body_class %}{% endblock %}">
     <header class="topbar">
@@ -54,6 +54,9 @@
     <main class="page">
       {% block content %}{% endblock %}
     </main>
-    <footer class="site-footer">AWAS {{ version }} · Release {{ release_date }} · AWAS-Uptime: <span data-uptime data-uptime-seconds="{{ uptime_seconds }}">{{ uptime }}</span></footer>
+    <footer class="site-footer" data-live-region="site-footer">
+      <div>Systemzeit: <span data-system-time>{{ system_time }}</span></div>
+      <div>AWAS {{ version }} · Release {{ release_date }} · AWAS-Uptime: <span data-uptime>{{ uptime }}</span></div>
+    </footer>
   </body>
 </html>

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import UTC
 from time import monotonic
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, Request
 from sqlalchemy import select
@@ -9,6 +11,7 @@ from sqlalchemy.orm import Session
 from awas import __release_date__, __version__
 from awas.auth.tokens import csrf_from_session_token, session_cookie_name, tokens_match
 from awas.models import User, WebSession
+from awas.models.auth import utc_now
 
 
 class AuthenticationRequired(Exception):
@@ -103,15 +106,24 @@ def format_uptime(total_seconds: float) -> str:
     return f"{days} Tage, {hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
+def server_status(request: Request) -> dict[str, str]:
+    current_monotonic = monotonic()
+    started_monotonic = getattr(request.app.state, "started_monotonic", current_monotonic)
+    timezone = request.app.state.timezone
+    local_now = utc_now().replace(tzinfo=UTC).astimezone(ZoneInfo(timezone))
+    return {
+        "system_time": f"{local_now:%d.%m.%Y %H:%M:%S} Uhr ({timezone})",
+        "uptime": format_uptime(current_monotonic - started_monotonic),
+    }
+
+
 def template_context(request: Request, **extra: object) -> dict[str, object]:
-    started_monotonic = getattr(request.app.state, "started_monotonic", monotonic())
-    uptime_seconds = max(0, int(monotonic() - started_monotonic))
     context: dict[str, object] = {
         "request": request,
         "version": __version__,
         "release_date": __release_date__,
-        "uptime": format_uptime(uptime_seconds),
-        "uptime_seconds": uptime_seconds,
+        "asset_revision": request.app.state.asset_revision,
+        **server_status(request),
         "current_user": current_user(request),
         "csrf_token": csrf_token(request),
     }

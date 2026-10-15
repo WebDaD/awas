@@ -31,32 +31,6 @@
     });
   }
 
-  function formatUptime(totalSeconds) {
-    const seconds = Math.max(0, Math.floor(totalSeconds));
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    const twoDigits = (value) => String(value).padStart(2, "0");
-    return `${days} Tage, ${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(
-      remainingSeconds
-    )}`;
-  }
-
-  function initializeUptime() {
-    const uptime = document.querySelector("[data-uptime]");
-    if (!uptime) return;
-    const initialSeconds = Number.parseInt(uptime.dataset.uptimeSeconds || "", 10);
-    if (!Number.isFinite(initialSeconds) || initialSeconds < 0) return;
-    const initializedAt = performance.now();
-    const update = () => {
-      const pageElapsedSeconds = Math.floor((performance.now() - initializedAt) / 1000);
-      uptime.textContent = formatUptime(initialSeconds + pageElapsedSeconds);
-    };
-    update();
-    window.setInterval(update, 1000);
-  }
-
   function filterCompanion(row) {
     const companion = row.nextElementSibling;
     if (
@@ -394,23 +368,53 @@
     });
   }
 
+  function liveRegionsPaused() {
+    return (
+      document.querySelector("[data-action-confirm].is-confirming") ||
+      document.querySelector('[data-server-filter-form][aria-busy="true"]')
+    );
+  }
+
+  async function refreshFooterStatus() {
+    const response = await fetch("/system/status", {
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "X-AWAS-Live": "1" },
+    });
+    if (!response.ok || response.redirected) return;
+    const status = await response.json();
+    if (typeof status.system_time !== "string" || typeof status.uptime !== "string") return;
+    const systemTime = document.querySelector("[data-system-time]");
+    const uptime = document.querySelector("[data-uptime]");
+    if (systemTime) systemTime.textContent = status.system_time;
+    if (uptime) uptime.textContent = status.uptime;
+  }
+
   async function refreshLiveRegions() {
     if (document.hidden) return;
-    if (document.querySelector("[data-action-confirm].is-confirming")) return;
-    if (document.querySelector('[data-server-filter-form][aria-busy="true"]')) return;
+    if (!document.querySelector("[data-live-page]") || liveRegionsPaused()) {
+      await refreshFooterStatus();
+      return;
+    }
     const regions = [...document.querySelectorAll("[data-live-region]")];
     if (!regions.length) return;
     const requestedUrl = window.location.href;
     const response = await fetch(requestedUrl, {
       credentials: "same-origin",
+      cache: "no-store",
       headers: { "X-AWAS-Live": "1" },
     });
-    if (!response.ok || response.redirected) return;
+    if (!response.ok || response.redirected) {
+      await refreshFooterStatus();
+      return;
+    }
     const html = await response.text();
     if (requestedUrl !== window.location.href) return;
     const nextDocument = new DOMParser().parseFromString(html, "text/html");
+    const paused = liveRegionsPaused();
     for (const region of regions) {
       const name = region.dataset.liveRegion;
+      if (paused && name !== "site-footer") continue;
       const replacement = nextDocument.querySelector(`[data-live-region="${name}"]`);
       if (replacement) region.innerHTML = replacement.innerHTML;
     }
@@ -418,7 +422,7 @@
   }
 
   function startLiveUpdates() {
-    const page = document.querySelector("[data-live-page]");
+    const page = document.querySelector("[data-live-page], .site-footer");
     if (!page) return;
     const interval = Number.parseInt(page.dataset.liveInterval || "5000", 10);
     let refreshing = false;
@@ -436,7 +440,6 @@
   }
 
   initializeMobileMenu();
-  initializeUptime();
   applyFilters();
   initializeStreamDefaults();
   initializeFileNames();

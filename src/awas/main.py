@@ -4,6 +4,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from time import monotonic
 from urllib.parse import quote
@@ -40,6 +41,7 @@ from awas.web.dependencies import (
     PasswordChangeRequired,
     database,
     require_user,
+    server_status,
     template_context,
 )
 from awas.web.history import build_history_router
@@ -158,6 +160,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = app_settings
+    app.state.asset_revision = sha256(
+        (PACKAGE_DIR / "static/app.css").read_bytes()
+        + (PACKAGE_DIR / "static/app.js").read_bytes()
+    ).hexdigest()[:12]
     app.state.started_monotonic = monotonic()
     app.state.timezone = app_settings.general.timezone
     app.state.engine = engine
@@ -268,6 +274,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         db: Session = Depends(database),
     ) -> HTMLResponse:
         return render_planning(templates, request, db)
+
+    @app.get("/system/status", include_in_schema=False)
+    async def system_status(request: Request) -> dict[str, str]:
+        return server_status(request)
 
     @app.get("/health", tags=["system"])
     async def health() -> dict[str, str]:

@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.20 provides the production foundation, authentication, stream
+Version 3.0.21 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -56,6 +56,8 @@ management and recording:
 - discarded schedules disappear immediately and are not retained in the visible
   schedule history
 - automatic start and stop with restart-aware continuation
+- scheduled end times and manual stop requests allow the recorder 60 seconds to
+  exit after SIGTERM, then send SIGKILL to its process group if it is still running
 - recurring schedules with configurable hourly, daily, weekly and monthly
   intervals, including fixed monthly dates and positions such as the first Monday
 - pausable series with optional validity ranges and DST-safe occurrence generation
@@ -96,8 +98,10 @@ management and recording:
 - desktop content using 90 percent of the available page width
 - pale-orange highlighting for every row that represents a running recording
 - publicly accessible, cacheable favicon files for persistent browser bookmarks
-- a small footer on every HTML page with the AWAS version, release date and
-  automatically updating service uptime including seconds
+- a small two-line footer on every HTML page with the server time in the configured
+  application timezone, AWAS version, release date and service uptime including
+  seconds; time and uptime are fetched from the server every five seconds together
+  with live page data, without counting time in the browser
 - interface with the digiandi logo, violet navigation, pale-violet page background
   and orange `#f87f40` action accents
 
@@ -155,6 +159,15 @@ containing more than one file is delivered as an uncompressed ZIP archive; delet
 the entry removes every associated file. Spontaneous recordings have no end time and
 are therefore not restarted automatically. A retrying schedule can be stopped manually
 to prevent any further attempts.
+
+At a scheduled end time or after a manual stop request, AWAS sends SIGTERM to
+the recording's process group. A separate 60-second grace period runs for each
+recording without blocking other recordings or the scheduler. If the process is
+still running when its grace period expires, AWAS sends SIGKILL to that process
+group. A normal exit cancels the pending forced stop; repeated stop requests do
+not extend the deadline. An intentional stop, including one that needs SIGKILL,
+does not trigger an automatic restart. Service shutdown retains its separate
+shutdown timeout.
 
 Recorder diagnostics inherit the AWAS service's standard error output and are
 therefore available in the system journal without being buffered in AWAS memory.

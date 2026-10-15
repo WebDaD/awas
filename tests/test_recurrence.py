@@ -437,7 +437,7 @@ def test_recurring_occurrence_runs_through_scheduler(
 
 
 def test_recurring_horizon_is_replenished(app: FastAPI, admin) -> None:
-    now = utc_now().replace(microsecond=0)
+    now = utc_now().replace(hour=10, minute=0, second=0, microsecond=0)
     timezone = app.state.settings.general.timezone
     local_now = now.replace(tzinfo=UTC).astimezone(ZoneInfo(timezone))
     with app.state.session_factory() as db:

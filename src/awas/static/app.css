@@ -145,7 +145,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .action-confirm-button.is-confirming { animation: none; color: #fff; border-color: var(--danger); background: var(--danger); }
 }
 
-.auth-page .page { display: grid; min-height: calc(100vh - 112px); align-items: center; }
+.auth-page .page { display: grid; align-items: center; }
 .auth-shell { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .72fr); gap: clamp(2rem, 8vw, 7rem); align-items: center; }
 .auth-intro h1 { margin: 0; font-size: clamp(3rem, 8vw, 6.4rem); letter-spacing: -.065em; line-height: .88; }
 .auth-intro > p:last-child { max-width: 560px; margin-top: 1.4rem; color: var(--muted); font-size: 1.12rem; }

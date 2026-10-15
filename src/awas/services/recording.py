@@ -41,6 +41,7 @@ from awas.services.recorders import (
 )
 
 logger = logging.getLogger(__name__)
+RECORDING_STOP_TIMEOUT_SECONDS = 60
 STAGED_DELETE_PATTERN = re.compile(
     r"^\.awas-delete-(\d+)(?:-(\d+))?-[0-9a-f]{8}\.pending$"
 )
@@ -219,6 +220,7 @@ class _RunningRecording:
     process: subprocess.Popen[bytes]
     thread: threading.Thread | None = None
     stop_reason: str | None = None
+    stop_timer: threading.Timer | None = None
 
 
 class RecordingManager:
@@ -796,8 +798,35 @@ class RecordingManager:
                 details={"stream_id": recording.stream_id, "reason": reason},
             )
             db.commit()
-        with suppress(ProcessLookupError):
-            self._terminate_process_group(process)
+            with suppress(ProcessLookupError):
+                self._terminate_process_group(process)
+            if running.stop_timer is None:
+                running.stop_timer = threading.Timer(
+                    RECORDING_STOP_TIMEOUT_SECONDS,
+                    self._force_stop_recording,
+                    args=(recording.id, process),
+                )
+                running.stop_timer.name = f"awas-recording-stop-{recording.id}"
+                running.stop_timer.daemon = True
+                running.stop_timer.start()
+
+    def _force_stop_recording(
+        self,
+        recording_id: int,
+        process: subprocess.Popen[bytes],
+    ) -> None:
+        with self._lock:
+            running = self._running.get(recording_id)
+            if running is None or running.process is not process or process.poll() is not None:
+                return
+            logger.warning(
+                "Recording %s (PID %s) did not stop within %s seconds; sending SIGKILL",
+                recording_id,
+                process.pid,
+                RECORDING_STOP_TIMEOUT_SECONDS,
+            )
+            with suppress(ProcessLookupError):
+                self._kill_process_group(process)
 
     def output_path(self, recording: Recording) -> Path:
         expected = self._expected_output_path(recording)
@@ -1050,7 +1079,9 @@ class RecordingManager:
                 db.commit()
         finally:
             with self._lock:
-                self._running.pop(recording_id, None)
+                running = self._running.pop(recording_id, None)
+                if running is not None and running.stop_timer is not None:
+                    running.stop_timer.cancel()
 
     def _remove_streamripper_cue(self, recording: Recording) -> None:
         if recording.recorder != "streamripper":

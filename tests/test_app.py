@@ -22,7 +22,7 @@ def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.20", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.21", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
@@ -36,8 +36,8 @@ def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
     assert (
-        "AWAS 3.0.20 · Release 14.10.2026 · AWAS-Uptime: "
-        '<span data-uptime data-uptime-seconds="183845">2 Tage, 03:04:05</span>'
+        "AWAS 3.0.21 · Release 15.10.2026 · AWAS-Uptime: "
+        '<span data-uptime>2 Tage, 03:04:05</span>'
         in login_page.text
     )
     favicon = client.get("/favicon.ico")
@@ -77,9 +77,10 @@ def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     assert "tr[hidden] { display: none; }" in stylesheet.text
     script = client.get("/static/app.js")
     assert "initializeMobileMenu" in script.text
-    assert "initializeUptime" in script.text
-    assert "performance.now()" in script.text
-    assert "window.setInterval(update, 1000)" in script.text
+    assert "refreshFooterStatus" in script.text
+    assert 'fetch("/system/status"' in script.text
+    assert "initializeUptime" not in script.text
+    assert "performance.now()" not in script.text
     assert "window.confirm" not in script.text
     assert '[data-action-confirm]' in script.text
     assert "danger-confirm-blink" in stylesheet.text
