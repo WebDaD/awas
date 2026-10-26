@@ -35,7 +35,7 @@
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Beginn</th><th>Dauer</th><th>Status</th><th></th></tr>
+              <tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
               {% for recording in recordings %}
@@ -47,7 +47,8 @@
                   </td>
                   <td data-label="Stream"><strong>{{ recording.stream_name }}</strong></td>
                   <td data-label="Rekorder">{{ recorder_label(recording.recorder) }}<small>Dateityp: {{ recording.file_type }}</small></td>
-                  <td data-label="Beginn">{{ recording.started_at|local_datetime }}</td>
+                  <td data-label="Start">{{ recording.started_at|local_datetime }}</td>
+                  <td data-label="Ende">{{ recording.schedule.ends_at|local_datetime if recording.schedule else '—' }}</td>
                   <td data-label="Dauer">{{ recording.duration_seconds|duration }}</td>
                   <td data-label="Status">
                     <span class="badge {% if recording.status in ('failed', 'interrupted') %}badge-danger{% elif recording.is_running %}badge-warning{% endif %}">{{ status_labels[recording.status] }}</span>
@@ -95,7 +96,7 @@
                   </td>
                 </tr>
                 <tr class="recording-file-row{% if recording.is_running %} recording-active-row{% endif %}" data-filter-companion="recording-{{ recording.group_key }}">
-                  <td colspan="7" data-label="Dateien">
+                  <td colspan="8" data-label="Dateien">
                     {% if recording.files %}
                       {% for file in recording.files %}
                         <div class="recording-file-entry">

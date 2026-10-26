@@ -22,7 +22,7 @@ def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     assert history.status_code == 303
     assert history.headers["location"].startswith("/login")
     assert health.status_code == 200
-    assert health.json() == {"status": "ok", "version": "3.0.21", "database": "ok"}
+    assert health.json() == {"status": "ok", "version": "3.0.22", "database": "ok"}
     assert "frame-ancestors 'none'" in health.headers["content-security-policy"]
     assert health.headers["cache-control"] == "no-store"
 
@@ -36,7 +36,7 @@ def test_health_and_protected_pages(client: TestClient, monkeypatch) -> None:
     assert 'rel="icon" type="image/png"' in login_page.text
     assert 'class="brand-mark"' in login_page.text
     assert (
-        "AWAS 3.0.21 · Release 15.10.2026 · AWAS-Uptime: "
+        "AWAS 3.0.22 · Release 26.10.2026 · AWAS-Uptime: "
         '<span data-uptime>2 Tage, 03:04:05</span>'
         in login_page.text
     )

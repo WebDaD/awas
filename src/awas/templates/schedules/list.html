@@ -27,7 +27,7 @@
       {% if running_entries %}
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Beginn</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Start</th><th>Ende</th><th>Dauer</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for entry in running_entries %}
                 {% set schedule = entry.schedule %}
@@ -40,7 +40,8 @@
                   </td>
                   <td data-label="Stream">{{ schedule.stream.name if schedule else recording.stream_name }}</td>
                   <td data-label="Rekorder">{{ recorder_label(recording.recorder if recording else schedule.recorder) }}<small>Dateityp: {{ recording.file_type if recording else schedule.file_type }}</small></td>
-                  <td data-label="Beginn">{{ (recording.started_at if recording else schedule.starts_at)|local_datetime }}</td>
+                  <td data-label="Start">{{ (recording.started_at if recording else schedule.starts_at)|local_datetime }}</td>
+                  <td data-label="Ende">{{ schedule.ends_at|local_datetime if schedule else '—' }}</td>
                   <td data-label="Dauer">{{ (recording.duration_seconds if recording else 0)|duration }}</td>
                   <td data-label="Status">
                     <span class="badge badge-warning">{{ status_labels[schedule.status] if not recording else ('Wartet auf neuen Versuch' if schedule and not recording.is_running else ('Wird beendet' if recording.status == 'stopping' else ('Wird gestartet' if recording.status == 'starting' else 'Läuft'))) }}</span>
@@ -76,7 +77,7 @@
                   </td>
                 </tr>
                 <tr class="recording-file-row recording-active-row" data-filter-companion="planning-running-{{ schedule.id if schedule else recording.group_key }}">
-                  <td colspan="7" data-label="Dateien">
+                  <td colspan="8" data-label="Dateien">
                     {% if recording and recording.files %}
                       {% for file in recording.files %}
                         <div class="recording-file-entry">
@@ -154,7 +155,7 @@
       {% if recurring_schedules %}
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholung</th><th>Zeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholung</th><th>Uhrzeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for rule in recurring_schedules %}
                 <tr data-filter-row="planning-list" data-filter-user-id="{{ rule.created_by_id or '' }}">
@@ -166,7 +167,7 @@
                   <td data-label="Stream">{{ rule.stream.name }}</td>
                   <td data-label="Rekorder">{{ recorder_label(rule.recorder) }}<small>Dateityp: {{ rule.file_type }}</small></td>
                   <td data-label="Wiederholung">{{ rule.recurrence_label }}</td>
-                  <td data-label="Zeit">{{ rule.start_time_label }}–{{ rule.end_time_label }}</td>
+                  <td data-label="Uhrzeit">{{ rule.start_time_label }}–{{ rule.end_time_label }}</td>
                   <td data-label="Gültigkeit">ab {{ rule.valid_from.strftime('%d.%m.%Y') }}{% if rule.valid_until %}<small>bis {{ rule.valid_until.strftime('%d.%m.%Y') }}</small>{% else %}<small>unbegrenzt</small>{% endif %}</td>
                   <td data-label="Status">
                     <span class="badge {{ '' if rule.is_active else 'badge-muted' }}">{{ 'Aktiv' if rule.is_active else 'Pausiert' }}</span>

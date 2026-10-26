@@ -2,16 +2,18 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.21 provides the production foundation, authentication, stream
+Version 3.0.22 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
+- certifi 2026.10.19 or newer for the trusted CA bundle used by HTTPS stream checks
 - SQLAlchemy 2 and Alembic
 - SQLite in WAL mode
 - planning as the factual start page, with all running recordings plus upcoming and
   recurring entries
 - a separate schedule history page whose entries retain independent snapshots of
   the stream name and the URL actually used for the recording
+- consistent `Start` and `Ende` columns on the planning, recordings and history pages
 - mobile-only collapsible main navigation
 - JSON health endpoint
 - native systemd service and nginx reverse proxy with parallel HTTP and optional HTTPS
@@ -49,6 +51,8 @@ management and recording:
 - recording history, stop control and authenticated snapshot downloads while recording
 - running planned and spontaneous recordings expose the same file name, live file size,
   download and permitted stop controls on the planning and recordings pages
+- recording tables label the beginning as `Start` and show the planned end time in
+  `Ende`; spontaneous recordings without a planned end show `—`
 - one-time recording schedules with local-time input
 - prefilled copying of upcoming one-time schedules and retained history entries is
   available to every signed-in user; history can be copied only while its referenced
@@ -60,6 +64,7 @@ management and recording:
   exit after SIGTERM, then send SIGKILL to its process group if it is still running
 - recurring schedules with configurable hourly, daily, weekly and monthly
   intervals, including fixed monthly dates and positions such as the first Monday
+- recurring schedules show their daily time range under `Uhrzeit` on the planning page
 - pausable series with optional validity ranges and DST-safe occurrence generation
 - expired recurrence rules disappear automatically from planning, which contains
   only upcoming, running, active and paused entries
