@@ -5,10 +5,11 @@ import asyncio
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from awas.models import (
+    ACTIVE_RECORDING_STATUSES,
     ACTIVE_SCHEDULE_STATUSES,
     Recording,
     RecordingSchedule,
@@ -350,20 +351,23 @@ def render_stream_list(
         db.scalars(select(Stream)),
         key=lambda stream: stream_name_sort_key(stream.name),
     )
-    latest_recording_ids = select(func.max(Recording.id)).group_by(Recording.stream_id)
-    last_recordings = {
-        recording.stream_id: recording
-        for recording in db.scalars(
-            select(Recording).where(Recording.id.in_(latest_recording_ids))
+    active_stream_ids = set(
+        db.scalars(
+            select(Recording.stream_id)
+            .where(
+                Recording.status.in_(ACTIVE_RECORDING_STATUSES),
+                Recording.stream_id.is_not(None),
+            )
+            .distinct()
         )
-    }
+    )
     return templates.TemplateResponse(
         request=request,
         name="streams/list.html",
         context=template_context(
             request,
             streams=streams,
-            last_recordings=last_recordings,
+            active_stream_ids=active_stream_ids,
             recorder_choices=RECORDER_CHOICES,
             file_type_choices=FILE_TYPE_CHOICES,
             recorder_label=recorder_label,

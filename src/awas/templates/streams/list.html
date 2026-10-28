@@ -22,23 +22,14 @@
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Stream</th><th>Rekorder</th><th>Dateityp</th><th>Letzte Aufnahme</th><th></th></tr>
+              <tr><th>Stream</th><th>Rekorder</th><th>Dateityp</th><th></th></tr>
             </thead>
             <tbody>
               {% for stream in streams %}
-                {% set last_recording = last_recordings.get(stream.id) %}
-                <tr class="stream-data-row{% if last_recording and last_recording.is_running %} recording-active-row{% endif %}" data-filter-row="stream-list" data-filter-text="{{ stream.stream_url }}" data-filter-group="stream-{{ stream.id }}">
+                <tr class="stream-data-row{% if stream.id in active_stream_ids %} recording-active-row{% endif %}" data-filter-row="stream-list" data-filter-text="{{ stream.stream_url }}" data-filter-group="stream-{{ stream.id }}">
                   <td data-label="Stream"><strong>{{ stream.name }}</strong></td>
                   <td data-label="Rekorder">{{ recorder_label(stream.preferred_recorder) }}</td>
                   <td data-label="Dateityp">{{ stream.preferred_file_type }}</td>
-                  <td data-label="Letzte Aufnahme">
-                    {% if last_recording %}
-                      {{ last_recording.started_at|local_datetime }}
-                      <small>{{ 'Läuft' if last_recording.is_running else last_recording.stream_name }}</small>
-                    {% else %}
-                      <span class="muted-text">Keine</span>
-                    {% endif %}
-                  </td>
                   <td class="table-action">
                     <div class="action-group">
                       <form method="post" action="/streams/{{ stream.id }}/recordings/start">
@@ -59,8 +50,8 @@
                     </div>
                   </td>
                 </tr>
-                <tr class="stream-url-row{% if last_recording and last_recording.is_running %} recording-active-row{% endif %}" data-filter-companion="stream-{{ stream.id }}">
-                  <td colspan="5" data-label="Stream-URL">
+                <tr class="stream-url-row{% if stream.id in active_stream_ids %} recording-active-row{% endif %}" data-filter-companion="stream-{{ stream.id }}">
+                  <td colspan="4" data-label="Stream-URL">
                     <div class="table-detail-line">
                       <button class="stream-url stream-url-copy" type="button" data-copy-stream-url="{{ stream.stream_url }}" aria-label="Stream-URL kopieren" title="Stream-URL kopieren">{{ stream.stream_url }}</button>
                     </div>

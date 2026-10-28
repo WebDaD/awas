@@ -16,7 +16,7 @@
         <input type="search" placeholder="Liste filtern" autocomplete="off" data-filter-input="planning-list">
       </label>
       <a class="button button-primary" href="/schedules/new">Einmalig planen</a>
-      <a class="button button-primary" href="/schedules/recurring/new">Wiederkehrend planen</a>
+      <a class="button button-primary" href="/schedules/recurring/new">Wiederholend planen</a>
     </div>
   </section>
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
@@ -35,11 +35,11 @@
                 <tr class="recording-data-row recording-data-row-with-file recording-active-row" data-filter-row="planning-list" data-filter-user-id="{{ schedule.created_by_id if schedule else recording.started_by_id if recording else '' }}" data-filter-group="planning-running-{{ schedule.id if schedule else recording.group_key }}">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title if schedule else 'Spontanaufnahme' }}</strong>
-                    <small>{{ ('Wiederkehrend' if schedule.recurrence_id else 'Einmalig') if schedule else 'Spontan' }}</small>
+                    <small>{{ ('Wiederholend' if schedule.recurrence_id else 'Einmalig') if schedule else 'Spontan' }}</small>
                     {% if schedule and schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% elif recording and recording.started_by %}<small>von {{ recording.started_by.display_name }}</small>{% endif %}
                   </td>
                   <td data-label="Stream">{{ schedule.stream.name if schedule else recording.stream_name }}</td>
-                  <td data-label="Rekorder">{{ recorder_label(recording.recorder if recording else schedule.recorder) }}<small>Dateityp: {{ recording.file_type if recording else schedule.file_type }}</small></td>
+                  <td data-label="Rekorder"><div class="recorder-details">{{ recorder_label(recording.recorder if recording else schedule.recorder) }}<span class="recorder-file-type">Dateityp: {{ recording.file_type if recording else schedule.file_type }}</span></div></td>
                   <td data-label="Start">{{ (recording.started_at if recording else schedule.starts_at)|local_datetime }}</td>
                   <td data-label="Ende">{{ schedule.ends_at|local_datetime if schedule else '—' }}</td>
                   <td data-label="Dauer">{{ (recording.duration_seconds if recording else 0)|duration }}</td>
@@ -113,11 +113,11 @@
                 <tr data-filter-row="planning-list" data-filter-user-id="{{ schedule.created_by_id or '' }}">
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
-                    <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
+                    <small>{{ 'Wiederholend' if schedule.recurrence_id else 'Einmalig' }}</small>
                     {% if schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% endif %}
                   </td>
                   <td data-label="Stream">{{ schedule.stream.name }}</td>
-                  <td data-label="Rekorder">{{ recorder_label(schedule.recorder) }}<small>Dateityp: {{ schedule.file_type }}</small></td>
+                  <td data-label="Rekorder"><div class="recorder-details">{{ recorder_label(schedule.recorder) }}<span class="recorder-file-type">Dateityp: {{ schedule.file_type }}</span></div></td>
                   <td data-label="Start">{{ schedule.starts_at|local_datetime }}</td>
                   <td data-label="Ende">{{ schedule.ends_at|local_datetime }}</td>
                   <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
@@ -155,18 +155,18 @@
       {% if recurring_schedules %}
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholung</th><th>Uhrzeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Aufnahme</th><th>Stream</th><th>Rekorder</th><th>Wiederholend</th><th>Uhrzeit</th><th>Gültigkeit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for rule in recurring_schedules %}
                 <tr data-filter-row="planning-list" data-filter-user-id="{{ rule.created_by_id or '' }}">
                   <td data-label="Aufnahme">
                     <strong>{{ rule.title }}</strong>
-                    <small>Wiederholung</small>
+                    <small>Wiederholend</small>
                     {% if rule.created_by %}<small>von {{ rule.created_by.display_name }}</small>{% endif %}
                   </td>
                   <td data-label="Stream">{{ rule.stream.name }}</td>
-                  <td data-label="Rekorder">{{ recorder_label(rule.recorder) }}<small>Dateityp: {{ rule.file_type }}</small></td>
-                  <td data-label="Wiederholung">{{ rule.recurrence_label }}</td>
+                  <td data-label="Rekorder"><div class="recorder-details">{{ recorder_label(rule.recorder) }}<span class="recorder-file-type">Dateityp: {{ rule.file_type }}</span></div></td>
+                  <td data-label="Wiederholend">{{ rule.recurrence_label }}</td>
                   <td data-label="Uhrzeit">{{ rule.start_time_label }}–{{ rule.end_time_label }}</td>
                   <td data-label="Gültigkeit">ab {{ rule.valid_from.strftime('%d.%m.%Y') }}{% if rule.valid_until %}<small>bis {{ rule.valid_until.strftime('%d.%m.%Y') }}</small>{% else %}<small>unbegrenzt</small>{% endif %}</td>
                   <td data-label="Status">

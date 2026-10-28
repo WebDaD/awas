@@ -586,7 +586,7 @@ def test_admin_deletes_recording_and_file_but_keeps_schedule(
     assert "data-copy-stream-url" not in listing.text
     assert "Datei löschen" not in listing.text
     assert "Eintrag löschen" not in listing.text
-    assert listing.text.index("<small>Zeitplan</small>") < listing.text.index(
+    assert listing.text.index("<small>Einmalig</small>") < listing.text.index(
         "<small>von AWAS Admin</small>"
     )
     assert client.get(f"/recordings/{recording_id}/delete").status_code == 405

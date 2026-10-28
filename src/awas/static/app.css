@@ -153,6 +153,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .auth-panel h2 { margin: 0; font-size: 1.65rem; }
 .auth-panel h1 { margin: 0; font-size: 1.75rem; }
 .auth-panel-single { width: min(430px, 100%); margin: 0 auto; }
+.auth-panel-single > h1 { margin-bottom: 1.5rem; }
 .panel-intro { margin: .45rem 0 1.4rem; color: var(--muted); }
 
 .form-panel { width: min(680px, 100%); padding: clamp(1.25rem, 4vw, 2rem); }
@@ -189,6 +190,8 @@ th { padding: .9rem 1rem; color: #666; background: #fafafa; font-size: .7rem; le
 td { padding: 1rem; border-top: 1px solid var(--border); color: #333; font-size: .86rem; vertical-align: middle; }
 td strong, td small { display: block; }
 td small { margin-top: .15rem; color: var(--muted); }
+.recorder-details { min-width: 0; }
+.recorder-file-type { display: block; margin-top: .15rem; color: var(--muted); }
 .table-action { text-align: right; }
 
 .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

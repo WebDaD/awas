@@ -50,7 +50,7 @@ def test_admin_manages_stream_lifecycle(
     assert 'placeholder="Liste filtern"' in stream_page.text
     assert "Streams filtern" not in stream_page.text
     assert 'data-live-interval="5000"' in stream_page.text
-    assert "Letzte Aufnahme" in stream_page.text
+    assert "Letzte Aufnahme" not in stream_page.text
     assert "<th>Stream-URL</th>" not in stream_page.text
     assert 'class="stream-url-row"' in stream_page.text
     assert 'data-filter-text="https://radio.example/stream"' in stream_page.text

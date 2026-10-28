@@ -31,11 +31,11 @@
                 <tr class="stream-data-row" data-history-entry>
                   <td data-label="Aufnahme">
                     <strong>{{ schedule.title }}</strong>
-                    <small>{{ 'Wiederkehrend' if schedule.recurrence_id else 'Einmalig' }}</small>
+                    <small>{{ 'Wiederholend' if schedule.recurrence_id else 'Einmalig' }}</small>
                     {% if schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% endif %}
                   </td>
                   <td data-label="Stream">{{ schedule.stream_name }}</td>
-                  <td data-label="Rekorder">{{ recorder_label(schedule.recorder) }}<small>Dateityp: {{ schedule.file_type }}</small></td>
+                  <td data-label="Rekorder"><div class="recorder-details">{{ recorder_label(schedule.recorder) }}<span class="recorder-file-type">Dateityp: {{ schedule.file_type }}</span></div></td>
                   <td data-label="Start">{{ schedule.starts_at|local_datetime }}</td>
                   <td data-label="Ende">{{ schedule.ends_at|local_datetime }}</td>
                   <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
