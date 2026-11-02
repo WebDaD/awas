@@ -40,7 +40,7 @@
                   <td data-label="Ende">{{ schedule.ends_at|local_datetime }}</td>
                   <td data-label="Dauer">{{ schedule.duration_seconds|duration }}</td>
                   <td data-label="Status">
-                    <span class="badge {% if schedule.status in ('failed', 'missed') %}badge-danger{% else %}badge-muted{% endif %}">{{ status_labels[schedule.status] }}</span>
+                    <span class="badge {% if schedule.status in ('failed', 'missed') %}badge-danger{% endif %}">{{ status_labels[schedule.status] }}</span>
                     {% if schedule.error_message %}<small>{{ schedule.error_message }}</small>{% endif %}
                   </td>
                   <td class="table-action">

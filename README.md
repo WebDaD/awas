@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.23 provides the production foundation, authentication, stream
+Version 3.0.24 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -13,6 +13,7 @@ management and recording:
   recurring entries
 - a separate schedule history page whose entries retain independent snapshots of
   the stream name and the URL actually used for the recording
+- matching green completed and red failed status badges in history and recordings
 - consistent `Start` and `Ende` columns on the planning, recordings and history pages
 - consistent `Einmalig` and `Wiederholend` recording labels across planning, history
   and recordings, with spontaneous recordings labeled `Spontan`
@@ -43,6 +44,11 @@ management and recording:
 - stream URLs in the stream list and schedule history can be copied directly by
   clicking or tapping them, with an inline two-second confirmation that retains
   the horizontal URL scroll area
+- long stream URLs scroll inside their own row on desktop and mobile without
+  widening the table
+- streamlined stream and user editing pages without redundant return buttons;
+  stream edits include a cancel action and keep the connection-check explanation
+  visible above the latest test result
 - every stored stream is available for recording; stream management has no separate
   activation state
 - one-click recordings from the stream list

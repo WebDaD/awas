@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ target.display_name }} · AWAS{% endblock %}
 {% block content %}
-  <section class="page-heading compact-heading heading-with-action">
+  <section class="page-heading compact-heading">
     <div><p class="eyebrow">Benutzer verwalten</p><h1>{{ target.display_name }}</h1></div>
-    <a class="button button-quiet" href="/admin/users">Zu den Benutzern</a>
   </section>
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
   <section class="settings-grid">
