@@ -19,9 +19,8 @@ from awas.models import (
 )
 from awas.models.auth import utc_now
 from awas.services.auth import add_audit_entry
+from awas.services.file_types import file_type_choices
 from awas.services.recorders import (
-    DEFAULT_FILE_TYPE,
-    FILE_TYPE_CHOICES,
     RECORDER_CHOICES,
     recorder_label,
 )
@@ -80,8 +79,9 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
     async def new_stream_page(
         request: Request,
         _: User = Depends(require_user),
+        db: Session = Depends(database),
     ) -> HTMLResponse:
-        return render_new_stream(templates, request)
+        return render_new_stream(templates, request, db)
 
     @router.post("/admin/streams", response_class=HTMLResponse, include_in_schema=False)
     async def add_stream(
@@ -101,7 +101,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
                 name=name,
                 stream_url=stream_url,
                 preferred_recorder=preferred_recorder or "",
-                preferred_file_type=preferred_file_type or DEFAULT_FILE_TYPE,
+                preferred_file_type=preferred_file_type,
                 actor=user,
                 ip_address=client_ip(request),
             )
@@ -109,6 +109,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
             return render_new_stream(
                 templates,
                 request,
+                db,
                 error=str(exc),
                 values={
                     "name": name,
@@ -135,6 +136,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
         return render_stream_detail(
             templates,
             request,
+            db,
             stream,
             notice=STATUS_MESSAGES.get(request.query_params.get("status", "")),
         )
@@ -178,6 +180,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
             return render_stream_detail(
                 templates,
                 request,
+                db,
                 stream,
                 error=str(exc),
                 status_code=400,
@@ -239,6 +242,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
             return render_stream_detail(
                 templates,
                 request,
+                db,
                 stream,
                 error="Dieser Stream besitzt Zeitpläne und kann deshalb nicht gelöscht werden.",
                 status_code=400,
@@ -255,6 +259,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
             return render_stream_detail(
                 templates,
                 request,
+                db,
                 stream,
                 error=(
                     "Dieser Stream besitzt Wiederholungen und kann deshalb nicht gelöscht werden."
@@ -287,6 +292,7 @@ def get_stream(db: Session, stream_id: int) -> Stream:
 def render_new_stream(
     templates: Jinja2Templates,
     request: Request,
+    db: Session,
     *,
     error: str | None = None,
     values: dict[str, object] | None = None,
@@ -306,7 +312,7 @@ def render_new_stream(
                 "preferred_file_type": "",
             },
             recorder_choices=RECORDER_CHOICES,
-            file_type_choices=FILE_TYPE_CHOICES,
+            file_type_choices=file_type_choices(db),
             recorder_label=recorder_label,
         ),
         status_code=status_code,
@@ -316,6 +322,7 @@ def render_new_stream(
 def render_stream_detail(
     templates: Jinja2Templates,
     request: Request,
+    db: Session,
     stream: Stream,
     *,
     notice: str | None = None,
@@ -329,7 +336,7 @@ def render_stream_detail(
             request,
             stream=stream,
             recorder_choices=RECORDER_CHOICES,
-            file_type_choices=FILE_TYPE_CHOICES,
+            file_type_choices=file_type_choices(db),
             notice=notice,
             error=error,
         ),
@@ -369,7 +376,7 @@ def render_stream_list(
             streams=streams,
             active_stream_ids=active_stream_ids,
             recorder_choices=RECORDER_CHOICES,
-            file_type_choices=FILE_TYPE_CHOICES,
+            file_type_choices=file_type_choices(db),
             recorder_label=recorder_label,
             notice=notice,
             error=error,

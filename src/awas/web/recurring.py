@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from awas.models import RecurringSchedule, Stream, User
-from awas.services.recorders import FILE_TYPE_CHOICES, RECORDER_CHOICES
+from awas.services.file_types import file_type_choices
+from awas.services.recorders import RECORDER_CHOICES
 from awas.services.recurrence import (
     RecurringInputError,
     calculate_duration,
@@ -523,7 +524,7 @@ def render_recurring_form(
             recurrence_type_options=RECURRENCE_TYPE_OPTIONS,
             month_week_options=MONTH_WEEK_OPTIONS,
             recorder_choices=RECORDER_CHOICES,
-            file_type_choices=FILE_TYPE_CHOICES,
+            file_type_choices=file_type_choices(db),
             timezone=request.app.state.timezone,
             error=error,
         ),

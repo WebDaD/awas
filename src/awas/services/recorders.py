@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import shlex
 import shutil
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 from string import Formatter
@@ -142,15 +143,17 @@ def recorder_label(value: str) -> str:
     return profile.label if profile else value
 
 
-def validate_file_type(value: str) -> str:
-    normalized = value.strip().lower().lstrip(".")
-    if normalized not in FILE_TYPES:
+def validate_file_type(value: str, *, file_types: Collection[str] | None = FILE_TYPES) -> str:
+    normalized = value.strip().lower().removeprefix(".")
+    if not re.fullmatch(r"[a-z0-9]{1,16}", normalized) or (
+        file_types is not None and normalized not in file_types
+    ):
         raise RecorderInputError("Der ausgewählte Dateityp ist ungültig.")
     return normalized
 
 
 def file_type_extension(value: str) -> str:
-    return f".{validate_file_type(value)}"
+    return f".{validate_file_type(value, file_types=None)}"
 
 
 def recorder_extension(value: str) -> str:
@@ -237,7 +240,7 @@ def build_recorder_command(
     profile = RECORDER_BY_KEY[validate_recorder(recorder)]
     validate_recorder_url(profile.key, stream_url)
     if file_type is not None:
-        validate_file_type(file_type)
+        validate_file_type(file_type, file_types=None)
     executable = shutil.which(profile.executable)
     if executable is None:
         raise RecorderUnavailableError(

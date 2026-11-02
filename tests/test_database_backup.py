@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, func, select, text
 
-from awas.models import AuditLog, Recording, RecordingSchedule, Stream, WebSession
+from awas.models import AuditLog, FileTypeSetting, Recording, RecordingSchedule, Stream, WebSession
 from awas.models.auth import utc_now
 from awas.services.auth import create_user
 from tests.conftest import form_token, login
@@ -24,7 +24,7 @@ def set_database_revision(app: FastAPI) -> None:
         )
         connection.execute(text("DELETE FROM alembic_version"))
         connection.execute(
-            text("INSERT INTO alembic_version (version_num) VALUES ('0022')")
+            text("INSERT INTO alembic_version (version_num) VALUES ('0023')")
         )
 
 
@@ -57,7 +57,7 @@ def test_admin_exports_complete_database(
     with sqlite3.connect(export_path) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("0022",)
+        ).fetchone() == ("0023",)
         assert connection.execute(
             "SELECT name FROM streams WHERE name = 'Export Stream'"
         ).fetchone() == ("Export Stream",)
@@ -76,6 +76,7 @@ def test_admin_exports_complete_database(
         "recording_schedules",
         "recurring_schedules",
         "recorder_settings",
+        "file_type_settings",
         "retention_policy",
         "storage_configuration",
     } <= tables
@@ -120,6 +121,7 @@ def test_admin_imports_backup_and_keeps_only_current_session(
     set_database_revision(app)
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
     with app.state.session_factory() as db:
+        db.get(FileTypeSetting, 1).file_types = "ts, aac, mka"
         db.add(
             Stream(
                 name="Stand der Sicherung",
@@ -146,6 +148,7 @@ def test_admin_imports_backup_and_keeps_only_current_session(
         stream = db.scalar(select(Stream).where(Stream.name == "Stand der Sicherung"))
         assert stream is not None
         stream.name = "Geänderter Live-Stand"
+        db.get(FileTypeSetting, 1).file_types = "ts, flac"
         db.commit()
 
     page = client.get("/admin/storage")
@@ -167,10 +170,15 @@ def test_admin_imports_backup_and_keeps_only_current_session(
     assert client.get("/").status_code == 200
     with app.state.session_factory() as db:
         assert db.scalar(select(Stream.name)) == "Stand der Sicherung"
+        assert db.get(FileTypeSetting, 1).file_types == "ts, aac, mka"
         assert db.scalar(select(func.count(WebSession.id))) == 1
         assert db.scalar(
             select(func.count(AuditLog.id)).where(AuditLog.action == "database.imported")
         ) == 1
+    assert 'name="file_types" value="ts, aac, mka"' in client.get("/admin/recorders").text
+    new_stream = client.get("/admin/streams/new")
+    assert '<option value="aac"' in new_stream.text
+    assert '<option value="flac"' not in new_stream.text
 
 
 def test_database_round_trip_preserves_schedule_history(

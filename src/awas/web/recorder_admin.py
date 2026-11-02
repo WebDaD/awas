@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from awas.models import User
+from awas.services.file_types import configured_file_types, update_file_types
 from awas.services.recorder_settings import (
     recorder_configurations,
     update_recorder_arguments,
@@ -29,12 +30,38 @@ def build_recorder_admin_router(templates: Jinja2Templates) -> APIRouter:
         _: User = Depends(require_admin),
         db: Session = Depends(database),
     ) -> HTMLResponse:
-        notice = (
-            "Die Rekorderparameter wurden gespeichert."
-            if request.query_params.get("status") == "updated"
-            else None
-        )
+        notice = {
+            "updated": "Die Rekorderparameter wurden gespeichert.",
+            "file-types-updated": "Die Dateitypen wurden gespeichert.",
+        }.get(request.query_params.get("status", ""))
         return render_recorders(templates, request, db, notice=notice)
+
+    @router.post("/file-types", response_class=HTMLResponse, include_in_schema=False)
+    async def edit_file_types(
+        request: Request,
+        file_types: str = Form(..., max_length=2048),
+        csrf_token: str = Form(..., max_length=128),
+        admin: User = Depends(require_admin),
+        db: Session = Depends(database),
+    ) -> Response:
+        validate_csrf(request, csrf_token)
+        try:
+            update_file_types(
+                db,
+                file_types=file_types,
+                actor=admin,
+                ip_address=client_ip(request),
+            )
+        except RecorderInputError as exc:
+            return render_recorders(
+                templates,
+                request,
+                db,
+                error=str(exc),
+                submitted_file_types=file_types,
+                status_code=400,
+            )
+        return RedirectResponse(url="/admin/recorders?status=file-types-updated", status_code=303)
 
     @router.post("/{recorder}", response_class=HTMLResponse, include_in_schema=False)
     async def edit_recorder(
@@ -80,6 +107,7 @@ def render_recorders(
     error: str | None = None,
     submitted_recorder: str | None = None,
     submitted_arguments: str | None = None,
+    submitted_file_types: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     values = {item.key: item.arguments for item in recorder_configurations(db)}
@@ -92,6 +120,11 @@ def render_recorders(
             request,
             recorders=recorder_configurations(db),
             values=values,
+            file_types_value=(
+                submitted_file_types
+                if submitted_file_types is not None
+                else ", ".join(configured_file_types(db))
+            ),
             notice=notice,
             error=error,
         ),

@@ -4,12 +4,17 @@ from datetime import UTC
 from time import monotonic
 from zoneinfo import ZoneInfo
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from awas import __release_date__, __version__
-from awas.auth.tokens import csrf_from_session_token, session_cookie_name, tokens_match
+from awas.auth.tokens import (
+    csrf_from_session_token,
+    session_cookie_name,
+    tokens_match,
+    user_filter_cookie_name,
+)
 from awas.models import User, WebSession
 from awas.models.auth import utc_now
 
@@ -98,6 +103,40 @@ def user_filter_choices(db: Session) -> list[User]:
     return sorted(users, key=lambda user: (user.display_name.casefold(), user.id))
 
 
+def selected_user_filter(
+    request: Request, db: Session, *, value: str | None = None
+) -> int | None:
+    """Read a display preference scoped to this login, never an authorization rule."""
+    if value is None:
+        value = request.query_params.get("user_id")
+    if value is None:
+        cookie = request.cookies.get(
+            user_filter_cookie_name(https=request.url.scheme == "https"), ""
+        )
+        scope, separator, value = cookie.partition(".")
+        if not separator or not scope.isascii() or not tokens_match(scope, csrf_token(request)):
+            return None
+    try:
+        user_id = int(value)
+    except ValueError:
+        return None
+    if not 0 < user_id <= 2**63 - 1:
+        return None
+    with db.no_autoflush:
+        user = db.get(User, user_id)
+    return user_id if user is not None and user.deleted_at is None else None
+
+
+def clear_user_filter_cookie(request: Request, response: Response) -> None:
+    https = request.url.scheme == "https"
+    response.delete_cookie(
+        user_filter_cookie_name(https=https),
+        path="/",
+        secure=https or request.app.state.settings.security.session_cookie_secure,
+        samesite="lax",
+    )
+
+
 def format_uptime(total_seconds: float) -> str:
     seconds = max(0, int(total_seconds))
     days, remainder = divmod(seconds, 86_400)
@@ -118,6 +157,7 @@ def server_status(request: Request) -> dict[str, str]:
 
 
 def template_context(request: Request, **extra: object) -> dict[str, object]:
+    web_session = current_web_session(request)
     context: dict[str, object] = {
         "request": request,
         "version": __version__,
@@ -126,6 +166,11 @@ def template_context(request: Request, **extra: object) -> dict[str, object]:
         **server_status(request),
         "current_user": current_user(request),
         "csrf_token": csrf_token(request),
+        "user_filter_cookie": user_filter_cookie_name(https=request.url.scheme == "https"),
+        "user_filter_max_age": (
+            max(0, int((web_session.expires_at - utc_now()).total_seconds()))
+            if web_session is not None else 0
+        ),
     }
     context.update(extra)
     return context

@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.24 provides the production foundation, authentication, stream
+Version 3.0.25 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -39,6 +39,9 @@ management and recording:
 - server-side connection checks and instant list filters for planning, history,
   streams and recordings
 - user filters for planning, history and recordings, using account display names
+- one shared user-filter selection for planning, history and recordings throughout
+  the current login session, retained across navigation, reloads and actions such
+  as deleting a recording; signing in again starts with all users
 - server-side history filtering across all retained entries, with at most 500 entries
   per page and navigation to the first, previous, next and last page
 - stream URLs in the stream list and schedule history can be copied directly by
@@ -59,6 +62,9 @@ management and recording:
 - streamlined schedule forms without a redundant return-to-planning button
 - file-name bases retain underscores in addition to letters, numbers and hyphens
 - administrator-managed argument templates for every recorder
+- an administrator-editable comma-separated file type list above the recorder
+  profiles; its order is used by every stream and planning form, with protection
+  against removing types still used by streams, active recordings or retained plans
 - streamripper, ffmpeg, streamlink, vlc, mpv and mplayer recorder profiles
 - recording history, stop control and authenticated snapshot downloads while recording
 - running planned and spontaneous recordings expose the same file name, live file size,
@@ -135,8 +141,17 @@ The application contains no Raspberry-Pi-specific code.
 Each stream stores one preferred recorder and file type. Spontaneous
 recordings use both immediately. One-time and recurring schedules preselect both
 values and allow an override before the schedule is saved. Supported file types
-are `ts`, `mp3`, `mp4`, `ogg`, `wma`, `wmv`, `mpg` and `flac`. The installer
-provides these profiles:
+default to `ts`, `mp3`, `mp4`, `ogg`, `wma`, `wmv`, `mpg` and `flac`. Administrators
+can add, remove and reorder these suffixes in the comma-separated **Dateitypen**
+field at the top of **Rekorder**. Changes apply immediately to every stream and
+planning form and are included in database backups. Names are normalized to
+lowercase, leading dots and duplicate entries are removed, and each suffix must
+contain 1–16 ASCII letters or digits. At least one type must remain. A type cannot
+be removed while a stream, active recording, pending or running schedule, or
+retained recurring rule (including paused rules) still uses it. Completed history
+and recording files retain their stored types. The list controls file suffixes;
+the stream and recorder determine actual format support. The installer provides
+these profiles:
 
 | Selection | Program | Intended input |
 |---|---|---|

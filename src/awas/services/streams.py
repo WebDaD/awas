@@ -12,8 +12,8 @@ from awas import __version__
 from awas.models import Stream, User
 from awas.models.auth import utc_now
 from awas.services.auth import add_audit_entry
+from awas.services.file_types import configured_file_types
 from awas.services.recorders import (
-    DEFAULT_FILE_TYPE,
     RecorderInputError,
     validate_file_type,
     validate_recorder,
@@ -86,7 +86,10 @@ def create_stream(
     normalized_url = validate_stream_url(stream_url)
     try:
         normalized_recorder = validate_recorder(preferred_recorder)
-        normalized_file_type = validate_file_type(preferred_file_type or DEFAULT_FILE_TYPE)
+        file_types = configured_file_types(db)
+        normalized_file_type = validate_file_type(
+            preferred_file_type or file_types[0], file_types=file_types
+        )
         validate_recorder_url(normalized_recorder, normalized_url)
     except RecorderInputError as exc:
         raise StreamInputError(str(exc)) from exc
@@ -133,7 +136,8 @@ def update_stream(
     try:
         normalized_recorder = validate_recorder(preferred_recorder)
         normalized_file_type = validate_file_type(
-            preferred_file_type or stream.preferred_file_type
+            preferred_file_type or stream.preferred_file_type,
+            file_types=configured_file_types(db),
         )
         validate_recorder_url(normalized_recorder, normalized_url)
     except RecorderInputError as exc:

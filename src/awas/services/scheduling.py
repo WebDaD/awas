@@ -18,6 +18,7 @@ from awas.models import (
 )
 from awas.models.auth import utc_now
 from awas.services.auth import add_audit_entry
+from awas.services.file_types import configured_file_types
 from awas.services.filenames import FileNameInputError, normalize_file_name_base
 from awas.services.recorders import (
     RecorderInputError,
@@ -97,7 +98,9 @@ def create_schedule(
     )
     try:
         normalized_recorder = validate_recorder(recorder or stream.preferred_recorder)
-        normalized_file_type = validate_file_type(file_type or stream.preferred_file_type)
+        normalized_file_type = validate_file_type(
+            file_type or stream.preferred_file_type, file_types=configured_file_types(db)
+        )
         validate_recorder_url(normalized_recorder, stream.stream_url)
         normalized_file_name = normalize_file_name_base(file_name_base or normalized_title)
     except (FileNameInputError, RecorderInputError) as exc:
@@ -161,7 +164,9 @@ def update_schedule(
     )
     try:
         normalized_recorder = validate_recorder(recorder or stream.preferred_recorder)
-        normalized_file_type = validate_file_type(file_type or stream.preferred_file_type)
+        normalized_file_type = validate_file_type(
+            file_type or stream.preferred_file_type, file_types=configured_file_types(db)
+        )
         validate_recorder_url(normalized_recorder, stream.stream_url)
         normalized_file_name = normalize_file_name_base(file_name_base or normalized_title)
     except (FileNameInputError, RecorderInputError) as exc:

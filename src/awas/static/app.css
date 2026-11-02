@@ -266,6 +266,7 @@ td small { margin-top: .15rem; color: var(--muted); }
 .pagination-summary { margin-right: auto; color: var(--muted); font-size: .78rem; }
 .pagination .button { min-width: 5rem; }
 .muted-text { color: var(--muted); }
+.recorder-file-types { margin-bottom: 1rem; }
 .recorder-placeholder-info { overflow-wrap: anywhere; }
 .recorder-placeholder-info code, .recorder-card code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .recorders-grid { display: grid; gap: 1rem; }

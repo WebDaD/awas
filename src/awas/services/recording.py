@@ -660,7 +660,10 @@ class RecordingManager:
     ) -> Recording:
         try:
             selected_recorder = validate_recorder(recorder or stream.preferred_recorder)
-            selected_file_type = validate_file_type(file_type or stream.preferred_file_type)
+            # Stored recordings keep their suffix even after it leaves the selection list.
+            selected_file_type = validate_file_type(
+                file_type or stream.preferred_file_type, file_types=None
+            )
             validate_recorder_url(selected_recorder, stream.stream_url)
         except RecorderInputError as exc:
             raise RecordingError(str(exc)) from exc

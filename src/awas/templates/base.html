@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ version }}&amp;r={{ asset_revision }}">
     <script defer src="{{ url_for('static', path='/app.js') }}?v={{ version }}&amp;r={{ asset_revision }}"></script>
   </head>
-  <body class="{% block body_class %}{% endblock %}">
+  <body class="{% block body_class %}{% endblock %}"{% if current_user %} data-user-filter-cookie="{{ user_filter_cookie }}" data-user-filter-session="{{ csrf_token }}" data-user-filter-max-age="{{ user_filter_max_age }}"{% endif %}>
     <header class="topbar">
       <a class="brand" href="/" aria-label="AWAS Startseite">
         <img class="brand-mark" src="{{ url_for('static', path='/favicon.png') }}" alt="" width="42" height="42">

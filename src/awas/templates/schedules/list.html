@@ -8,7 +8,7 @@
         <span>Benutzer</span>
         <select data-filter-user="planning-list">
           <option value="">Alle</option>
-          {% for user in filter_users %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}
+          {% for user in filter_users %}<option value="{{ user.id }}"{% if filter_user_id == user.id %} selected{% endif %}>{{ user.display_name }}</option>{% endfor %}
         </select>
       </label>
       <label class="list-filter-control">

@@ -28,6 +28,7 @@ from awas.models import User, WebSession
 from awas.models.auth import utc_now
 from awas.services.auth import resolve_web_session
 from awas.services.database_backup import DatabaseBackupManager, sqlite_database_path
+from awas.services.file_types import ensure_file_type_settings
 from awas.services.recorder_settings import ensure_recorder_settings
 from awas.services.recording import RecordingManager
 from awas.services.retention import RetentionManager, ensure_retention_policy
@@ -39,6 +40,7 @@ from awas.web.dependencies import (
     AuthorizationDenied,
     CsrfValidationFailed,
     PasswordChangeRequired,
+    clear_user_filter_cookie,
     database,
     require_user,
     server_status,
@@ -128,6 +130,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         with session_factory() as db:
             ensure_retention_policy(db)
             ensure_recorder_settings(db)
+            ensure_file_type_settings(db)
             storage_configuration = ensure_storage_configuration(
                 db,
                 app_settings.recording.directory,
@@ -197,6 +200,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             db.close()
 
         if clear_session_cookie:
+            clear_user_filter_cookie(request, response)
             response.delete_cookie(
                 active_session_cookie,
                 path="/",

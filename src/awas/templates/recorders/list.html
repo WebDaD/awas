@@ -10,6 +10,19 @@
   {% if notice %}<div class="notice notice-success" role="status">{{ notice }}</div>{% endif %}
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}
 
+  <section class="panel settings-card recorder-file-types">
+    <h2>Dateitypen</h2>
+    <form method="post" action="/admin/recorders/file-types" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>
+        <span>Dateitypen (durch Kommas getrennt)</span>
+        <input name="file_types" value="{{ file_types_value }}" required maxlength="2048" autocomplete="off" spellcheck="false">
+        <small>Diese Liste legt die Auswahl und Reihenfolge für Streams und Planungen fest. Ob ein Dateityp aufgenommen werden kann, hängt vom Stream und vom Rekorder ab.</small>
+      </label>
+      <div class="form-actions"><button class="button button-primary" type="submit">Speichern</button></div>
+    </form>
+  </section>
+
   <div class="notice notice-info recorder-placeholder-info">
     Platzhalter: <code>{url}</code> für die Stream-Adresse, <code>{output}</code> für die Ausgabedatei und bei streamripper <code>{output_base}</code> für den Ausgabepfad ohne Dateiendung. Bei streamripper beginnt <code>{output_base}</code> automatisch mit <code>%D</code>, damit jede neue Datei vorne ihren eigenen Zeitstempel erhält.
   </div>

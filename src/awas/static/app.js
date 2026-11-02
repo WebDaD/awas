@@ -3,6 +3,45 @@
 
   const normalize = (value) => value.toLocaleLowerCase("de").trim();
 
+  function rememberUserFilter(select) {
+    const { userFilterCookie, userFilterSession, userFilterMaxAge } = document.body.dataset;
+    if (!userFilterCookie || !userFilterSession) return;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${userFilterCookie}=${userFilterSession}.${select.value || "all"}; Path=/; Max-Age=${userFilterMaxAge}; SameSite=Lax${secure}`;
+    // An explicit filter in a bookmarked local-list URL must follow later changes.
+    if (select.matches("[data-filter-user]")) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("user_id")) {
+        if (select.value) url.searchParams.set("user_id", select.value);
+        else url.searchParams.delete("user_id");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+      }
+    }
+  }
+
+  function initializeUserFilters() {
+    // History navigation can restore old HTML and form values; pageshow reloads it.
+    if (performance.getEntriesByType("navigation")[0]?.type === "back_forward") return;
+    const select = document.querySelector("[data-filter-user], [data-server-filter-user]");
+    if (select) {
+      select.value = select.querySelector("option[selected]")?.value || "";
+      rememberUserFilter(select);
+    }
+  }
+
+  window.addEventListener("pageshow", (event) => {
+    const restored = event.persisted || performance.getEntriesByType("navigation")[0]?.type === "back_forward";
+    if (restored && document.querySelector("[data-filter-user], [data-server-filter-user]")) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("user_id")) {
+        url.searchParams.delete("user_id");
+        window.location.replace(url);
+      } else {
+        window.location.reload();
+      }
+    }
+  });
+
   function initializeMobileMenu() {
     const toggle = document.querySelector("[data-menu-toggle]");
     const menu = document.querySelector("[data-main-menu]");
@@ -86,6 +125,7 @@
 
   document.addEventListener("change", (event) => {
     if (event.target.matches("[data-filter-user]")) {
+      rememberUserFilter(event.target);
       applyFilter(event.target.dataset.filterUser);
     }
   });
@@ -162,6 +202,7 @@
   document.addEventListener("change", (event) => {
     const select = event.target.closest("[data-server-filter-user]");
     if (!select) return;
+    rememberUserFilter(select);
     const form = select.closest("[data-server-filter-form]");
     if (form) applyServerFilter(form);
   });
@@ -440,6 +481,7 @@
   }
 
   initializeMobileMenu();
+  initializeUserFilters();
   applyFilters();
   initializeStreamDefaults();
   initializeFileNames();

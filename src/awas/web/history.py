@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from awas.models import User
-from awas.web.dependencies import database, require_user
+from awas.web.dependencies import database, require_user, selected_user_filter
 from awas.web.schedules import render_history
 
 
@@ -18,11 +18,11 @@ def build_history_router(templates: Jinja2Templates) -> APIRouter:
         request: Request,
         page: int = Query(1, ge=1),
         q: str = Query("", max_length=256),
-        user_id: str = Query("", max_length=20),
+        user_id: str | None = Query(None, max_length=20),
         _: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> HTMLResponse:
-        selected_user_id = int(user_id) if user_id.isdigit() and int(user_id) > 0 else None
+        selected_user_id = selected_user_filter(request, db, value=user_id)
         return render_history(
             templates,
             request,

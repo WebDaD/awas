@@ -26,6 +26,7 @@ from awas.services.auth import (
     validate_new_password,
 )
 from awas.web.dependencies import (
+    clear_user_filter_cookie,
     client_ip,
     database,
     require_user_for_password_change,
@@ -152,6 +153,7 @@ def build_auth_router(templates: Jinja2Templates) -> APIRouter:
             httponly=True,
             samesite="strict",
         )
+        clear_user_filter_cookie(request, response)
         return response
 
     @router.post("/logout", include_in_schema=False)
@@ -176,6 +178,7 @@ def build_auth_router(templates: Jinja2Templates) -> APIRouter:
             httponly=True,
             samesite="lax",
         )
+        clear_user_filter_cookie(request, response)
         return response
 
     @router.get("/account/password", response_class=HTMLResponse, include_in_schema=False)
@@ -239,6 +242,7 @@ def build_auth_router(templates: Jinja2Templates) -> APIRouter:
             httponly=True,
             samesite="lax",
         )
+        clear_user_filter_cookie(request, response)
         return response
 
     return router

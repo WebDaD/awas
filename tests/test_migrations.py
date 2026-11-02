@@ -64,8 +64,11 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
         recorder_count = connection.execute(
             text("SELECT COUNT(*) FROM recorder_settings")
         ).scalar_one()
+        file_types = connection.execute(
+            text("SELECT file_types FROM file_type_settings WHERE id = 1")
+        ).scalar_one()
 
-    assert revision == "0022"
+    assert revision == "0023"
     assert journal_mode == "wal"
     assert {
         "users",
@@ -79,10 +82,12 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
         "recurring_schedules",
         "retention_policy",
         "recorder_settings",
+        "file_type_settings",
         "storage_configuration",
     } <= tables
     assert "recorder_tool_settings" not in tables
     assert recorder_count == 8
+    assert file_types == "ts, mp3, mp4, ogg, wma, wmv, mpg, flac"
     assert tuple(retention_policy) == (0, 90, 0, 0, 0)
     assert "ix_recordings_status_ended_at" in recording_indexes
     assert "is_active" not in stream_columns
@@ -91,6 +96,55 @@ def test_migrations_reach_head(tmp_path: Path, monkeypatch) -> None:
     assert "timezone" in storage_columns
     assert "deleted_at" in user_columns
     assert "ix_users_deleted_at" in user_indexes
+    get_settings.cache_clear()
+
+
+def test_file_type_migration_preserves_existing_configuration(tmp_path: Path, monkeypatch) -> None:
+    database_path = tmp_path / "file-types-upgrade.db"
+    config_path = tmp_path / "awas.toml"
+    config_path.write_text(f'[database]\nurl = "sqlite:///{database_path}"\n')
+    monkeypatch.setenv("AWAS_CONFIG", str(config_path))
+    get_settings.cache_clear()
+    alembic_config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    command.upgrade(alembic_config, "0022")
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO streams (name, stream_url, preferred_recorder, preferred_file_type) "
+                "VALUES ('Bestehend', 'https://radio.example/live', 'ffmpeg', 'mp3')"
+            )
+        )
+        connection.execute(
+            text(
+                "UPDATE recorder_settings SET arguments = '-i {url} -c copy {output}' "
+                "WHERE recorder = 'ffmpeg'"
+            )
+        )
+    engine.dispose()
+    command.upgrade(alembic_config, "head")
+    command.check(alembic_config)
+    engine = create_engine(f"sqlite:///{database_path}")
+    with engine.connect() as connection:
+        assert (
+            connection.execute(
+                text("SELECT file_types FROM file_type_settings WHERE id = 1")
+            ).scalar_one()
+            == "ts, mp3, mp4, ogg, wma, wmv, mpg, flac"
+        )
+        assert (
+            connection.execute(
+                text("SELECT preferred_file_type FROM streams WHERE name = 'Bestehend'")
+            ).scalar_one()
+            == "mp3"
+        )
+        assert (
+            connection.execute(
+                text("SELECT arguments FROM recorder_settings WHERE recorder = 'ffmpeg'")
+            ).scalar_one()
+            == "-i {url} -c copy {output}"
+        )
+    engine.dispose()
     get_settings.cache_clear()
 
 
@@ -127,7 +181,7 @@ def test_timezone_migration_defaults_existing_settings(tmp_path: Path, monkeypat
         ).scalar_one()
 
     assert timezone == "Europe/Berlin"
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -188,7 +242,7 @@ def test_stream_history_migration_recovers_partially_applied_sqlite_upgrade(
         ).scalar_one()
 
     assert tuple(snapshot) == ("Gelöschter Stream", "")
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -232,7 +286,7 @@ def test_stream_migration_preserves_existing_entries(tmp_path: Path, monkeypatch
         "streamripper",
         "ts",
     )
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -306,7 +360,7 @@ def test_recording_group_migration_preserves_attempts_and_files(
         (2, "part-2.ts", 22),
         (3, "manual.ts", 33),
     ]
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -431,7 +485,7 @@ def test_recorder_cleanup_updates_defaults_and_active_yt_dlp_configuration(
             text("SELECT recorder FROM recurring_schedules")
         ).scalar_one()
 
-    assert revision == "0022"
+    assert revision == "0023"
     assert "yt-dlp" not in recorder_names
     assert "yt-dlp-ffmpeg" not in recorder_names
     assert "-map" not in ffmpeg_arguments
@@ -488,7 +542,7 @@ def test_hls_reconnect_migration_updates_unmodified_defaults(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
 
-    assert revision == "0022"
+    assert revision == "0023"
     assert new_arguments == {
         recorder: RECORDER_BY_KEY[recorder].default_arguments
         for recorder in ("ffmpeg", "ffmpeg-all")
@@ -671,7 +725,7 @@ def test_streamripper_leading_timestamp_migration_updates_unmodified_default(
             text("SELECT version_num FROM alembic_version")
         ).scalar_one()
 
-    assert revision == "0022"
+    assert revision == "0023"
     assert new_arguments == RECORDER_BY_KEY["streamripper"].default_arguments
     assert new_arguments == "{url} -a {output_base} -A --quiet -u winamp"
     engine.dispose()
@@ -754,7 +808,7 @@ def test_deleted_user_migration_preserves_existing_users(tmp_path: Path, monkeyp
         }
 
     assert tuple(user) == ("existing", "Existing User", 1, None)
-    assert revision == "0022"
+    assert revision == "0023"
     assert "ix_users_deleted_at" in indexes
     engine.dispose()
     get_settings.cache_clear()
@@ -814,7 +868,7 @@ def test_discarded_schedule_migration_hides_existing_entries(
         ).scalar_one()
 
     assert visibility == {"Verworfen": 1, "Abgeschlossen": 0}
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -876,7 +930,7 @@ def test_schedule_migration_preserves_existing_recordings(tmp_path: Path, monkey
         None,
         None,
     )
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -945,7 +999,7 @@ def test_recurring_migration_preserves_one_time_schedules(tmp_path: Path, monkey
 
     assert tuple(row) == ("One-time Show", "scheduled", None, None, "ffmpeg", "ts", 0)
     assert recording_schedule_id == schedule_id
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()
 
@@ -1161,6 +1215,6 @@ def test_stream_history_migration_preserves_links_and_detaches_deleted_stream(
     )
     assert tuple(recurrence_row) == (None,)
     assert foreign_key_errors == []
-    assert revision == "0022"
+    assert revision == "0023"
     engine.dispose()
     get_settings.cache_clear()

@@ -8,6 +8,8 @@ SESSION_COOKIE = "awas_session"
 LOGIN_CSRF_COOKIE = "awas_login_csrf"
 HTTPS_SESSION_COOKIE = "__Host-awas_session"
 HTTPS_LOGIN_CSRF_COOKIE = "__Host-awas_login_csrf"
+USER_FILTER_COOKIE = "awas_user_filter"
+HTTPS_USER_FILTER_COOKIE = "__Host-awas_user_filter"
 
 
 def session_cookie_name(*, https: bool) -> str:
@@ -16,6 +18,10 @@ def session_cookie_name(*, https: bool) -> str:
 
 def login_csrf_cookie_name(*, https: bool) -> str:
     return HTTPS_LOGIN_CSRF_COOKIE if https else LOGIN_CSRF_COOKIE
+
+
+def user_filter_cookie_name(*, https: bool) -> str:
+    return HTTPS_USER_FILTER_COOKIE if https else USER_FILTER_COOKIE
 
 
 def login_csrf_cookie_path(*, https: bool) -> str:

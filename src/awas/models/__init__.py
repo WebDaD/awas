@@ -1,4 +1,5 @@
 from awas.models.auth import AuditLog, LoginAttempt, User, WebSession
+from awas.models.file_type_setting import FileTypeSetting
 from awas.models.recorder_setting import RecorderSetting
 from awas.models.recording import ACTIVE_RECORDING_STATUSES, Recording, RecordingFile
 from awas.models.recurrence import RecurringSchedule
@@ -11,6 +12,7 @@ __all__ = [
     "ACTIVE_RECORDING_STATUSES",
     "ACTIVE_SCHEDULE_STATUSES",
     "AuditLog",
+    "FileTypeSetting",
     "LoginAttempt",
     "Recording",
     "RecordingFile",

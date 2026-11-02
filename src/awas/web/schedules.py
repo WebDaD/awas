@@ -19,7 +19,8 @@ from awas.models import (
     User,
 )
 from awas.models.auth import utc_now
-from awas.services.recorders import FILE_TYPE_CHOICES, RECORDER_CHOICES, recorder_label
+from awas.services.file_types import file_type_choices
+from awas.services.recorders import RECORDER_CHOICES, recorder_label
 from awas.services.recording import RecordingGroup
 from awas.services.scheduling import (
     RecordingScheduler,
@@ -37,6 +38,7 @@ from awas.web.dependencies import (
     client_ip,
     database,
     require_user,
+    selected_user_filter,
     template_context,
     user_filter_choices,
     validate_csrf,
@@ -459,6 +461,7 @@ def render_planning(
             upcoming_schedules=upcoming_schedules,
             recurring_schedules=recurring_schedules,
             filter_users=user_filter_choices(db),
+            filter_user_id=selected_user_filter(request, db),
             local_today=local_today,
             status_labels=STATUS_LABELS,
             recorder_label=recorder_label,
@@ -638,7 +641,7 @@ def render_schedule_form(
             streams=streams,
             values=values,
             recorder_choices=RECORDER_CHOICES,
-            file_type_choices=FILE_TYPE_CHOICES,
+            file_type_choices=file_type_choices(db),
             timezone=request.app.state.timezone,
             error=error,
         ),
