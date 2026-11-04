@@ -687,11 +687,14 @@ class RecordingManager:
                 raise RecordingError(
                     "Das Aufnahmeverzeichnis ist nicht verfügbar oder nicht beschreibbar."
                 ) from exc
-            selected_file_name_base = "Testaufnahme" if is_test else file_name_base or stream.name
+            selected_file_name_base = (
+                f"{stream.name}_testaufnahme" if is_test else file_name_base or stream.name
+            )
             file_name = recording_file_name(
-                selected_file_name_base,
+                stream.name if is_test else selected_file_name_base,
                 file_type_extension(selected_file_type),
                 self._timezone,
+                base_suffix="testaufnahme" if is_test else "",
             )
             output_path = recording_directory / file_name
             try:

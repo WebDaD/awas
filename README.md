@@ -57,6 +57,8 @@ management and recording:
 - one-click recordings from the stream list
 - one-click 60-second recordings named `Testaufnahme`, using the stream's preferred
   recorder and file type, with a red `Testaufnahme (60 Sek.)` button
+- test recording file names include the stream name followed by `_testaufnahme`,
+  using the same timestamp and uniqueness token as spontaneous recordings
 - automatic server-side termination of spontaneous recordings after 24 hours
 - any number of spontaneous and planned recordings of the same stream can run in parallel
 - a preferred recorder and file type per stream, with overrides that apply only to
@@ -196,6 +198,8 @@ containing more than one file is delivered as an uncompressed ZIP archive; delet
 the entry removes every associated file. Spontaneous recordings stop automatically
 after 24 hours. The stream list also offers immediate 60-second test recordings,
 stored as `Testaufnahme` with that stream's preferred recorder and file type.
+Their file names use the stream name followed by `_testaufnahme` before the
+uniqueness token, for example `2026-11-04_10-00-00_radio-eins_testaufnahme_a1b2c3.mp3`.
 Neither spontaneous nor test recordings are restarted automatically. A retrying
 schedule can be stopped manually to prevent any further attempts.
 

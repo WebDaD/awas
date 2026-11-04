@@ -29,8 +29,11 @@ def recording_file_name(
     *,
     now: datetime | None = None,
     token: str | None = None,
+    base_suffix: str = "",
 ) -> str:
     normalized_base = normalize_file_name_base(file_name_base)
+    if base_suffix:
+        normalized_base += f"_{normalize_file_name_base(base_suffix)}"
     timestamp = (now or datetime.now(ZoneInfo(timezone))).strftime("%Y-%m-%d_%H-%M-%S")
     unique_token = token or secrets.token_hex(3)
     return f"{timestamp}_{normalized_base}_{unique_token}{extension}"

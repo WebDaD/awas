@@ -1,3 +1,4 @@
+import re
 import sys
 import time
 from datetime import timedelta
@@ -119,8 +120,16 @@ def test_duration_limit_force_stops_an_unresponsive_recorder(
     assert recording.is_test and recording.error_message is None
 
 
+@pytest.mark.parametrize(
+    ("stream_name", "file_name_base"),
+    (
+        ("Radio Eins", "radio-eins"),
+        ("Radio Köln / Live", "radio-koln-live"),
+        ("X" * 128, "x" * 128),
+    ),
+)
 def test_test_button_starts_a_named_recording_with_stream_defaults(
-    app: FastAPI, client: TestClient, tmp_path, monkeypatch
+    app: FastAPI, client: TestClient, tmp_path, monkeypatch, stream_name, file_name_base
 ) -> None:
     install_fake_ffmpeg(tmp_path, monkeypatch)
     with app.state.session_factory() as db:
@@ -135,7 +144,7 @@ def test_test_button_starts_a_named_recording_with_stream_defaults(
         )
         user_id = user.id
     assert login(client, "tester", "tester").status_code == 303
-    assert add_stream(client, preferred_file_type="flac").status_code == 303
+    assert add_stream(client, name=stream_name, preferred_file_type="flac").status_code == 303
     with app.state.session_factory() as db:
         stream_id = db.scalar(select(Stream.id))
     page = client.get("/streams")
@@ -158,7 +167,14 @@ def test_test_button_starts_a_named_recording_with_stream_defaults(
         assert recording.is_test and recording.schedule_id is None
         assert recording.recorder == "ffmpeg" and recording.file_type == "flac"
         assert recording.started_by_id == user_id
-        assert "_testaufnahme_" in recording.file_name and recording.file_name.endswith(".flac")
+        assert re.fullmatch(
+            rf"\d{{4}}-\d{{2}}-\d{{2}}_\d{{2}}-\d{{2}}-\d{{2}}_"
+            rf"{file_name_base}_testaufnahme_[0-9a-f]{{6}}\.flac",
+            recording.file_name,
+        )
+        file_name = recording.file_name
+        audit = db.scalar(select(AuditLog).where(AuditLog.action == "recording.started"))
+        assert audit.details["file_name_base"] == f"{stream_name}_testaufnahme"
         assert db.scalar(select(func.count(RecordingSchedule.id))) == 0
     for path in ("/", "/recordings"):
         html = client.get(path).text
@@ -171,11 +187,16 @@ def test_test_button_starts_a_named_recording_with_stream_defaults(
     app.state.recording_scheduler.run_due(started_at + timedelta(seconds=60))
     wait_for_status(app, recording_id, "completed")
     with app.state.session_factory() as db:
-        assert (
-            db.scalar(select(Recording.status).where(Recording.is_test.is_(False))) == "recording"
-        )
+        spontaneous = db.scalar(select(Recording).where(Recording.is_test.is_(False)))
+        assert spontaneous.status == "recording"
+        assert f"_{file_name_base}_" in spontaneous.file_name
+        assert "_testaufnahme_" not in spontaneous.file_name
         assert db.get(Recording, recording_id).is_test
     assert "<strong>Testaufnahme</strong>" in client.get("/recordings").text
+    download = client.get(f"/recordings/{recording_id}/download")
+    assert download.status_code == 200
+    assert file_name in download.headers["content-disposition"]
+    assert download.content.startswith(b"AWAS-test-recording")
 
 
 def test_a_test_recorder_that_exits_early_does_not_report_success(
