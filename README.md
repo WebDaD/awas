@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.26 provides the production foundation, authentication, stream
+Version 3.0.27 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -26,7 +26,7 @@ management and recording:
 - native systemd service and nginx reverse proxy with parallel HTTP and optional HTTPS
 - installer for 64-bit Raspberry Pi OS/Debian and Ubuntu
 - administrator and user roles without public registration
-- users can add and edit all streams, create schedules, and manage their own
+- users can add, edit and delete all streams, create schedules, and manage their own
   schedules, history entries and recordings; administrators can manage every entry
 - Argon2id password hashing and server-side, revocable sessions
 - separate HTTP and HTTPS session cookies so HTTPS tokens are never sent over HTTP
@@ -38,6 +38,9 @@ management and recording:
 - stream management with direct HTTP/HTTPS URLs
 - server-side connection checks and instant list filters for planning, history,
   streams and recordings
+- list text filters search only Aufnahme, Stream, Rekorder, Start and Ende;
+  stream filtering searches Stream, Rekorder, Dateityp and URL, excluding action
+  buttons; history dates use the selected AWAS timezone
 - user filters for planning, history and recordings, using account display names
 - one shared user-filter selection for planning, history and recordings throughout
   the current login session, retained across navigation, reloads and actions such

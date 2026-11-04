@@ -34,7 +34,6 @@ from awas.services.streams import (
 from awas.web.dependencies import (
     client_ip,
     database,
-    require_admin,
     require_user,
     template_context,
     validate_csrf,
@@ -223,7 +222,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
         request: Request,
         delete_confirmed: str = Form("", max_length=5),
         csrf_token: str = Form(..., max_length=128),
-        admin: User = Depends(require_admin),
+        user: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> Response:
         validate_csrf(request, csrf_token)
@@ -269,7 +268,7 @@ def build_stream_router(templates: Jinja2Templates) -> APIRouter:
         add_audit_entry(
             db,
             "stream.deleted",
-            actor=admin,
+            actor=user,
             target_type="stream",
             target_id=stream.id,
             ip_address=client_ip(request),

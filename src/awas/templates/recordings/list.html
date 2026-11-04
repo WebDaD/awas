@@ -40,15 +40,15 @@
             <tbody>
               {% for recording in recordings %}
                 <tr class="recording-data-row recording-data-row-with-file{% if recording.is_running %} recording-active-row{% endif %}" data-filter-row="recording-list" data-filter-user-id="{{ recording.started_by_id or '' }}" data-filter-group="recording-{{ recording.group_key }}">
-                  <td data-label="Aufnahme">
+                  <td data-label="Aufnahme" data-filter-field>
                     <strong>{{ recording.title }}</strong>
                     <small>{{ ('Wiederholend' if recording.schedule.recurrence_id else 'Einmalig') if recording.schedule else 'Spontan' }}</small>
                     {% if recording.started_by %}<small>von {{ recording.started_by.display_name }}</small>{% endif %}
                   </td>
-                  <td data-label="Stream"><strong>{{ recording.stream_name }}</strong></td>
-                  <td data-label="Rekorder"><div class="recorder-details">{{ recorder_label(recording.recorder) }}<span class="recorder-file-type">Dateityp: {{ recording.file_type }}</span></div></td>
-                  <td data-label="Start">{{ recording.started_at|local_datetime }}</td>
-                  <td data-label="Ende">{{ recording.schedule.ends_at|local_datetime if recording.schedule else '—' }}</td>
+                  <td data-label="Stream" data-filter-field><strong>{{ recording.stream_name }}</strong></td>
+                  <td data-label="Rekorder" data-filter-field><div class="recorder-details">{{ recorder_label(recording.recorder) }}<span class="recorder-file-type">Dateityp: {{ recording.file_type }}</span></div></td>
+                  <td data-label="Start" data-filter-field>{{ recording.started_at|local_datetime }}</td>
+                  <td data-label="Ende" data-filter-field>{{ recording.schedule.ends_at|local_datetime if recording.schedule else '—' }}</td>
                   <td data-label="Dauer">{{ recording.duration_seconds|duration }}</td>
                   <td data-label="Status">
                     <span class="badge {% if recording.status in ('failed', 'interrupted') %}badge-danger{% elif recording.is_running %}badge-warning{% endif %}">{{ status_labels[recording.status] }}</span>

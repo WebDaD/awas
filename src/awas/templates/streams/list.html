@@ -27,9 +27,9 @@
             <tbody>
               {% for stream in streams %}
                 <tr class="stream-data-row{% if stream.id in active_stream_ids %} recording-active-row{% endif %}" data-filter-row="stream-list" data-filter-text="{{ stream.stream_url }}" data-filter-group="stream-{{ stream.id }}">
-                  <td data-label="Stream"><strong>{{ stream.name }}</strong></td>
-                  <td data-label="Rekorder">{{ recorder_label(stream.preferred_recorder) }}</td>
-                  <td data-label="Dateityp">{{ stream.preferred_file_type }}</td>
+                  <td data-label="Stream" data-filter-field><strong>{{ stream.name }}</strong></td>
+                  <td data-label="Rekorder" data-filter-field>{{ recorder_label(stream.preferred_recorder) }}</td>
+                  <td data-label="Dateityp" data-filter-field>{{ stream.preferred_file_type }}</td>
                   <td class="table-action">
                     <div class="action-group">
                       <form method="post" action="/streams/{{ stream.id }}/recordings/start">
@@ -41,16 +41,14 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="button button-record button-small" type="submit">Testaufnahme (60 Sek.)</button>
                       </form>
-                      {% if current_user.is_admin %}
-                        <form method="post" action="/admin/streams/{{ stream.id }}/delete">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
-                          <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
-                            <span class="action-initial-label">Löschen</span>
-                            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
-                          </button>
-                        </form>
-                      {% endif %}
+                      <form method="post" action="/admin/streams/{{ stream.id }}/delete">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+                        <button class="button button-danger button-small action-confirm-button" type="submit" data-action-confirm>
+                          <span class="action-initial-label">Löschen</span>
+                          <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+                        </button>
+                      </form>
                     </div>
                   </td>
                 </tr>

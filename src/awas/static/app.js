@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const normalize = (value) => value.toLocaleLowerCase("de").trim();
+  const normalize = (value) => value.toLocaleLowerCase("de").trim().replace(/\s+/g, " ");
 
   function rememberUserFilter(select) {
     const { userFilterCookie, userFilterSession, userFilterMaxAge } = document.body.dataset;
@@ -82,6 +82,17 @@
     return null;
   }
 
+  function filterFieldText(field) {
+    const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => node.parentElement.closest("button, .button")
+        ? NodeFilter.FILTER_REJECT
+        : NodeFilter.FILTER_ACCEPT,
+    });
+    const text = [];
+    while (walker.nextNode()) text.push(walker.currentNode.textContent);
+    return text.join(" ");
+  }
+
   function applyFilter(name) {
     const input = document.querySelector(`[data-filter-input="${name}"]`);
     const userSelect = document.querySelector(`[data-filter-user="${name}"]`);
@@ -91,9 +102,10 @@
     let visible = 0;
     for (const row of rows) {
       const companion = filterCompanion(row);
-      const searchable = `${row.textContent} ${companion?.textContent || ""} ${
-        row.dataset.filterText || ""
-      }`;
+      const searchable = [
+        ...[...row.querySelectorAll("[data-filter-field]")].map(filterFieldText),
+        row.dataset.filterText || "",
+      ].join(" ");
       const matchesText = !query || normalize(searchable).includes(query);
       const matchesUser = !userId || row.dataset.filterUserId === userId;
       const matches = matchesText && matchesUser;

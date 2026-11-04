@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from awas.models import (
@@ -488,33 +488,32 @@ def render_history(
         conditions.append(RecordingSchedule.created_by_id == filter_user_id)
     if query:
         escaped_query = (
-            query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         )
         pattern = f"%{escaped_query}%"
-        search_conditions = [
-            RecordingSchedule.title.ilike(pattern, escape="\\"),
-            RecordingSchedule.stream_name.ilike(pattern, escape="\\"),
-            RecordingSchedule.stream_url.ilike(pattern, escape="\\"),
-            RecordingSchedule.recorder.ilike(pattern, escape="\\"),
-            RecordingSchedule.file_type.ilike(pattern, escape="\\"),
-            RecordingSchedule.error_message.ilike(pattern, escape="\\"),
-            User.display_name.ilike(pattern, escape="\\"),
-            User.username.ilike(pattern, escape="\\"),
-        ]
-        normalized_query = query.casefold()
-        matching_statuses = [
-            status
-            for status, label in STATUS_LABELS.items()
-            if status in HISTORY_SCHEDULE_STATUSES
-            and normalized_query in label.casefold()
-        ]
-        if matching_statuses:
-            search_conditions.append(RecordingSchedule.status.in_(matching_statuses))
-        if normalized_query in "einmalig":
-            search_conditions.append(RecordingSchedule.recurrence_id.is_(None))
-        if normalized_query in "wiederholend":
-            search_conditions.append(RecordingSchedule.recurrence_id.is_not(None))
-        conditions.append(or_(*search_conditions))
+        # Search only the displayed Aufnahme, Stream, Rekorder, Start and Ende columns.
+        fields = (
+            RecordingSchedule.title,
+            case(
+                (RecordingSchedule.recurrence_id.is_(None), "Einmalig"),
+                else_="Wiederholend",
+            ),
+            case((User.id.is_not(None), "von " + User.display_name), else_=""),
+            RecordingSchedule.stream_name,
+            case(
+                dict(RECORDER_CHOICES),
+                value=RecordingSchedule.recorder,
+                else_=RecordingSchedule.recorder,
+            ),
+            "Dateityp:",
+            RecordingSchedule.file_type,
+            func.awas_local_datetime(RecordingSchedule.starts_at, request.app.state.timezone),
+            func.awas_local_datetime(RecordingSchedule.ends_at, request.app.state.timezone),
+        )
+        searchable = func.coalesce(fields[0], "")
+        for field in fields[1:]:
+            searchable = searchable + " " + func.coalesce(field, "")
+        conditions.append(func.awas_search_text(searchable).like(pattern, escape="\\"))
 
     history_rows = (
         select(RecordingSchedule)

@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select, text
@@ -9,6 +10,23 @@ from awas.models.auth import utc_now
 from awas.services.auth import create_user
 from awas.services.streams import StreamCheckResult
 from tests.conftest import form_token, login
+
+
+@pytest.fixture(params=("admin", "user"))
+def stream_deleter(app: FastAPI, admin, request):
+    if request.param == "admin":
+        return "admin", "a-secure-admin-password"
+    with app.state.session_factory() as db:
+        create_user(
+            db,
+            username="deleter",
+            display_name="Stream Deleter",
+            password="deleter",
+            password_confirmation="deleter",
+            role="user",
+            must_change_password=False,
+        )
+    return "deleter", "deleter"
 
 
 def add_stream(
@@ -116,6 +134,7 @@ def test_stream_delete_preserves_visible_history_snapshot_and_recordings(
     app: FastAPI,
     client: TestClient,
     admin,
+    stream_deleter,
 ) -> None:
     now = utc_now()
     with app.state.session_factory() as db:
@@ -179,7 +198,7 @@ def test_stream_delete_preserves_visible_history_snapshot_and_recordings(
         schedule_id = schedule.id
         recording_id = recording.id
 
-    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    assert login(client, *stream_deleter).status_code == 303
 
     history_before = client.get("/history")
     assert "Morgensendung am Montag" in history_before.text
@@ -222,7 +241,9 @@ def test_stream_delete_preserves_visible_history_snapshot_and_recordings(
     assert "Antenne Münster" in schedule_history.text
     assert "https://radio.example/antenne-muenster" in schedule_history.text
     assert f'href="/schedules/{schedule_id}/copy"' not in schedule_history.text
-    assert f'action="/schedules/{schedule_id}/delete"' in schedule_history.text
+    assert (f'action="/schedules/{schedule_id}/delete"' in schedule_history.text) == (
+        stream_deleter[0] == "admin"
+    )
     assert client.get(f"/schedules/{schedule_id}/copy").status_code == 409
 
     recordings = client.get("/recordings")
@@ -234,6 +255,7 @@ def test_stream_delete_is_blocked_by_active_schedule_and_recurrence(
     app: FastAPI,
     client: TestClient,
     admin,
+    stream_deleter,
 ) -> None:
     now = utc_now()
     with app.state.session_factory() as db:
@@ -259,7 +281,7 @@ def test_stream_delete_is_blocked_by_active_schedule_and_recurrence(
         stream_id = stream.id
         schedule_id = schedule.id
 
-    assert login(client, "admin", "a-secure-admin-password").status_code == 303
+    assert login(client, *stream_deleter).status_code == 303
     confirmation = client.get("/streams")
     blocked_by_schedule = client.post(
         f"/admin/streams/{stream_id}/delete",
@@ -383,8 +405,8 @@ def test_stream_connection_result_is_persisted(
         assert db.scalar(select(AuditLog).where(AuditLog.action == "stream.tested"))
 
 
-def test_normal_user_can_create_and_edit_streams_but_not_delete_them(
-    app: FastAPI, client: TestClient
+def test_normal_user_can_create_edit_and_delete_streams(
+    app: FastAPI, client: TestClient, admin
 ) -> None:
     with app.state.session_factory() as db:
         existing = Stream(
@@ -392,9 +414,10 @@ def test_normal_user_can_create_and_edit_streams_but_not_delete_them(
             stream_url="https://radio.example/existing",
             preferred_recorder="ffmpeg",
             preferred_file_type="mp3",
+            created_by_id=admin.id,
         )
         db.add(existing)
-        create_user(
+        user = create_user(
             db,
             username="listener",
             display_name="Listener",
@@ -405,18 +428,26 @@ def test_normal_user_can_create_and_edit_streams_but_not_delete_them(
         )
         db.commit()
         existing_id = existing.id
+        user_id = user.id
+    anonymous = client.post(
+        f"/admin/streams/{existing_id}/delete",
+        data={"csrf_token": "no-session", "delete_confirmed": "true"},
+        follow_redirects=False,
+    )
+    assert anonymous.status_code == 303
+    assert anonymous.headers["location"].startswith("/login")
     assert login(client, "listener", "listener").status_code == 303
     listing = client.get("/streams")
     assert listing.status_code == 200
     assert "Stream hinzufügen" in listing.text
     assert ">Ändern</a>" in listing.text
-    assert 'class="action-initial-label">Löschen</span>' not in listing.text
+    assert 'class="action-initial-label">Löschen</span>' in listing.text
 
     created = add_stream(client, name="User Stream")
     assert created.status_code == 303
     detail = client.get(f"/admin/streams/{existing_id}")
     assert detail.status_code == 200
-    assert "Stream löschen" not in detail.text
+    assert "Stream löschen" in detail.text
     updated = client.post(
         f"/admin/streams/{existing_id}",
         data={
@@ -429,16 +460,33 @@ def test_normal_user_can_create_and_edit_streams_but_not_delete_them(
         follow_redirects=False,
     )
     assert updated.status_code == 303
-    rejected = client.post(
+    rejected_csrf = client.post(
+        f"/admin/streams/{existing_id}/delete",
+        data={"csrf_token": "invalid", "delete_confirmed": "true"},
+    )
+    assert rejected_csrf.status_code == 403
+    missing_confirmation = client.post(
+        f"/admin/streams/{existing_id}/delete",
+        data={"csrf_token": form_token(detail.text)},
+    )
+    assert missing_confirmation.status_code == 400
+    with app.state.session_factory() as db:
+        assert db.get(Stream, existing_id).name == "Edited by User"
+    deleted = client.post(
         f"/admin/streams/{existing_id}/delete",
         data={
             "csrf_token": form_token(detail.text),
             "delete_confirmed": "true",
         },
+        follow_redirects=False,
     )
-    assert rejected.status_code == 403
+    assert deleted.status_code == 303
+    assert deleted.headers["location"] == "/streams?status=deleted"
     with app.state.session_factory() as db:
-        assert db.get(Stream, existing_id).name == "Edited by User"
+        assert db.get(Stream, existing_id) is None
+        audit = db.scalar(select(AuditLog).where(AuditLog.action == "stream.deleted"))
+        assert audit.actor_user_id == user_id
+        assert audit.target_id == existing_id
 
 
 def test_streams_are_sorted_case_insensitively_with_nonletters_first(

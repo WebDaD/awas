@@ -49,20 +49,18 @@
       </form>
     </article>
 
-    {% if current_user.is_admin %}
-      <article class="panel settings-card danger-zone">
-        <h2>Stream löschen</h2>
-        <p>Streams mit sichtbaren Zeitplänen oder Wiederholungen können nicht gelöscht werden. Vorhandene Aufnahmen und die Aufnahmehistorie bleiben unabhängig vom Stream erhalten.</p>
-        <form method="post" action="/admin/streams/{{ stream.id }}/delete">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
-          <button class="button button-danger action-confirm-button" type="submit" data-action-confirm>
-            <span class="action-initial-label">Löschen</span>
-            <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
-          </button>
-        </form>
-      </article>
-    {% endif %}
+    <article class="panel settings-card danger-zone">
+      <h2>Stream löschen</h2>
+      <p>Streams mit sichtbaren Zeitplänen oder Wiederholungen können nicht gelöscht werden. Vorhandene Aufnahmen und die Aufnahmehistorie bleiben unabhängig vom Stream erhalten.</p>
+      <form method="post" action="/admin/streams/{{ stream.id }}/delete">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="delete_confirmed" value="" data-action-confirm-value>
+        <button class="button button-danger action-confirm-button" type="submit" data-action-confirm>
+          <span class="action-initial-label">Löschen</span>
+          <span class="action-confirm-label" aria-hidden="true">Wirklich löschen?</span>
+        </button>
+      </form>
+    </article>
   </section>
   </div>
 {% endblock %}
