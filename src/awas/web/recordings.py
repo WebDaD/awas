@@ -75,28 +75,21 @@ def build_recording_router(templates: Jinja2Templates) -> APIRouter:
         user: User = Depends(require_user),
         db: Session = Depends(database),
     ) -> Response:
-        validate_csrf(request, csrf_token)
-        stream = db.get(Stream, stream_id)
-        if stream is None:
-            raise HTTPException(status_code=404, detail="Stream nicht gefunden")
-        manager: RecordingManager = request.app.state.recording_manager
-        try:
-            manager.start_recording(
-                db,
-                stream=stream,
-                actor=user,
-                ip_address=client_ip(request),
-            )
-        except RecordingError as exc:
-            return render_stream_list(
-                templates,
-                request,
-                db,
-                user=user,
-                error=str(exc),
-                status_code=400,
-            )
-        return RedirectResponse(url="/streams?status=started", status_code=303)
+        return start_stream_recording(
+            templates, stream_id, request, csrf_token, user, db, is_test=False
+        )
+
+    @router.post("/streams/{stream_id}/recordings/test", include_in_schema=False)
+    async def start_test_recording(
+        stream_id: int,
+        request: Request,
+        csrf_token: str = Form(..., max_length=128),
+        user: User = Depends(require_user),
+        db: Session = Depends(database),
+    ) -> Response:
+        return start_stream_recording(
+            templates, stream_id, request, csrf_token, user, db, is_test=True
+        )
 
     @router.post("/recordings/{recording_id}/stop", include_in_schema=False)
     async def stop_recording(
@@ -210,6 +203,32 @@ def build_recording_router(templates: Jinja2Templates) -> APIRouter:
         return RedirectResponse(url="/recordings?status=deleted", status_code=303)
 
     return router
+
+
+def start_stream_recording(
+    templates: Jinja2Templates,
+    stream_id: int,
+    request: Request,
+    csrf_token: str,
+    user: User,
+    db: Session,
+    *,
+    is_test: bool,
+) -> Response:
+    validate_csrf(request, csrf_token)
+    stream = db.get(Stream, stream_id)
+    if stream is None:
+        raise HTTPException(status_code=404, detail="Stream nicht gefunden")
+    manager: RecordingManager = request.app.state.recording_manager
+    try:
+        manager.start_recording(
+            db, stream=stream, actor=user, ip_address=client_ip(request), is_test=is_test
+        )
+    except RecordingError as exc:
+        return render_stream_list(
+            templates, request, db, user=user, error=str(exc), status_code=400
+        )
+    return RedirectResponse(url="/streams?status=started", status_code=303)
 
 
 def get_recording(db: Session, recording_id: int) -> Recording:

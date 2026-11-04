@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% set editing = rule is not none %}
-{% block title %}{{ 'Wiederholung bearbeiten' if editing else 'Wiederkehrend planen' }} · AWAS{% endblock %}
+{% block title %}{{ 'Wiederholung bearbeiten' if editing else 'Wiederholend planen' }} · AWAS{% endblock %}
 {% block content %}
   <section class="page-heading compact-heading heading-with-action">
     <div>
-      <h1>{{ 'Wiederholung bearbeiten' if editing else 'Wiederkehrend planen' }}</h1>
+      <h1>{{ 'Wiederholung bearbeiten' if editing else 'Wiederholend planen' }}</h1>
     </div>
   </section>
   {% if error %}<div class="notice notice-error" role="alert">{{ error }}</div>{% endif %}

@@ -2,7 +2,7 @@
 
 AWAS 3 is a from-scratch rewrite of the AWAS stream recorder.
 
-Version 3.0.25 provides the production foundation, authentication, stream
+Version 3.0.26 provides the production foundation, authentication, stream
 management and recording:
 
 - Python 3.12 or newer, FastAPI and Jinja2
@@ -55,6 +55,9 @@ management and recording:
 - every stored stream is available for recording; stream management has no separate
   activation state
 - one-click recordings from the stream list
+- one-click 60-second recordings named `Testaufnahme`, using the stream's preferred
+  recorder and file type, with a red `Testaufnahme (60 Sek.)` button
+- automatic server-side termination of spontaneous recordings after 24 hours
 - any number of spontaneous and planned recordings of the same stream can run in parallel
 - a preferred recorder and file type per stream, with overrides that apply only to
   the individual schedule
@@ -83,6 +86,8 @@ management and recording:
 - recurring schedules with configurable hourly, daily, weekly and monthly
   intervals, including fixed monthly dates and positions such as the first Monday
 - recurring schedules show their daily time range under `Uhrzeit` on the planning page
+- consistent `Wiederholend planen` form headings, with `Wiederholend` recognized
+  as a recording type by the history search
 - pausable series with optional validity ranges and DST-safe occurrence generation
 - expired recurrence rules disappear automatically from planning, which contains
   only upcoming, running, active and paused entries
@@ -188,12 +193,15 @@ attempt that runs for at least one minute resets the delay to 15 seconds. Each
 successful restart creates a separate physical recording segment. AWAS groups all
 attempts and files of the same planned recording into one visible entry. A download
 containing more than one file is delivered as an uncompressed ZIP archive; deleting
-the entry removes every associated file. Spontaneous recordings have no end time and
-are therefore not restarted automatically. A retrying schedule can be stopped manually
-to prevent any further attempts.
+the entry removes every associated file. Spontaneous recordings stop automatically
+after 24 hours. The stream list also offers immediate 60-second test recordings,
+stored as `Testaufnahme` with that stream's preferred recorder and file type.
+Neither spontaneous nor test recordings are restarted automatically. A retrying
+schedule can be stopped manually to prevent any further attempts.
 
-At a scheduled end time or after a manual stop request, AWAS sends SIGTERM to
-the recording's process group. A separate 60-second grace period runs for each
+At a scheduled end time, an automatic duration limit, or after a manual stop
+request, AWAS sends SIGTERM to the recording's process group. A separate
+60-second grace period runs for each
 recording without blocking other recordings or the scheduler. If the process is
 still running when its grace period expires, AWAS sends SIGKILL to that process
 group. A normal exit cancels the pending forced stop; repeated stop requests do

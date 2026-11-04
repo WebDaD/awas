@@ -386,6 +386,7 @@ class RecordingScheduler:
     def run_due(self, now: datetime | None = None) -> None:
         current_time = now or utc_now()
         with self._run_lock, self._session_factory() as db:
+            self._recording_manager.stop_expired_unplanned_recordings(db, now=current_time)
             refresh_due = (
                 self._last_recurrence_refresh is None
                 or current_time - self._last_recurrence_refresh >= timedelta(minutes=1)

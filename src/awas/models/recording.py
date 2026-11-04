@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
     String,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,6 +59,7 @@ class Recording(Base):
     storage_directory: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     recorder: Mapped[str] = mapped_column(String(32), default="streamripper")
     file_type: Mapped[str] = mapped_column(String(16), default="ts")
+    is_test: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     status: Mapped[str] = mapped_column(String(16), default="starting", index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, index=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

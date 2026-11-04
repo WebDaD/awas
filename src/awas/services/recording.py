@@ -10,7 +10,7 @@ import subprocess
 import threading
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from glob import escape as glob_escape
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -42,6 +42,8 @@ from awas.services.recorders import (
 
 logger = logging.getLogger(__name__)
 RECORDING_STOP_TIMEOUT_SECONDS = 60
+SPONTANEOUS_RECORDING_MAX_DURATION = timedelta(hours=24)
+TEST_RECORDING_DURATION = timedelta(seconds=60)
 STAGED_DELETE_PATTERN = re.compile(
     r"^\.awas-delete-(\d+)(?:-(\d+))?-[0-9a-f]{8}\.pending$"
 )
@@ -115,6 +117,12 @@ class RecordingGroup:
     group_key: str
     attempts: tuple[Recording, ...]
     files: tuple[RecordingFileInfo, ...]
+
+    @property
+    def title(self) -> str:
+        if self.current_recording.is_test:
+            return "Testaufnahme"
+        return self.schedule.title if self.schedule is not None else "Spontanaufnahme"
 
     @property
     def id(self) -> int:
@@ -657,7 +665,10 @@ class RecordingManager:
         file_name_base: str | None = None,
         recorder: str | None = None,
         file_type: str | None = None,
+        is_test: bool = False,
     ) -> Recording:
+        if is_test and schedule_id is not None:
+            raise ValueError("Test recordings must not belong to a schedule")
         try:
             selected_recorder = validate_recorder(recorder or stream.preferred_recorder)
             # Stored recordings keep their suffix even after it leaves the selection list.
@@ -676,8 +687,9 @@ class RecordingManager:
                 raise RecordingError(
                     "Das Aufnahmeverzeichnis ist nicht verfügbar oder nicht beschreibbar."
                 ) from exc
+            selected_file_name_base = "Testaufnahme" if is_test else file_name_base or stream.name
             file_name = recording_file_name(
-                file_name_base or stream.name,
+                selected_file_name_base,
                 file_type_extension(selected_file_type),
                 self._timezone,
             )
@@ -710,6 +722,7 @@ class RecordingManager:
                 storage_directory=str(recording_directory),
                 recorder=selected_recorder,
                 file_type=selected_file_type,
+                is_test=is_test,
                 status="starting",
                 started_at=utc_now(),
                 started_by_id=actor.id if actor else None,
@@ -730,7 +743,8 @@ class RecordingManager:
                     "schedule_id": schedule_id,
                     "recorder": selected_recorder,
                     "file_type": selected_file_type,
-                    "file_name_base": file_name_base or stream.name,
+                    "file_name_base": selected_file_name_base,
+                    "is_test": is_test,
                     "storage_directory": str(recording_directory),
                     "group_key": group_key,
                 },
@@ -773,6 +787,30 @@ class RecordingManager:
             thread.start()
             return recording
 
+    def stop_expired_unplanned_recordings(self, db: Session, *, now: datetime) -> None:
+        recordings = list(
+            db.scalars(
+                select(Recording).where(
+                    Recording.schedule_id.is_(None),
+                    Recording.status.in_(("starting", "recording")),
+                )
+            )
+        )
+        for recording in recordings:
+            limit = (
+                TEST_RECORDING_DURATION
+                if recording.is_test
+                else SPONTANEOUS_RECORDING_MAX_DURATION
+            )
+            if now < recording.started_at + limit:
+                continue
+            try:
+                self.stop_recording(
+                    db, recording=recording, actor=None, ip_address=None, reason="duration_limit"
+                )
+            except RecordingError:
+                logger.info("Unplanned recording %s already stopped", recording.id)
+
     def stop_recording(
         self,
         db: Session,
@@ -782,7 +820,7 @@ class RecordingManager:
         ip_address: str | None,
         reason: str = "user",
     ) -> None:
-        if reason not in {"user", "schedule"}:
+        if reason not in {"user", "schedule", "duration_limit"}:
             raise ValueError("Unknown recording stop reason")
         with self._lock:
             running = self._running.get(recording.id)
@@ -1042,7 +1080,7 @@ class RecordingManager:
                     recording.schedule is not None
                     and recording.ended_at < recording.schedule.ends_at
                 )
-                if stop_reason in {"user", "schedule"}:
+                if stop_reason in {"user", "schedule", "duration_limit"}:
                     recording.status = "completed"
                     recording.error_message = None
                     action = "recording.completed"
@@ -1050,6 +1088,15 @@ class RecordingManager:
                     recording.status = "interrupted"
                     recording.error_message = "AWAS wurde während der Aufnahme beendet."
                     action = "recording.interrupted"
+                elif recording.is_test and recording.ended_at < (
+                    recording.started_at + TEST_RECORDING_DURATION
+                ):
+                    recording.status = "failed"
+                    recording.error_message = (
+                        f"{recorder_label(recording.recorder)} wurde vor dem Ende der "
+                        f"Testaufnahme mit Status {process.returncode} beendet."
+                    )
+                    action = "recording.failed"
                 elif ended_early:
                     recording.status = "interrupted"
                     recording.error_message = (

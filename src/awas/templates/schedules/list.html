@@ -34,7 +34,7 @@
                 {% set recording = entry.recording %}
                 <tr class="recording-data-row recording-data-row-with-file recording-active-row" data-filter-row="planning-list" data-filter-user-id="{{ schedule.created_by_id if schedule else recording.started_by_id if recording else '' }}" data-filter-group="planning-running-{{ schedule.id if schedule else recording.group_key }}">
                   <td data-label="Aufnahme">
-                    <strong>{{ schedule.title if schedule else 'Spontanaufnahme' }}</strong>
+                    <strong>{{ schedule.title if schedule else recording.title }}</strong>
                     <small>{{ ('Wiederholend' if schedule.recurrence_id else 'Einmalig') if schedule else 'Spontan' }}</small>
                     {% if schedule and schedule.created_by %}<small>von {{ schedule.created_by.display_name }}</small>{% elif recording and recording.started_by %}<small>von {{ recording.started_by.display_name }}</small>{% endif %}
                   </td>

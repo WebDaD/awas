@@ -24,7 +24,7 @@ def set_database_revision(app: FastAPI) -> None:
         )
         connection.execute(text("DELETE FROM alembic_version"))
         connection.execute(
-            text("INSERT INTO alembic_version (version_num) VALUES ('0023')")
+            text("INSERT INTO alembic_version (version_num) VALUES ('0024')")
         )
 
 
@@ -57,7 +57,7 @@ def test_admin_exports_complete_database(
     with sqlite3.connect(export_path) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("0023",)
+        ).fetchone() == ("0024",)
         assert connection.execute(
             "SELECT name FROM streams WHERE name = 'Export Stream'"
         ).fetchone() == ("Export Stream",)
@@ -221,6 +221,20 @@ def test_database_round_trip_preserves_schedule_history(
                     created_by_id=admin.id,
                 )
             )
+        db.add(
+            Recording(
+                stream_id=stream.id,
+                stream_name=stream.name,
+                file_name="testaufnahme-backup.mp3",
+                recorder="ffmpeg",
+                file_type="mp3",
+                is_test=True,
+                status="completed",
+                started_at=now - timedelta(minutes=2),
+                ended_at=now - timedelta(minutes=1),
+                started_by_id=admin.id,
+            )
+        )
         db.commit()
 
     assert login(client, "admin", "a-secure-admin-password").status_code == 303
@@ -235,6 +249,7 @@ def test_database_round_trip_preserves_schedule_history(
 
     with app.state.session_factory() as db:
         db.execute(delete(RecordingSchedule))
+        db.execute(delete(Recording))
         db.commit()
     without_history = client.get("/history")
     assert "Abgeschlossene Historie" not in without_history.text
@@ -263,6 +278,8 @@ def test_database_round_trip_preserves_schedule_history(
     with app.state.session_factory() as db:
         statuses = set(db.scalars(select(RecordingSchedule.status)))
         assert statuses == {"completed", "missed", "failed", "cancelled"}
+        assert db.scalar(select(Recording.is_test)) is True
+    assert "<strong>Testaufnahme</strong>" in client.get("/recordings").text
 
 
 def test_database_import_rejects_invalid_file(

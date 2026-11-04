@@ -512,7 +512,7 @@ def render_history(
             search_conditions.append(RecordingSchedule.status.in_(matching_statuses))
         if normalized_query in "einmalig":
             search_conditions.append(RecordingSchedule.recurrence_id.is_(None))
-        if normalized_query in "wiederkehrend":
+        if normalized_query in "wiederholend":
             search_conditions.append(RecordingSchedule.recurrence_id.is_not(None))
         conditions.append(or_(*search_conditions))
 

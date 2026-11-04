@@ -37,6 +37,10 @@
                         <button class="button button-record button-small" type="submit">Aufnahme jetzt starten<span class="record-dot" aria-hidden="true"></span></button>
                       </form>
                       <a class="button button-quiet button-small" href="/admin/streams/{{ stream.id }}">Ändern</a>
+                      <form method="post" action="/streams/{{ stream.id }}/recordings/test">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="button button-record button-small" type="submit">Testaufnahme (60 Sek.)</button>
+                      </form>
                       {% if current_user.is_admin %}
                         <form method="post" action="/admin/streams/{{ stream.id }}/delete">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

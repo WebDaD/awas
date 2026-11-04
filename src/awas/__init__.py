@@ -1,4 +1,4 @@
 """AWAS stream recorder."""
 
-__version__ = "3.0.25"
-__release_date__ = "02.11.2026"
+__version__ = "3.0.26"
+__release_date__ = "04.11.2026"
